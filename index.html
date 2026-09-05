@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Puzzle d'Art Aleatori">
+    <meta name="theme-color" content="#2c3e50">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <link rel="stylesheet" href="style.css">
+    <title>Puzzle Art</title>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Puzzle Art Aleatori</h1>
+        
+        <button id="carregarBtn" class="btn-principal">Carregar Imatge Nova</button>
+        
+        <div class="controls">
+            <label>Divisions: 
+                <select id="divisionsSelect">
+                    <option value="3">3×3 (9 peces)</option>
+                    <option value="4" selected>4×4 (16 peces)</option>
+                    <option value="5">5×5 (25 peces)</option>
+                </select>
+            </label>
+        </div>
+
+        <div id="puzzleContainer" class="puzzle-grid"></div>
+        <div id="imagePreview" class="image-preview">
+            <p>Aquí es mostrarà la imatge original</p>
+        </div>
+
+        <div id="missatge" class="missatge"></div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('service-worker.js');
+        }
+    </script>
+</body>
+</html>
