@@ -6,21 +6,13 @@ const divisionsSelect = document.getElementById('divisionsSelect');
 
 let imagenActual = null;
 let divisions = 4;
-let piecesCorrectes = 0;
-
-// APIs públiques per a imatges
-const APIs = [
-    'https://api.unsplash.com/photos/random?client_id=YOUR_UNSPLASH_KEY&w=600&h=600',
-    'https://picsum.photos/600/600?random=',
-    'https://source.unsplash.com/600x600/?nature,art'
-];
+let canvasImg = null;
 
 async function carregarImagenAleatoria() {
     try {
         missatgeDiv.textContent = 'Carregant imatge...';
         missatgeDiv.className = '';
         
-        // Usar Picsum que no necessita API key
         const timestamp = new Date().getTime();
         const imageUrl = `https://picsum.photos/600/600?random=${timestamp}`;
         
@@ -29,6 +21,7 @@ async function carregarImagenAleatoria() {
         
         img.onload = () => {
             imagenActual = imageUrl;
+            canvasImg = img;
             mostrarImatge();
             crearPuzzle();
             missatgeDiv.textContent = '';
@@ -49,7 +42,7 @@ async function carregarImagenAleatoria() {
 }
 
 function mostrarImatge() {
-    imagePreview.innerHTML = `<img src="${imagenActual}" alt="Original">`;
+    imagePreview.innerHTML = `<img src="${imagenActual}" alt="Original" style="max-width:100%; border-radius:6px;">`;
 }
 
 function crearPuzzle() {
@@ -57,39 +50,64 @@ function crearPuzzle() {
     puzzleContainer.innerHTML = '';
     puzzleContainer.style.gridTemplateColumns = `repeat(${divisions}, 1fr)`;
     
-    piecesCorrectes = 0;
     const totalPieces = divisions * divisions;
+    const tamanyPeca = 600 / divisions;
     
-    // Crear array amb les posicions
+    // Array amb les posicions correctes
     const posiciones = Array.from({length: totalPieces}, (_, i) => i);
     
-    // Desordenar
+    // Desordenar (Fisher-Yates shuffle)
     for (let i = posiciones.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [posiciones[i], posiciones[j]] = [posiciones[j], posiciones[i]];
     }
     
     // Crear peces
-    posiciones.forEach((posicio, index) => {
+    posiciones.forEach((posicioCorrecta, indexActual) => {
         const piece = document.createElement('div');
         piece.className = 'puzzle-piece';
         piece.draggable = true;
-        piece.dataset.posicioCorrecta = posicio;
-        piece.dataset.posicioActual = index;
+        piece.dataset.posicioCorrecta = posicioCorrecta;
+        piece.dataset.posicioActual = indexActual;
         
-        // Calcular posició a la imatge
-        const fila = Math.floor(posicio / divisions);
-        const columna = posicio % divisions;
-        const tamanyPeca = 600 / divisions;
+        // Calcular fila i columna de la peca
+        const fila = Math.floor(posicioCorrecta / divisions);
+        const columna = posicioCorrecta % divisions;
         
-        piece.style.backgroundImage = `url('${imagenActual}')`;
-        piece.style.backgroundPosition = `${columna * tamanyPeca}px ${fila * tamanyPeca}px`;
-        piece.style.backgroundSize = `${divisions * tamanyPeca}px ${divisions * tamanyPeca}px`;
+        // Crear canvas per cada peca
+        const canvas = document.createElement('canvas');
+        canvas.width = tamanyPeca;
+        canvas.height = tamanyPeca;
+        const ctx = canvas.getContext('2d');
         
+        if (canvasImg) {
+            ctx.drawImage(
+                canvasImg,
+                columna * tamanyPeca,
+                fila * tamanyPeca,
+                tamanyPeca,
+                tamanyPeca,
+                0,
+                0,
+                tamanyPeca,
+                tamanyPeca
+            );
+        }
+        
+        piece.style.backgroundImage = `url('${canvas.toDataURL()}')`;
+        piece.style.backgroundSize = 'cover';
+        piece.style.backgroundPosition = 'center';
+        
+        // Events
         piece.addEventListener('dragstart', dragStart);
         piece.addEventListener('dragover', dragOver);
         piece.addEventListener('drop', drop);
         piece.addEventListener('dragend', dragEnd);
+        
+        // Touch events per a iPhone
+        piece.addEventListener('touchstart', touchStart);
+        piece.addEventListener('touchmove', touchMove);
+        piece.addEventListener('touchend', touchEnd);
         
         puzzleContainer.appendChild(piece);
     });
@@ -99,7 +117,7 @@ let draggedElement = null;
 
 function dragStart(e) {
     draggedElement = this;
-    this.style.opacity = '0.5';
+    this.style.opacity = '0.6';
     e.dataTransfer.effectAllowed = 'move';
 }
 
@@ -111,13 +129,13 @@ function dragOver(e) {
 function drop(e) {
     e.preventDefault();
     
-    if (draggedElement !== this) {
-        // Intercanviar peces
-        const temp = draggedElement.dataset.posicioActual;
+    if (draggedElement && draggedElement !== this) {
+        // Intercanviar
+        const tempData = draggedElement.dataset.posicioActual;
         draggedElement.dataset.posicioActual = this.dataset.posicioActual;
-        this.dataset.posicioActual = temp;
+        this.dataset.posicioActual = tempData;
         
-        // Reordenar al DOM
+        // Reordenar DOM
         const allPieces = Array.from(puzzleContainer.children);
         const indexA = allPieces.indexOf(draggedElement);
         const indexB = allPieces.indexOf(this);
@@ -137,6 +155,45 @@ function dragEnd(e) {
     draggedElement = null;
 }
 
+// Touch support per a iPhone
+let touchItem = null;
+
+function touchStart(e) {
+    touchItem = this;
+    this.style.opacity = '0.6';
+}
+
+function touchMove(e) {
+    e.preventDefault();
+}
+
+function touchEnd(e) {
+    this.style.opacity = '1';
+    
+    const touch = e.changedTouches[0];
+    const element = document.elementFromPoint(touch.clientX, touch.clientY);
+    
+    if (element && element.classList.contains('puzzle-piece') && element !== touchItem) {
+        const tempData = touchItem.dataset.posicioActual;
+        touchItem.dataset.posicioActual = element.dataset.posicioActual;
+        element.dataset.posicioActual = tempData;
+        
+        const allPieces = Array.from(puzzleContainer.children);
+        const indexA = allPieces.indexOf(touchItem);
+        const indexB = allPieces.indexOf(element);
+        
+        if (indexA < indexB) {
+            element.parentNode.insertBefore(touchItem, element);
+        } else {
+            element.parentNode.insertBefore(element, touchItem);
+        }
+        
+        verificarSolucio();
+    }
+    
+    touchItem = null;
+}
+
 function verificarSolucio() {
     const pieces = Array.from(puzzleContainer.children);
     let correctes = 0;
@@ -153,7 +210,7 @@ function verificarSolucio() {
         }
     });
     
-    if (correctes === pieces.length) {
+    if (correctes === pieces.length && pieces.length > 0) {
         missatgeDiv.textContent = '🎉 ¡Victòria! Puzzle completat!';
         missatgeDiv.className = 'victòria';
     }
@@ -161,7 +218,7 @@ function verificarSolucio() {
 
 carregarBtn.addEventListener('click', carregarImagenAleatoria);
 divisionsSelect.addEventListener('change', () => {
-    if (imagenActual) crearPuzzle();
+    if (imagenActual && canvasImg) crearPuzzle();
 });
 
 // Carregar imatge al iniciar
