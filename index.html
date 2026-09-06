@@ -1,23 +1,18 @@
 <!DOCTYPE html>
 <html lang="ca">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Puzzle Art</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        /* El teu estil original es manté igual */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 20px;
         }
-
         .container {
             max-width: 600px;
             margin: 0 auto;
@@ -26,13 +21,7 @@
             padding: 20px;
             box-shadow: 0 10px 40px rgba(0,0,0,0.2);
         }
-
-        h1 {
-            text-align: center;
-            margin-bottom: 20px;
-            color: #667eea;
-        }
-
+        h1 { text-align: center; margin-bottom: 20px; color: #667eea; }
         button {
             display: block;
             width: 100%;
@@ -46,23 +35,17 @@
             cursor: pointer;
             margin-bottom: 15px;
         }
-
-        button:active {
-            background: #5568d3;
-        }
-
+        button:active { background: #5568d3; }
         .controls {
             text-align: center;
             margin-bottom: 20px;
         }
-
         select {
             padding: 8px 12px;
             border-radius: 6px;
             border: 2px solid #667eea;
             font-size: 14px;
         }
-
         .puzzle-grid {
             display: grid;
             gap: 4px;
@@ -72,7 +55,6 @@
             border-radius: 8px;
             min-height: 300px;
         }
-
         .puzzle-piece {
             background-size: cover;
             background-position: center;
@@ -82,27 +64,31 @@
             user-select: none;
             -webkit-user-select: none;
         }
-
         .puzzle-piece:active {
             cursor: grabbing;
             opacity: 0.8;
             z-index: 100;
         }
-
         .image-preview {
             background: #f5f5f5;
             padding: 15px;
             border-radius: 8px;
             text-align: center;
             margin-bottom: 15px;
+            min-height: 150px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
-
         .image-preview img {
             max-width: 100%;
             max-height: 250px;
             border-radius: 6px;
         }
-
+        .image-preview .placeholder {
+            color: #999;
+            font-style: italic;
+        }
         .log {
             background: #f0f0f0;
             padding: 10px;
@@ -110,15 +96,21 @@
             font-size: 12px;
             margin-top: 10px;
             color: #666;
+            min-height: 1.5em;
+        }
+        .error-msg {
+            color: #d32f2f;
+            background: #ffebee;
+            padding: 10px;
+            border-radius: 6px;
+            margin: 10px 0;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>🎨 Puzzle Art</h1>
-        
         <button id="carregarBtn">Carregar Imatge Nova</button>
-        
         <div class="controls">
             <label>Divisions: 
                 <select id="divisionsSelect">
@@ -128,9 +120,10 @@
                 </select>
             </label>
         </div>
-
         <div id="puzzleContainer" class="puzzle-grid"></div>
-        <div id="imagePreview" class="image-preview"><p>Aquí es mostrarà la imatge original</p></div>
+        <div id="imagePreview" class="image-preview">
+            <span class="placeholder">Carregant imatge...</span>
+        </div>
         <div class="log" id="log">Esperant acció...</div>
     </div>
 
@@ -149,50 +142,111 @@
             logDiv.textContent = msg;
         }
 
+        // Genera una imatge de reserva (un gradient de colors) si falla la càrrega
+        function generarImatgeReserva() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 400;
+            canvas.height = 400;
+            const ctx = canvas.getContext('2d');
+            // Fons gradient
+            const gradient = ctx.createLinearGradient(0, 0, 400, 400);
+            gradient.addColorStop(0, '#ff6b6b');
+            gradient.addColorStop(0.5, '#feca57');
+            gradient.addColorStop(1, '#48dbfb');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, 400, 400);
+            // Dibuixar unes formes
+            ctx.fillStyle = 'rgba(255,255,255,0.3)';
+            ctx.beginPath();
+            ctx.arc(200, 200, 120, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = 'rgba(0,0,0,0.2)';
+            ctx.font = 'bold 40px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('🎨', 200, 200);
+            return canvas.toDataURL('image/png');
+        }
+
         function carregarImagenAleatoria() {
             log('🔄 Carregant imatge...');
-            
-            const timestamp = Date.now();
-            const imageUrl = `https://picsum.photos/400/400?random=${timestamp}`;
-            
+            imagePreview.innerHTML = '<span class="placeholder">Carregant...</span>';
+
+            const seed = Math.floor(Math.random() * 100000);
+            const imageUrl = `https://picsum.photos/seed/${seed}/400/400`;
+
             const img = new Image();
             img.crossOrigin = 'anonymous';
-            
+
+            let carregada = false;
+
             img.onload = () => {
-                log('✅ Imatge carregada');
+                carregada = true;
+                log('✅ Imatge carregada correctament');
                 imagenActual = imageUrl;
                 mostrarImatge();
                 crearPuzzle();
             };
-            
+
             img.onerror = () => {
-                log('❌ Error al carregar la imatge');
+                log('❌ Error en carregar la imatge externa. S\'utilitzarà una de reserva.');
+                // Utilitzar imatge de reserva
+                imagenActual = generarImatgeReserva();
+                mostrarImatge();
+                crearPuzzle();
             };
-            
+
+            // Timeout per si la càrrega es queda bloquejada
+            const timeout = setTimeout(() => {
+                if (!carregada) {
+                    log('⏱️ Temps d\'espera excedit. Usant imatge de reserva.');
+                    img.src = ''; // cancel·lar càrrega
+                    imagenActual = generarImatgeReserva();
+                    mostrarImatge();
+                    crearPuzzle();
+                }
+            }, 10000);
+
             img.src = imageUrl;
+            // Si la imatge ja està en caché, l'esdeveniment onload es dispara immediatament,
+            // però el timeout es netejarà en onload.
+            // Per garantir que el timeout no es dispari si ja s'ha carregat, afegim un listener
+            // per netejar-lo.
+            const cleanTimeout = () => clearTimeout(timeout);
+            img.addEventListener('load', cleanTimeout);
+            img.addEventListener('error', cleanTimeout);
         }
 
         function mostrarImatge() {
-            imagePreview.innerHTML = `<img src="${imagenActual}" alt="Original">`;
+            if (imagenActual) {
+                imagePreview.innerHTML = `<img src="${imagenActual}" alt="Imatge original">`;
+            } else {
+                imagePreview.innerHTML = '<span class="placeholder">No hi ha imatge</span>';
+            }
         }
 
         function crearPuzzle() {
+            if (!imagenActual) {
+                log('⚠️ No hi ha imatge per crear el puzzle.');
+                return;
+            }
+
             divisions = parseInt(divisionsSelect.value);
             log(`📦 Creant puzzle ${divisions}×${divisions}...`);
-            
+
             puzzleContainer.innerHTML = '';
             puzzleContainer.style.gridTemplateColumns = `repeat(${divisions}, 1fr)`;
-            
+
             const totalPieces = divisions * divisions;
             const tamanyPeca = 400 / divisions;
-            
-            // Crear array aleatori
-            const orden = Array.from({length: totalPieces}, (_, i) => i);
+
+            // Ordenar aleatòriament
+            const orden = Array.from({ length: totalPieces }, (_, i) => i);
             for (let i = totalPieces - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [orden[i], orden[j]] = [orden[j], orden[i]];
             }
-            
+
             // Crear peces
             orden.forEach((posicioCorrecta, indexActual) => {
                 const piece = document.createElement('div');
@@ -200,27 +254,27 @@
                 piece.draggable = true;
                 piece.dataset.correct = posicioCorrecta;
                 piece.dataset.actual = indexActual;
-                
+
                 const fila = Math.floor(posicioCorrecta / divisions);
                 const columna = posicioCorrecta % divisions;
                 const offsetX = columna * tamanyPeca;
                 const offsetY = fila * tamanyPeca;
-                
+
                 piece.style.backgroundImage = `url('${imagenActual}')`;
                 piece.style.backgroundPosition = `-${offsetX}px -${offsetY}px`;
                 piece.style.backgroundSize = `${divisions * tamanyPeca}px ${divisions * tamanyPeca}px`;
                 piece.style.width = `${tamanyPeca}px`;
                 piece.style.height = `${tamanyPeca}px`;
-                
+
                 piece.addEventListener('dragstart', (e) => {
                     e.dataTransfer.effectAllowed = 'move';
                     e.target.dataset.dragging = 'true';
                 });
-                
+
                 piece.addEventListener('dragover', (e) => {
                     e.preventDefault();
                 });
-                
+
                 piece.addEventListener('drop', (e) => {
                     e.preventDefault();
                     const dragging = document.querySelector('[data-dragging="true"]');
@@ -228,28 +282,28 @@
                         const tempActual = dragging.dataset.actual;
                         dragging.dataset.actual = piece.dataset.actual;
                         piece.dataset.actual = tempActual;
-                        
+
                         const allPieces = Array.from(puzzleContainer.children);
                         const idxA = allPieces.indexOf(dragging);
                         const idxB = allPieces.indexOf(piece);
-                        
+
                         if (idxA < idxB) {
                             piece.parentNode.insertBefore(dragging, piece);
                         } else {
                             piece.parentNode.insertBefore(piece, dragging);
                         }
-                        
+
                         verificarSolucio();
                     }
                 });
-                
+
                 piece.addEventListener('dragend', (e) => {
                     piece.dataset.dragging = 'false';
                 });
-                
+
                 puzzleContainer.appendChild(piece);
             });
-            
+
             log(`✅ ${totalPieces} peces creades`);
         }
 
@@ -258,17 +312,19 @@
             const totsCorrects = pieces.every((p, idx) => 
                 parseInt(p.dataset.actual) === idx
             );
-            
+
             if (totsCorrects) {
                 log('🎉 ¡VICTÒRIA! Puzzle completat!');
             }
         }
 
+        // Esdeveniments
         carregarBtn.addEventListener('click', carregarImagenAleatoria);
         divisionsSelect.addEventListener('change', () => {
             if (imagenActual) crearPuzzle();
         });
 
+        // Iniciar
         carregarImagenAleatoria();
     </script>
 </body>
