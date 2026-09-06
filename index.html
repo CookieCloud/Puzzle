@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="ca">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Puzzle Art</title>
     <style>
-        /* El teu estil original es manté igual */
+        /* Estils sense canvis respecte al teu original */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -98,13 +98,6 @@
             color: #666;
             min-height: 1.5em;
         }
-        .error-msg {
-            color: #d32f2f;
-            background: #ffebee;
-            padding: 10px;
-            border-radius: 6px;
-            margin: 10px 0;
-        }
     </style>
 </head>
 <body>
@@ -142,20 +135,18 @@
             logDiv.textContent = msg;
         }
 
-        // Genera una imatge de reserva (un gradient de colors) si falla la càrrega
+        // Genera imatge de reserva (gradient + emoji) per si falla la càrrega
         function generarImatgeReserva() {
             const canvas = document.createElement('canvas');
             canvas.width = 400;
             canvas.height = 400;
             const ctx = canvas.getContext('2d');
-            // Fons gradient
             const gradient = ctx.createLinearGradient(0, 0, 400, 400);
             gradient.addColorStop(0, '#ff6b6b');
             gradient.addColorStop(0.5, '#feca57');
             gradient.addColorStop(1, '#48dbfb');
             ctx.fillStyle = gradient;
             ctx.fillRect(0, 0, 400, 400);
-            // Dibuixar unes formes
             ctx.fillStyle = 'rgba(255,255,255,0.3)';
             ctx.beginPath();
             ctx.arc(200, 200, 120, 0, Math.PI * 2);
@@ -190,31 +181,28 @@
 
             img.onerror = () => {
                 log('❌ Error en carregar la imatge externa. S\'utilitzarà una de reserva.');
-                // Utilitzar imatge de reserva
                 imagenActual = generarImatgeReserva();
                 mostrarImatge();
                 crearPuzzle();
             };
 
-            // Timeout per si la càrrega es queda bloquejada
+            // Timeout per si la càrrega es bloqueja
             const timeout = setTimeout(() => {
                 if (!carregada) {
                     log('⏱️ Temps d\'espera excedit. Usant imatge de reserva.');
-                    img.src = ''; // cancel·lar càrrega
+                    img.src = '';
                     imagenActual = generarImatgeReserva();
                     mostrarImatge();
                     crearPuzzle();
                 }
             }, 10000);
 
-            img.src = imageUrl;
-            // Si la imatge ja està en caché, l'esdeveniment onload es dispara immediatament,
-            // però el timeout es netejarà en onload.
-            // Per garantir que el timeout no es dispari si ja s'ha carregat, afegim un listener
-            // per netejar-lo.
+            // Netejar timeout quan la imatge es carregui o falli
             const cleanTimeout = () => clearTimeout(timeout);
             img.addEventListener('load', cleanTimeout);
             img.addEventListener('error', cleanTimeout);
+
+            img.src = imageUrl;
         }
 
         function mostrarImatge() {
@@ -223,6 +211,16 @@
             } else {
                 imagePreview.innerHTML = '<span class="placeholder">No hi ha imatge</span>';
             }
+        }
+
+        // Intercanvia dos nodes al DOM
+        function swapNodes(nodeA, nodeB) {
+            const parent = nodeA.parentNode;
+            // Crear un element temporal per facilitar l'intercanvi
+            const temp = document.createElement('span');
+            parent.replaceChild(temp, nodeA);
+            parent.replaceChild(nodeA, nodeB);
+            parent.replaceChild(nodeB, temp);
         }
 
         function crearPuzzle() {
@@ -240,20 +238,20 @@
             const totalPieces = divisions * divisions;
             const tamanyPeca = 400 / divisions;
 
-            // Ordenar aleatòriament
+            // Crear array aleatori (barrejar les posicions)
             const orden = Array.from({ length: totalPieces }, (_, i) => i);
             for (let i = totalPieces - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [orden[i], orden[j]] = [orden[j], orden[i]];
             }
 
-            // Crear peces
-            orden.forEach((posicioCorrecta, indexActual) => {
+            // Crear peces en l'ordre barrejat
+            orden.forEach((posicioCorrecta) => {
                 const piece = document.createElement('div');
                 piece.className = 'puzzle-piece';
                 piece.draggable = true;
+                // Emmagatzemar la posició que li correspon (0..N-1)
                 piece.dataset.correct = posicioCorrecta;
-                piece.dataset.actual = indexActual;
 
                 const fila = Math.floor(posicioCorrecta / divisions);
                 const columna = posicioCorrecta % divisions;
@@ -266,33 +264,23 @@
                 piece.style.width = `${tamanyPeca}px`;
                 piece.style.height = `${tamanyPeca}px`;
 
+                // Esdeveniments d'arrossegament
                 piece.addEventListener('dragstart', (e) => {
                     e.dataTransfer.effectAllowed = 'move';
                     e.target.dataset.dragging = 'true';
                 });
 
                 piece.addEventListener('dragover', (e) => {
-                    e.preventDefault();
+                    e.preventDefault(); // necessari per permetre drop
                 });
 
                 piece.addEventListener('drop', (e) => {
                     e.preventDefault();
                     const dragging = document.querySelector('[data-dragging="true"]');
                     if (dragging && dragging !== piece) {
-                        const tempActual = dragging.dataset.actual;
-                        dragging.dataset.actual = piece.dataset.actual;
-                        piece.dataset.actual = tempActual;
-
-                        const allPieces = Array.from(puzzleContainer.children);
-                        const idxA = allPieces.indexOf(dragging);
-                        const idxB = allPieces.indexOf(piece);
-
-                        if (idxA < idxB) {
-                            piece.parentNode.insertBefore(dragging, piece);
-                        } else {
-                            piece.parentNode.insertBefore(piece, dragging);
-                        }
-
+                        // Intercanviar els nodes al DOM
+                        swapNodes(dragging, piece);
+                        // Verificar si el puzzle està resolt
                         verificarSolucio();
                     }
                 });
@@ -309,12 +297,15 @@
 
         function verificarSolucio() {
             const pieces = Array.from(puzzleContainer.children);
-            const totsCorrects = pieces.every((p, idx) => 
-                parseInt(p.dataset.actual) === idx
-            );
+            const totsCorrects = pieces.every((p, idx) => {
+                const correct = parseInt(p.dataset.correct);
+                return correct === idx;
+            });
 
             if (totsCorrects) {
                 log('🎉 ¡VICTÒRIA! Puzzle completat!');
+            } else {
+                log('🧩 Segueix intentant-ho...');
             }
         }
 
