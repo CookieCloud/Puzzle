@@ -3,10 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Puzzle d'Art Aleatori">
-    <meta name="theme-color" content="#2c3e50">
     <title>Puzzle Art</title>
-    
     <style>
         * {
             margin: 0;
@@ -19,7 +16,6 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 20px;
-            color: #333;
         }
 
         .container {
@@ -37,7 +33,7 @@
             color: #667eea;
         }
 
-        .btn-principal {
+        button {
             display: block;
             width: 100%;
             padding: 14px;
@@ -49,12 +45,10 @@
             font-weight: bold;
             cursor: pointer;
             margin-bottom: 15px;
-            transition: background 0.3s;
         }
 
-        .btn-principal:active {
+        button:active {
             background: #5568d3;
-            transform: scale(0.98);
         }
 
         .controls {
@@ -62,7 +56,7 @@
             margin-bottom: 20px;
         }
 
-        .controls select {
+        select {
             padding: 8px 12px;
             border-radius: 6px;
             border: 2px solid #667eea;
@@ -85,21 +79,14 @@
             border-radius: 4px;
             cursor: grab;
             box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-            position: relative;
             user-select: none;
             -webkit-user-select: none;
-            touch-action: none;
         }
 
         .puzzle-piece:active {
             cursor: grabbing;
             opacity: 0.8;
             z-index: 100;
-        }
-
-        .puzzle-piece.correcta {
-            opacity: 0.6;
-            filter: brightness(0.9);
         }
 
         .image-preview {
@@ -116,184 +103,173 @@
             border-radius: 6px;
         }
 
-        .missatge {
-            text-align: center;
-            padding: 12px;
+        .log {
+            background: #f0f0f0;
+            padding: 10px;
             border-radius: 6px;
-            font-weight: bold;
-            min-height: 20px;
-        }
-
-        .missatge.victòria {
-            background: #d4edda;
-            color: #155724;
-        }
-
-        .missatge.error {
-            background: #f8d7da;
-            color: #721c24;
+            font-size: 12px;
+            margin-top: 10px;
+            color: #666;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🎨 Puzzle Art Aleatori</h1>
+        <h1>🎨 Puzzle Art</h1>
         
-        <button id="carregarBtn" class="btn-principal">Carregar Imatge Nova</button>
+        <button id="carregarBtn">Carregar Imatge Nova</button>
         
         <div class="controls">
             <label>Divisions: 
                 <select id="divisionsSelect">
+                    <option value="2">2×2 (4 peces)</option>
                     <option value="3">3×3 (9 peces)</option>
                     <option value="4" selected>4×4 (16 peces)</option>
-                    <option value="5">5×5 (25 peces)</option>
                 </select>
             </label>
         </div>
 
         <div id="puzzleContainer" class="puzzle-grid"></div>
-        <div id="imagePreview" class="image-preview">
-            <p>Aquí es mostrarà la imatge original</p>
-        </div>
-
-        <div id="missatge" class="missatge"></div>
+        <div id="imagePreview" class="image-preview"><p>Aquí es mostrarà la imatge original</p></div>
+        <div class="log" id="log">Esperant acció...</div>
     </div>
 
     <script>
         const carregarBtn = document.getElementById('carregarBtn');
         const puzzleContainer = document.getElementById('puzzleContainer');
         const imagePreview = document.getElementById('imagePreview');
-        const missatgeDiv = document.getElementById('missatge');
         const divisionsSelect = document.getElementById('divisionsSelect');
+        const logDiv = document.getElementById('log');
 
         let imagenActual = null;
         let divisions = 4;
-        let canvasImg = null;
 
-        async function carregarImagenAleatoria() {
-            try {
-                missatgeDiv.textContent = 'Carregant imatge...';
-                missatgeDiv.className = '';
-                
-                const timestamp = new Date().getTime();
-                const imageUrl = `https://picsum.photos/600/600?random=${timestamp}`;
-                
-                const img = new Image();
-                img.crossOrigin = 'anonymous';
-                
-                img.onload = () => {
-                    imagenActual = imageUrl;
-                    canvasImg = img;
-                    mostrarImatge();
-                    crearPuzzle();
-                    missatgeDiv.textContent = '';
-                };
-                
-                img.onerror = () => {
-                    missatgeDiv.textContent = 'Error al carregar la imatge. Intenta de nou.';
-                    missatgeDiv.className = 'error';
-                };
-                
-                img.src = imageUrl;
-                
-            } catch (error) {
-                console.error('Error:', error);
-                missatgeDiv.textContent = 'Error al carregar la imatge.';
-                missatgeDiv.className = 'error';
-            }
+        function log(msg) {
+            console.log(msg);
+            logDiv.textContent = msg;
+        }
+
+        function carregarImagenAleatoria() {
+            log('🔄 Carregant imatge...');
+            
+            const timestamp = Date.now();
+            const imageUrl = `https://picsum.photos/400/400?random=${timestamp}`;
+            
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            
+            img.onload = () => {
+                log('✅ Imatge carregada');
+                imagenActual = imageUrl;
+                mostrarImatge();
+                crearPuzzle();
+            };
+            
+            img.onerror = () => {
+                log('❌ Error al carregar la imatge');
+            };
+            
+            img.src = imageUrl;
         }
 
         function mostrarImatge() {
-            imagePreview.innerHTML = `<img src="${imagenActual}" alt="Original" style="max-width:100%; border-radius:6px;">`;
+            imagePreview.innerHTML = `<img src="${imagenActual}" alt="Original">`;
         }
 
         function crearPuzzle() {
             divisions = parseInt(divisionsSelect.value);
+            log(`📦 Creant puzzle ${divisions}×${divisions}...`);
+            
             puzzleContainer.innerHTML = '';
             puzzleContainer.style.gridTemplateColumns = `repeat(${divisions}, 1fr)`;
             
             const totalPieces = divisions * divisions;
-            const tamanyPeca = 600 / divisions;
+            const tamanyPeca = 400 / divisions;
             
-            const posiciones = Array.from({length: totalPieces}, (_, i) => i);
-            
-            for (let i = posiciones.length - 1; i > 0; i--) {
+            // Crear array aleatori
+            const orden = Array.from({length: totalPieces}, (_, i) => i);
+            for (let i = totalPieces - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
-                [posiciones[i], posiciones[j]] = [posiciones[j], posiciones[i]];
+                [orden[i], orden[j]] = [orden[j], orden[i]];
             }
             
-            posiciones.forEach((posicioCorrecta, indexActual) => {
+            // Crear peces
+            orden.forEach((posicioCorrecta, indexActual) => {
                 const piece = document.createElement('div');
                 piece.className = 'puzzle-piece';
                 piece.draggable = true;
-                piece.dataset.posicioCorrecta = posicioCorrecta;
-                piece.dataset.posicioActual = indexActual;
+                piece.dataset.correct = posicioCorrecta;
+                piece.dataset.actual = indexActual;
                 
                 const fila = Math.floor(posicioCorrecta / divisions);
                 const columna = posicioCorrecta % divisions;
+                const offsetX = columna * tamanyPeca;
+                const offsetY = fila * tamanyPeca;
                 
-                const canvas = document.createElement('canvas');
-                canvas.width = tamanyPeca;
-                canvas.height = tamanyPeca;
-                const ctx = canvas.getContext('2d');
+                piece.style.backgroundImage = `url('${imagenActual}')`;
+                piece.style.backgroundPosition = `-${offsetX}px -${offsetY}px`;
+                piece.style.backgroundSize = `${divisions * tamanyPeca}px ${divisions * tamanyPeca}px`;
+                piece.style.width = `${tamanyPeca}px`;
+                piece.style.height = `${tamanyPeca}px`;
                 
-                if (canvasImg) {
-                    ctx.drawImage(
-                        canvasImg,
-                        columna * tamanyPeca,
-                        fila * tamanyPeca,
-                        tamanyPeca,
-                        tamanyPeca,
-                        0,
-                        0,
-                        tamanyPeca,
-                        tamanyPeca
-                    );
-                }
+                piece.addEventListener('dragstart', (e) => {
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.target.dataset.dragging = 'true';
+                });
                 
-                piece.style.backgroundImage = `url('${canvas.toDataURL()}')`;
-                piece.style.backgroundSize = 'cover';
-                piece.style.backgroundPosition = 'center';
+                piece.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                });
                 
-                piece.addEventListener('dragstart', dragStart);
-                piece.addEventListener('dragover', dragOver);
-                piece.addEventListener('drop', drop);
-                piece.addEventListener('dragend', dragEnd);
+                piece.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    const dragging = document.querySelector('[data-dragging="true"]');
+                    if (dragging && dragging !== piece) {
+                        const tempActual = dragging.dataset.actual;
+                        dragging.dataset.actual = piece.dataset.actual;
+                        piece.dataset.actual = tempActual;
+                        
+                        const allPieces = Array.from(puzzleContainer.children);
+                        const idxA = allPieces.indexOf(dragging);
+                        const idxB = allPieces.indexOf(piece);
+                        
+                        if (idxA < idxB) {
+                            piece.parentNode.insertBefore(dragging, piece);
+                        } else {
+                            piece.parentNode.insertBefore(piece, dragging);
+                        }
+                        
+                        verificarSolucio();
+                    }
+                });
+                
+                piece.addEventListener('dragend', (e) => {
+                    piece.dataset.dragging = 'false';
+                });
                 
                 puzzleContainer.appendChild(piece);
             });
-        }
-
-        let draggedElement = null;
-
-        function dragStart(e) {
-            draggedElement = this;
-            this.style.opacity = '0.6';
-            e.dataTransfer.effectAllowed = 'move';
-        }
-
-        function dragOver(e) {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = 'move';
-        }
-
-        function drop(e) {
-            e.preventDefault();
             
-            if (draggedElement && draggedElement !== this) {
-                const tempData = draggedElement.dataset.posicioActual;
-                draggedElement.dataset.posicioActual = this.dataset.posicioActual;
-                this.dataset.posicioActual = tempData;
-                
-                const allPieces = Array.from(puzzleContainer.children);
-                const indexA = allPieces.indexOf(draggedElement);
-                const indexB = allPieces.indexOf(this);
-                
-                if (indexA < indexB) {
-                    this.parentNode.insertBefore(draggedElement, this);
-                } else {
-                    this.parentNode.insertBefore(this, draggedElement);
-                }
-                
-                verificarSolucio();
+            log(`✅ ${totalPieces} peces creades`);
+        }
+
+        function verificarSolucio() {
+            const pieces = Array.from(puzzleContainer.children);
+            const totsCorrects = pieces.every((p, idx) => 
+                parseInt(p.dataset.actual) === idx
+            );
+            
+            if (totsCorrects) {
+                log('🎉 ¡VICTÒRIA! Puzzle completat!');
             }
+        }
+
+        carregarBtn.addEventListener('click', carregarImagenAleatoria);
+        divisionsSelect.addEventListener('change', () => {
+            if (imagenActual) crearPuzzle();
+        });
+
+        carregarImagenAleatoria();
+    </script>
+</body>
+</html>
