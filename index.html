@@ -5,68 +5,193 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Puzzle Art</title>
     <style>
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f5f5;
+            --bg-tertiary: #f0f0f0;
+            --text-primary: #333333;
+            --text-secondary: #666666;
+            --border-color: #e0e0e0;
+            --btn-bg: #667eea;
+            --btn-hover: #5568d3;
+            --gradient-1: #667eea;
+            --gradient-2: #764ba2;
+            --shadow: rgba(0, 0, 0, 0.2);
+        }
+
+        body.dark-mode {
+            --bg-primary: #1e1e1e;
+            --bg-secondary: #2d2d2d;
+            --bg-tertiary: #3a3a3a;
+            --text-primary: #e0e0e0;
+            --text-secondary: #b0b0b0;
+            --border-color: #444444;
+            --btn-bg: #7c7cff;
+            --btn-hover: #6b6bdd;
+            --gradient-1: #5a5a8a;
+            --gradient-2: #3a3a5a;
+            --shadow: rgba(0, 0, 0, 0.5);
+        }
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, var(--gradient-1) 0%, var(--gradient-2) 100%);
             min-height: 100vh;
             padding: 20px;
+            color: var(--text-primary);
+            transition: background 0.3s;
         }
+
         .container {
             max-width: 600px;
             margin: 0 auto;
-            background: white;
+            background: var(--bg-primary);
             border-radius: 16px;
             padding: 20px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 10px 40px var(--shadow);
+            transition: background 0.3s;
         }
-        h1 {
-            text-align: center;
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             margin-bottom: 20px;
-            color: #667eea;
         }
-        button {
+
+        h1 {
+            color: var(--btn-bg);
+            font-size: 1.8rem;
+        }
+
+        .theme-toggle {
+            background: var(--bg-secondary);
+            border: none;
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            cursor: pointer;
+            font-size: 20px;
+            transition: background 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .theme-toggle:active {
+            background: var(--bg-tertiary);
+        }
+
+        button:not(.theme-toggle) {
             display: block;
             width: 100%;
-            padding: 14px;
-            background: #667eea;
+            padding: 12px;
+            background: var(--btn-bg);
             color: white;
             border: none;
             border-radius: 8px;
-            font-size: 16px;
+            font-size: 15px;
             font-weight: bold;
             cursor: pointer;
-            margin-bottom: 15px;
+            margin-bottom: 12px;
             transition: background 0.2s;
         }
-        button:active {
-            background: #5568d3;
+
+        button:not(.theme-toggle):active {
+            background: var(--btn-hover);
             transform: scale(0.98);
         }
-        .controls {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        select {
-            padding: 8px 12px;
-            border-radius: 6px;
-            border: 2px solid #667eea;
+
+        .section-title {
+            font-weight: 600;
+            margin-top: 15px;
+            margin-bottom: 10px;
+            color: var(--text-primary);
             font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
+
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .control-group label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        select, input[type="text"], input[type="file"] {
+            padding: 10px;
+            border-radius: 6px;
+            border: 2px solid var(--border-color);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+
+        select:focus, input[type="text"]:focus, input[type="file"]:focus {
+            outline: none;
+            border-color: var(--btn-bg);
+        }
+
+        .source-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .source-btn {
+            padding: 10px;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 2px solid var(--border-color);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .source-btn.active {
+            background: var(--btn-bg);
+            color: white;
+            border-color: var(--btn-bg);
+        }
+
+        .source-btn:active {
+            transform: scale(0.98);
+        }
+
         .puzzle-grid {
             display: grid;
             gap: 0;
             margin-bottom: 20px;
-            background: #d0d0d0;
+            background: var(--bg-tertiary);
             padding: 4px;
             border-radius: 8px;
             aspect-ratio: 1 / 1;
             width: 100%;
         }
+
         .puzzle-piece {
             background-size: cover;
             background-position: center;
@@ -76,24 +201,28 @@
             touch-action: none;
             position: relative;
         }
+
         .puzzle-piece.unfixed {
             margin: 4px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            box-shadow: 0 2px 8px var(--shadow);
             border-radius: 2px;
         }
+
         .puzzle-piece.fixed {
             margin: 0;
             box-shadow: none;
             cursor: default;
             border-radius: 0;
         }
+
         .puzzle-piece:active:not(.fixed) {
             cursor: grabbing;
             opacity: 0.8;
             z-index: 100;
         }
+
         .image-preview {
-            background: #f5f5f5;
+            background: var(--bg-secondary);
             padding: 15px;
             border-radius: 8px;
             text-align: center;
@@ -103,18 +232,23 @@
             align-items: center;
             justify-content: center;
         }
+
         .image-preview img {
             max-width: 100%;
             max-height: 250px;
             border-radius: 6px;
         }
+
         .log {
-            background: #f0f0f0;
+            background: var(--bg-tertiary);
             padding: 10px;
             border-radius: 6px;
             font-size: 12px;
-            color: #666;
+            color: var(--text-secondary);
+            min-height: 1.5em;
+            transition: background 0.3s;
         }
+
         .victory-overlay {
             position: fixed;
             top: 0;
@@ -128,41 +262,47 @@
             z-index: 1000;
             backdrop-filter: blur(4px);
         }
+
         .victory-overlay.active {
             display: flex;
         }
+
         .victory-popup {
-            background: white;
+            background: var(--bg-primary);
             padding: 40px 30px;
             border-radius: 20px;
             text-align: center;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
             animation: popIn 0.4s ease-out;
-            max-width: 90%;
+            max-width: 95%;
         }
+
         .victory-popup h2 {
             font-size: 2.5rem;
-            color: #667eea;
+            color: var(--btn-bg);
             margin-bottom: 10px;
         }
+
         .victory-popup p {
             font-size: 1.1rem;
-            color: #333;
+            color: var(--text-primary);
             margin-bottom: 20px;
         }
+
         .victory-popup .final-puzzle {
             margin: 20px 0;
             border-radius: 12px;
-            max-width: 300px;
-            margin-left: auto;
-            margin-right: auto;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            max-width: 100%;
+            width: 450px;
+            max-height: 450px;
+            box-shadow: 0 4px 15px var(--shadow);
         }
+
         .victory-popup button {
             display: inline-block;
             width: auto;
             padding: 12px 40px;
-            background: #667eea;
+            background: var(--btn-bg);
             color: white;
             border: none;
             border-radius: 8px;
@@ -172,10 +312,12 @@
             transition: background 0.2s;
             margin-top: 15px;
         }
+
         .victory-popup button:active {
-            background: #5568d3;
+            background: var(--btn-hover);
             transform: scale(0.98);
         }
+
         @keyframes popIn {
             0% {
                 transform: scale(0.8);
@@ -186,29 +328,78 @@
                 opacity: 1;
             }
         }
+
+        @media (max-width: 500px) {
+            .container {
+                padding: 15px;
+            }
+            h1 {
+                font-size: 1.5rem;
+            }
+            .victory-popup .final-puzzle {
+                width: 300px;
+                max-height: 300px;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🧩 Puzzle Art</h1>
+        <div class="header">
+            <h1>🧩 Puzzle Art</h1>
+            <button class="theme-toggle" id="themeToggle" title="Canviar mode fosc">🌙</button>
+        </div>
+
+        <!-- FONT SELECTOR -->
+        <div class="section-title">📸 Origen de la foto</div>
+        <div class="source-buttons">
+            <button class="source-btn active" data-source="unsplash">Unsplash</button>
+            <button class="source-btn" data-source="pexels">Pexels</button>
+            <button class="source-btn" data-source="pixabay">Pixabay</button>
+            <button class="source-btn" data-source="custom">URL Custom</button>
+        </div>
+
+        <!-- CUSTOM URL INPUT -->
+        <div id="customUrlContainer" style="display: none; margin-bottom: 12px;">
+            <input type="text" id="customUrl" placeholder="Enganxa una URL de foto (400x400)">
+            <button id="loadCustomBtn" style="margin-top: 8px;">Carregar URL</button>
+        </div>
+
+        <!-- FILE UPLOAD -->
+        <div style="margin-bottom: 12px;">
+            <label style="font-size: 12px; color: var(--text-secondary); display: block; margin-bottom: 5px; font-weight: 500;">📁 O puja una foto</label>
+            <input type="file" id="fileUpload" accept="image/*">
+        </div>
+
+        <!-- NEW IMAGE BUTTON -->
         <button id="carregarBtn">Carregar Imatge Nova</button>
+
+        <!-- DIVISIONS -->
         <div class="controls">
-            <label>Divisions:
+            <div class="control-group">
+                <label for="divisionsSelect">Divisions:</label>
                 <select id="divisionsSelect">
                     <option value="2">2×2 (4 peces)</option>
                     <option value="3">3×3 (9 peces)</option>
                     <option value="4" selected>4×4 (16 peces)</option>
                     <option value="5">5×5 (25 peces)</option>
                 </select>
-            </label>
+            </div>
         </div>
+
+        <!-- PUZZLE -->
         <div id="puzzleContainer" class="puzzle-grid"></div>
+
+        <!-- PREVIEW -->
         <div id="imagePreview" class="image-preview">
             <img id="previewImg" src="" alt="Original">
         </div>
+
+        <!-- LOG -->
         <div class="log" id="log">Carregant...</div>
     </div>
 
+    <!-- VICTORY POPUP -->
     <div id="victoryOverlay" class="victory-overlay">
         <div class="victory-popup">
             <h2>🎉 ¡VICTÒRIA!</h2>
@@ -228,12 +419,89 @@
         const victoryOverlay = document.getElementById('victoryOverlay');
         const victoryBtn = document.getElementById('victoryBtn');
         const finalImage = document.getElementById('finalImage');
+        const themeToggle = document.getElementById('themeToggle');
+        const fileUpload = document.getElementById('fileUpload');
+        const customUrlContainer = document.getElementById('customUrlContainer');
+        const customUrl = document.getElementById('customUrl');
+        const loadCustomBtn = document.getElementById('loadCustomBtn');
+        const sourceButtons = document.querySelectorAll('.source-btn');
 
         let imagenActual = null;
         let divisions = 4;
         let ordre = [];
         let fixat = [];
         let pecesDataURL = [];
+        let currentSource = 'unsplash';
+
+        // THEME TOGGLE
+        function initTheme() {
+            const isDark = localStorage.getItem('darkMode') === 'true';
+            if (isDark) {
+                document.body.classList.add('dark-mode');
+                themeToggle.textContent = '☀️';
+            }
+        }
+
+        themeToggle.addEventListener('click', () => {
+            document.body.classList.toggle('dark-mode');
+            const isDark = document.body.classList.contains('dark-mode');
+            localStorage.setItem('darkMode', isDark);
+            themeToggle.textContent = isDark ? '☀️' : '🌙';
+        });
+
+        // SOURCE SELECTOR
+        sourceButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                sourceButtons.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentSource = btn.dataset.source;
+                
+                if (currentSource === 'custom') {
+                    customUrlContainer.style.display = 'block';
+                } else {
+                    customUrlContainer.style.display = 'none';
+                }
+            });
+        });
+
+        // FILE UPLOAD
+        fileUpload.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    imagenActual = event.target.result;
+                    previewImg.src = imagenActual;
+                    finalImage.src = imagenActual;
+                    iniciarPuzzle();
+                    log('✅ Foto pujada');
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // CUSTOM URL LOAD
+        loadCustomBtn.addEventListener('click', () => {
+            const url = customUrl.value.trim();
+            if (!url) {
+                log('❌ Enganxa una URL vàlida');
+                return;
+            }
+            
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = () => {
+                imagenActual = url;
+                previewImg.src = url;
+                finalImage.src = url;
+                iniciarPuzzle();
+                log('✅ Foto carregada');
+            };
+            img.onerror = () => {
+                log('❌ Error al carregar la URL');
+            };
+            img.src = url;
+        });
 
         function log(msg) {
             console.log(msg);
@@ -242,22 +510,33 @@
 
         function carregarImagenAleatoria() {
             log('🔄 Carregant imatge...');
-            const seed = Math.floor(Math.random() * 1000000);
-            const imageUrl = `https://picsum.photos/seed/${seed}/400/400`;
             
+            let imageUrl;
+            
+            if (currentSource === 'unsplash') {
+                const seed = Math.floor(Math.random() * 1000000);
+                imageUrl = `https://source.unsplash.com/400x400/?nature,landscape&sig=${seed}`;
+            } else if (currentSource === 'pexels') {
+                imageUrl = `https://images.pexels.com/photos/1181690/pexels-photo-1181690.jpeg?w=400&h=400&fit=crop`;
+            } else if (currentSource === 'pixabay') {
+                imageUrl = `https://pixabay.com/get/g6a9ec80c25c7f5a048b09e627c0e3e36d6dd0370bfd1e43186a89c9d6ea9e4d7_640.jpg`;
+            } else {
+                log('❌ Selecciona una font');
+                return;
+            }
+
             const img = new Image();
             img.crossOrigin = 'anonymous';
 
-            img.onload = function() {
-                log('✅ Imatge carregada');
+            img.onload = () => {
                 imagenActual = imageUrl;
                 previewImg.src = imageUrl;
                 finalImage.src = imageUrl;
                 iniciarPuzzle();
             };
 
-            img.onerror = function() {
-                log('❌ Error al carregar. Intenta de nou.');
+            img.onerror = () => {
+                log('❌ Error al carregar. Proba una altra font.');
             };
 
             img.src = imageUrl;
@@ -269,7 +548,6 @@
             
             log(`📦 Creant puzzle ${divisions}×${divisions}...`);
 
-            // Crear canvas i dibuixar la imatge
             const canvas = document.createElement('canvas');
             canvas.width = 400;
             canvas.height = 400;
@@ -281,7 +559,6 @@
             img.onload = function() {
                 ctx.drawImage(img, 0, 0, 400, 400);
                 
-                // Extreure les peces
                 pecesDataURL = [];
                 const pieceSize = 400 / divisions;
 
@@ -302,7 +579,6 @@
                     }
                 }
 
-                // Crear ordre aleatori
                 ordre = Array.from({ length: total }, (_, i) => i);
                 for (let i = total - 1; i > 0; i--) {
                     const j = Math.floor(Math.random() * (i + 1));
@@ -313,12 +589,15 @@
                 renderitzarPuzzle();
             };
 
+            img.onerror = () => {
+                log('❌ Error procesant la imatge');
+            };
+
             img.src = imagenActual;
         }
 
         function renderitzarPuzzle() {
             const total = divisions * divisions;
-            const pieceSize = 400 / divisions;
 
             puzzleContainer.innerHTML = '';
             puzzleContainer.style.gridTemplateColumns = `repeat(${divisions}, 1fr)`;
@@ -407,6 +686,7 @@
             if (imagenActual) iniciarPuzzle();
         });
 
+        initTheme();
         carregarImagenAleatoria();
     </script>
 </body>
