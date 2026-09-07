@@ -41,7 +41,7 @@
             font-weight: bold;
             cursor: pointer;
             margin-bottom: 15px;
-            transition: background 0.2s, transform 0.1s;
+            transition: background 0.2s;
         }
         button:active {
             background: #5568d3;
@@ -56,7 +56,6 @@
             border-radius: 6px;
             border: 2px solid #667eea;
             font-size: 14px;
-            background: white;
         }
         .puzzle-grid {
             display: grid;
@@ -69,9 +68,8 @@
             width: 100%;
         }
         .puzzle-piece {
-            background-size: 400px 400px;
+            background-size: cover;
             background-position: center;
-            border-radius: 2px;
             cursor: grab;
             user-select: none;
             -webkit-user-select: none;
@@ -81,6 +79,7 @@
         .puzzle-piece.unfixed {
             margin: 4px;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            border-radius: 2px;
         }
         .puzzle-piece.fixed {
             margin: 0;
@@ -109,17 +108,12 @@
             max-height: 250px;
             border-radius: 6px;
         }
-        .image-preview .placeholder {
-            color: #999;
-            font-style: italic;
-        }
         .log {
             background: #f0f0f0;
             padding: 10px;
             border-radius: 6px;
             font-size: 12px;
             color: #666;
-            min-height: 1.5em;
         }
         .victory-overlay {
             position: fixed;
@@ -154,7 +148,7 @@
         .victory-popup p {
             font-size: 1.1rem;
             color: #333;
-            margin-bottom: 25px;
+            margin-bottom: 20px;
         }
         .victory-popup .final-puzzle {
             margin: 20px 0;
@@ -210,9 +204,9 @@
         </div>
         <div id="puzzleContainer" class="puzzle-grid"></div>
         <div id="imagePreview" class="image-preview">
-            <span class="placeholder">Carregant imatge...</span>
+            <img id="previewImg" src="" alt="Original">
         </div>
-        <div class="log" id="log">Esperant acció...</div>
+        <div class="log" id="log">Carregant...</div>
     </div>
 
     <div id="victoryOverlay" class="victory-overlay">
@@ -228,7 +222,7 @@
     <script>
         const carregarBtn = document.getElementById('carregarBtn');
         const puzzleContainer = document.getElementById('puzzleContainer');
-        const imagePreview = document.getElementById('imagePreview');
+        const previewImg = document.getElementById('previewImg');
         const divisionsSelect = document.getElementById('divisionsSelect');
         const logDiv = document.getElementById('log');
         const victoryOverlay = document.getElementById('victoryOverlay');
@@ -239,131 +233,98 @@
         let divisions = 4;
         let ordre = [];
         let fixat = [];
-        let imageWidth = 400;
-        let imageHeight = 400;
+        let pecesDataURL = [];
 
         function log(msg) {
             console.log(msg);
             logDiv.textContent = msg;
         }
 
-        function generarImatgeReserva() {
-            const canvas = document.createElement('canvas');
-            canvas.width = 400;
-            canvas.height = 400;
-            const ctx = canvas.getContext('2d');
-            const gradient = ctx.createLinearGradient(0, 0, 400, 400);
-            gradient.addColorStop(0, '#ff6b6b');
-            gradient.addColorStop(0.5, '#feca57');
-            gradient.addColorStop(1, '#48dbfb');
-            ctx.fillStyle = gradient;
-            ctx.fillRect(0, 0, 400, 400);
-            ctx.fillStyle = 'rgba(255,255,255,0.3)';
-            ctx.beginPath();
-            ctx.arc(200, 200, 120, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.fillStyle = 'rgba(0,0,0,0.2)';
-            ctx.font = 'bold 40px sans-serif';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText('🎨', 200, 200);
-            return canvas.toDataURL('image/png');
-        }
-
         function carregarImagenAleatoria() {
             log('🔄 Carregant imatge...');
-            imagePreview.innerHTML = '<span class="placeholder">Carregant...</span>';
             const seed = Math.floor(Math.random() * 1000000);
             const imageUrl = `https://picsum.photos/seed/${seed}/400/400`;
             
             const img = new Image();
             img.crossOrigin = 'anonymous';
-            let carregada = false;
 
             img.onload = function() {
-                carregada = true;
-                imageWidth = 400;
-                imageHeight = 400;
-                log(`✅ Imatge carregada`);
+                log('✅ Imatge carregada');
                 imagenActual = imageUrl;
+                previewImg.src = imageUrl;
                 finalImage.src = imageUrl;
-                mostrarImatge();
                 iniciarPuzzle();
             };
 
             img.onerror = function() {
-                log('❌ Error. Usant imatge de reserva.');
-                const fallback = generarImatgeReserva();
-                imagenActual = fallback;
-                finalImage.src = fallback;
-                imageWidth = 400;
-                imageHeight = 400;
-                mostrarImatge();
-                iniciarPuzzle();
+                log('❌ Error al carregar. Intenta de nou.');
             };
 
-            const timeout = setTimeout(() => {
-                if (!carregada) {
-                    log('⏱️ Temps d\'espera excedit.');
-                    const fallback = generarImatgeReserva();
-                    imagenActual = fallback;
-                    finalImage.src = fallback;
-                    imageWidth = 400;
-                    imageHeight = 400;
-                    mostrarImatge();
-                    iniciarPuzzle();
-                }
-            }, 8000);
-
-            img.addEventListener('load', () => clearTimeout(timeout));
-            img.addEventListener('error', () => clearTimeout(timeout));
             img.src = imageUrl;
         }
 
-        function mostrarImatge() {
-            if (imagenActual) {
-                imagePreview.innerHTML = `<img src="${imagenActual}" alt="Imatge original">`;
-            }
-        }
-
         function iniciarPuzzle() {
-            if (!imagenActual) {
-                log('⚠️ No hi ha imatge vàlida.');
-                return;
-            }
-
             divisions = parseInt(divisionsSelect.value);
             const total = divisions * divisions;
-            log(`📦 Puzzle ${divisions}×${divisions} (${total} peces)`);
+            
+            log(`📦 Creant puzzle ${divisions}×${divisions}...`);
 
-            ordre = Array.from({ length: total }, (_, i) => i);
-            for (let i = total - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [ordre[i], ordre[j]] = [ordre[j], ordre[i]];
-            }
+            // Crear canvas i dibuixar la imatge
+            const canvas = document.createElement('canvas');
+            canvas.width = 400;
+            canvas.height = 400;
+            const ctx = canvas.getContext('2d');
 
-            fixat = new Array(total).fill(false);
-            renderitzarPuzzle();
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+
+            img.onload = function() {
+                ctx.drawImage(img, 0, 0, 400, 400);
+                
+                // Extreure les peces
+                pecesDataURL = [];
+                const pieceSize = 400 / divisions;
+
+                for (let row = 0; row < divisions; row++) {
+                    for (let col = 0; col < divisions; col++) {
+                        const pieceCanvas = document.createElement('canvas');
+                        pieceCanvas.width = pieceSize;
+                        pieceCanvas.height = pieceSize;
+                        const pctx = pieceCanvas.getContext('2d');
+
+                        pctx.drawImage(
+                            canvas,
+                            col * pieceSize, row * pieceSize, pieceSize, pieceSize,
+                            0, 0, pieceSize, pieceSize
+                        );
+
+                        pecesDataURL.push(pieceCanvas.toDataURL());
+                    }
+                }
+
+                // Crear ordre aleatori
+                ordre = Array.from({ length: total }, (_, i) => i);
+                for (let i = total - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [ordre[i], ordre[j]] = [ordre[j], ordre[i]];
+                }
+
+                fixat = new Array(total).fill(false);
+                renderitzarPuzzle();
+            };
+
+            img.src = imagenActual;
         }
 
         function renderitzarPuzzle() {
-            if (!imagenActual) return;
-
             const total = divisions * divisions;
-            const pieceWidth = imageWidth / divisions;
-            const pieceHeight = imageHeight / divisions;
+            const pieceSize = 400 / divisions;
 
             puzzleContainer.innerHTML = '';
             puzzleContainer.style.gridTemplateColumns = `repeat(${divisions}, 1fr)`;
 
             for (let i = 0; i < total; i++) {
                 const pecaIndex = ordre[i];
-                const fila = Math.floor(pecaIndex / divisions);
-                const columna = pecaIndex % divisions;
-
-                const offsetX = columna * pieceWidth;
-                const offsetY = fila * pieceHeight;
-
                 const piece = document.createElement('div');
                 piece.className = 'puzzle-piece';
 
@@ -373,12 +334,10 @@
                     piece.classList.add('unfixed');
                 }
 
-                piece.style.backgroundImage = `url('${imagenActual}')`;
-                piece.style.backgroundSize = `${imageWidth}px ${imageHeight}px`;
-                piece.style.backgroundPosition = `-${offsetX}px -${offsetY}px`;
-
+                piece.style.backgroundImage = `url('${pecesDataURL[pecaIndex]}')`;
+                piece.style.backgroundSize = '100% 100%';
+                piece.style.backgroundPosition = 'center';
                 piece.dataset.posicio = i;
-                piece.dataset.correcta = pecaIndex;
 
                 if (!fixat[i]) {
                     piece.draggable = true;
@@ -395,10 +354,9 @@
         let origenIndex = null;
 
         function handleDragStart(e) {
-            const piece = e.target;
-            origenIndex = parseInt(piece.dataset.posicio);
+            origenIndex = parseInt(e.target.dataset.posicio);
             e.dataTransfer.effectAllowed = 'move';
-            piece.style.opacity = '0.5';
+            e.target.style.opacity = '0.5';
         }
 
         function handleDragOver(e) {
@@ -414,24 +372,21 @@
             const destiIndex = parseInt(destiPiece.dataset.posicio);
             if (origenIndex === null || origenIndex === destiIndex) return;
 
-            // Intercanviar
             [ordre[origenIndex], ordre[destiIndex]] = [ordre[destiIndex], ordre[origenIndex]];
 
-            // Actualitzar fixat
             for (let i = 0; i < ordre.length; i++) {
                 fixat[i] = (ordre[i] === i);
             }
 
             renderitzarPuzzle();
 
-            // Verificar victòria
             const totsFixats = fixat.every(v => v === true);
             if (totsFixats) {
-                log('🎉 ¡VICTÒRIA! Puzzle completat!');
-                mostrarPopupVictoria();
+                log('🎉 ¡VICTÒRIA!');
+                victoryOverlay.classList.add('active');
             } else {
                 const correctes = fixat.filter(v => v).length;
-                log(`🧩 ${correctes}/${ordre.length} peces correctes`);
+                log(`🧩 ${correctes}/${ordre.length} peces`);
             }
 
             origenIndex = null;
@@ -441,25 +396,15 @@
             e.target.style.opacity = '1';
         }
 
-        function mostrarPopupVictoria() {
-            victoryOverlay.classList.add('active');
-        }
-
-        function amagarPopupVictoria() {
-            victoryOverlay.classList.remove('active');
-        }
-
         victoryBtn.addEventListener('click', () => {
-            amagarPopupVictoria();
+            victoryOverlay.classList.remove('active');
             carregarImagenAleatoria();
         });
 
         carregarBtn.addEventListener('click', carregarImagenAleatoria);
 
         divisionsSelect.addEventListener('change', () => {
-            if (imagenActual) {
-                iniciarPuzzle();
-            }
+            if (imagenActual) iniciarPuzzle();
         });
 
         carregarImagenAleatoria();
