@@ -52,10 +52,6 @@
             background: #5568d3;
         }
 
-        button:active {
-            background: #4a5cbd;
-        }
-
         .controls {
             text-align: center;
             margin-bottom: 20px;
@@ -73,14 +69,14 @@
         .puzzle-grid {
             display: grid;
             gap: 0;
-            /* sense separació per defecte */
+            /* sense separació entre cel·les */
             margin-bottom: 20px;
             background: #d0d0d0;
-            /* color de fons que es veu entre peces no fixes */
             padding: 0;
             border-radius: 8px;
             min-height: 300px;
             aspect-ratio: 1 / 1;
+            /* mantenir quadrat */
             width: 100%;
         }
 
@@ -92,9 +88,11 @@
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
             user-select: none;
             -webkit-user-select: none;
+            /* Mida per a peces mòbils: ocupen la cel·la menys 8px (4px de marge a cada costat) */
+            width: calc(100% - 8px);
+            height: calc(100% - 8px);
             margin: 4px;
-            /* separació entre peces mòbils */
-            transition: margin 0.2s, box-shadow 0.2s;
+            transition: width 0.2s, height 0.2s, margin 0.2s, box-shadow 0.2s;
             position: relative;
         }
 
@@ -104,13 +102,15 @@
             z-index: 100;
         }
 
-        /* Peça fixa: s'enganxa (sense marge) i no es pot moure */
+        /* Peça fixa: ocupa tota la cel·la, sense marge i sense ombra */
         .puzzle-piece.fixed {
+            width: 100%;
+            height: 100%;
             margin: 0;
             cursor: default;
             box-shadow: none;
-            opacity: 1;
             border-radius: 0;
+            opacity: 1;
         }
 
         .puzzle-piece.fixed::after {
@@ -118,11 +118,10 @@
             position: absolute;
             inset: 0;
             pointer-events: none;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            /* petit contorn per a les fixes (opcional) */;
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
 
-        /* ---- PREVISUALITZACIÓ ---- */
+        /* ----- PREVISUALITZACIÓ ----- */
         .image-preview {
             background: #f5f5f5;
             padding: 15px;
@@ -165,7 +164,6 @@
             height: 100%;
             background: rgba(0, 0, 0, 0.6);
             display: none;
-            /* amagat per defecte */
             align-items: center;
             justify-content: center;
             z-index: 1000;
@@ -268,10 +266,10 @@
         const victoryBtn = document.getElementById('victoryBtn');
 
         // ----- ESTAT DEL PUZZLE -----
-        let imagenActual = null; // URL de la imatge
+        let imagenActual = null;
         let divisions = 4;
-        let ordre = []; // ordre[i] = índex de la peça que està a la posició i
-        let fixat = []; // fixat[i] = true si la peça a la posició i és la correcta (i no es pot moure)
+        let ordre = [];       // ordre[i] = índex de la peça que està a la posició i
+        let fixat = [];       // fixat[i] = true si la peça a la posició i és la correcta
 
         // ----- FUNCIONS AUXILIARS -----
         function log(msg) {
@@ -279,7 +277,6 @@
             logDiv.textContent = msg;
         }
 
-        // Genera imatge de reserva (gradient + emoji)
         function generarImatgeReserva() {
             const canvas = document.createElement('canvas');
             canvas.width = 400;
@@ -303,7 +300,6 @@
             return canvas.toDataURL('image/png');
         }
 
-        // Carrega una imatge aleatòria i inicia el puzzle
         function carregarImagenAleatoria() {
             log('🔄 Carregant imatge...');
             imagePreview.innerHTML = '<span class="placeholder">Carregant...</span>';
@@ -331,7 +327,6 @@
                 iniciarPuzzle();
             };
 
-            // Timeout per si la càrrega es bloqueja
             const timeout = setTimeout(() => {
                 if (!carregada) {
                     log('⏱️ Temps d\'espera excedit. Usant imatge de reserva.');
@@ -342,7 +337,6 @@
                 }
             }, 10000);
 
-            // Netejar timeout quan la imatge es carregui o falli
             const cleanTimeout = () => clearTimeout(timeout);
             img.addEventListener('load', cleanTimeout);
             img.addEventListener('error', cleanTimeout);
@@ -358,7 +352,7 @@
             }
         }
 
-        // ----- INICIALITZACIÓ DEL PUZZLE -----
+        // ----- INICI DEL PUZZLE -----
         function iniciarPuzzle() {
             if (!imagenActual) {
                 log('⚠️ No hi ha imatge per crear el puzzle.');
@@ -369,7 +363,7 @@
             const total = divisions * divisions;
             log(`📦 Iniciant puzzle ${divisions}×${divisions} (${total} peces)...`);
 
-            // Crear ordre barrejat
+            // Barrejar l'ordre
             ordre = Array.from({ length: total }, (_, i) => i);
             for (let i = total - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
@@ -380,10 +374,10 @@
             fixat = new Array(total).fill(false);
 
             renderitzarPuzzle();
-            log(`🔄 Puzzle creat. Arrossega les peces per col·locar-les.`);
+            log('🔄 Puzzle creat. Arrossega les peces per col·locar-les.');
         }
 
-        // ----- RENDERITZAT -----
+        // ----- RENDERITZAT DEL PUZZLE -----
         function renderitzarPuzzle() {
             if (!imagenActual) return;
 
@@ -394,7 +388,7 @@
             puzzleContainer.style.gridTemplateColumns = `repeat(${divisions}, 1fr)`;
 
             for (let i = 0; i < total; i++) {
-                const pecaIndex = ordre[i]; // quin índex de peça va en aquesta posició
+                const pecaIndex = ordre[i];
                 const fila = Math.floor(pecaIndex / divisions);
                 const columna = pecaIndex % divisions;
                 const offsetX = columna * tamanyPeca;
@@ -406,17 +400,16 @@
                     piece.classList.add('fixed');
                 }
 
+                // Fons: la imatge sencera retallada a la porció que correspon
                 piece.style.backgroundImage = `url('${imagenActual}')`;
                 piece.style.backgroundPosition = `-${offsetX}px -${offsetY}px`;
-                piece.style.backgroundSize = `${divisions * tamanyPeca}px ${divisions * tamanyPeca}px`;
-                // La mida la controla el grid, però assegurem que ocupi tota la cel·la
-                piece.style.width = '100%';
-                piece.style.height = '100%';
+                piece.style.backgroundSize = `${divisions * 400}px ${divisions * 400}px`; // 400 és la mida de la imatge
 
-                // Emmagatzemar la posició actual (i) per a drag&drop
+                // La mida i el marge s'apliquen via CSS (width: calc(...) i margin)
+                // No cal posar width/height inline perquè la classe ja ho defineix
+
                 piece.dataset.posicio = i;
 
-                // Si no és fixa, es pot arrossegar
                 if (!fixat[i]) {
                     piece.draggable = true;
                     piece.addEventListener('dragstart', handleDragStart);
@@ -439,12 +432,11 @@
             origenIndex = parseInt(piece.dataset.posicio);
             e.dataTransfer.effectAllowed = 'move';
             e.dataTransfer.setData('text/plain', origenIndex);
-            // Guardem l'element per a estils
             piece.style.opacity = '0.6';
         }
 
         function handleDragOver(e) {
-            e.preventDefault(); // necessari per a drop
+            e.preventDefault();
             e.dataTransfer.dropEffect = 'move';
         }
 
@@ -456,18 +448,14 @@
             const destiIndex = parseInt(destiPiece.dataset.posicio);
             if (isNaN(destiIndex)) return;
 
-            // No podem soltar sobre una peça fixa
             if (fixat[destiIndex]) {
                 log('🚫 Aquesta peça ja està fixada.');
                 return;
             }
 
-            // L'origen pot ser null si no s'ha iniciat des de una peça
             if (origenIndex === null) return;
-            // No podem intercanviar amb la mateixa posició
             if (origenIndex === destiIndex) return;
 
-            // Assegurar que l'origen no estigui fixat (no hauria de ser possible arrossegar una fixa)
             if (fixat[origenIndex]) {
                 log('🚫 La peça origen està fixada, no es pot moure.');
                 origenIndex = null;
@@ -477,19 +465,13 @@
             // Intercanviar l'ordre
             [ordre[origenIndex], ordre[destiIndex]] = [ordre[destiIndex], ordre[origenIndex]];
 
-            // Actualitzar l'estat de fixat: recórrer totes les posicions
+            // Recalcular quines posicions són fixes
             for (let i = 0; i < ordre.length; i++) {
-                if (ordre[i] === i) {
-                    fixat[i] = true;
-                } else {
-                    fixat[i] = false;
-                }
+                fixat[i] = (ordre[i] === i);
             }
 
-            // Re-renderitzar
             renderitzarPuzzle();
 
-            // Verificar si totes les posicions estan fixades = victòria
             const totsFixats = fixat.every(v => v === true);
             if (totsFixats) {
                 log('🎉 ¡VICTÒRIA! Puzzle completat!');
@@ -515,19 +497,9 @@
             victoryOverlay.classList.remove('active');
         }
 
-        // Quan es fa clic al botó del pop-up, carregar nova imatge
         victoryBtn.addEventListener('click', () => {
             amagarPopupVictoria();
             carregarImagenAleatoria();
-        });
-
-        // També es pot tancar fent clic fora del pop-up (opcional)
-        victoryOverlay.addEventListener('click', (e) => {
-            if (e.target === victoryOverlay) {
-                // No tanquem per clic fora, per evitar tancament accidental
-                // però ho deixem comentat: si es vol, es pot descomentar
-                // amagarPopupVictoria();
-            }
         });
 
         // ----- ESDEVENIMENTS DELS CONTROLS -----
@@ -535,7 +507,6 @@
 
         divisionsSelect.addEventListener('change', () => {
             if (imagenActual) {
-                // Reiniciar el puzzle amb les noves divisions
                 iniciarPuzzle();
             }
         });
