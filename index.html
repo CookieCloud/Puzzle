@@ -544,25 +544,17 @@
         let fixat = [];
         let pecesDataURL = [];
         let currentSource = 'animals';
-        let sourceMode = 'online'; // 'online', 'file', 'url'
+        let sourceMode = 'online';
 
-        // TEMES AMB PICSUM
-        const themes = {
-            animals: { name: '🦁 Animals i Plantes', id: 'animals' },
-            landscape: { name: '🏔️ Paisatges', id: 'landscape' },
-            urban: { name: '🏙️ Ciutats', id: 'urban' },
-            water: { name: '🌊 Aigua', id: 'water' }
-        };
-
-        // IMATGES PER PICSUM
+        // PICSUM IMAGES PER TEMA
         const pictureMaps = {
-            animals: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-            landscape: [11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
-            urban: [21, 22, 23, 24, 25, 26, 27, 28, 29, 30],
-            water: [31, 32, 33, 34, 35, 36, 37, 38, 39, 40]
+            animals: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 45, 46, 47, 48],
+            landscape: [11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 50, 51, 52],
+            urban: [21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 60, 61, 62],
+            water: [31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 70, 71, 72]
         };
 
-        // THEME TOGGLE
+        // INIT THEME
         function initTheme() {
             const isDark = localStorage.getItem('darkMode') === 'true';
             if (isDark) {
@@ -578,13 +570,15 @@
             themeToggle.textContent = isDark ? '☀️' : '🌙';
         });
 
-        // SOURCE SELECTOR
+        // SOURCE BUTTONS
         sourceButtons.forEach(btn => {
-            btn.addEventListener('click', () => {
+            btn.addEventListener('click', (e) => {
+                console.log('Clic en:', btn.dataset.source);
                 sourceButtons.forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 currentSource = btn.dataset.source;
                 sourceMode = 'online';
+                console.log('currentSource ara és:', currentSource);
             });
         });
 
@@ -641,24 +635,35 @@
         }
 
         function carregarImagenAleatoria() {
+            console.log('carregarImagenAleatoria - currentSource:', currentSource);
+            
             if (sourceMode !== 'online') {
                 resetSourceButtons();
                 sourceButtons.forEach(b => {
                     if (b.dataset.source === 'animals') b.classList.add('active');
                 });
+                currentSource = 'animals';
                 sourceMode = 'online';
             }
 
             log('🔄 Carregant imatge...');
             
             const pictures = pictureMaps[currentSource];
+            if (!pictures) {
+                log('❌ Tema no vàlid');
+                return;
+            }
+
             const randomPic = pictures[Math.floor(Math.random() * pictures.length)];
-            const imageUrl = `https://picsum.photos/seed/pic${randomPic}/400/400`;
+            const imageUrl = `https://picsum.photos/seed/pic${randomPic}${Date.now()}/400/400`;
+            
+            console.log('Carregant URL:', imageUrl);
 
             const img = new Image();
             img.crossOrigin = 'anonymous';
 
             img.onload = () => {
+                console.log('Imatge carregada');
                 imagenActual = imageUrl;
                 previewImg.src = imageUrl;
                 finalImage.src = imageUrl;
@@ -666,6 +671,7 @@
             };
 
             img.onerror = () => {
+                console.log('Error carregant imatge');
                 log('❌ Error al carregar. Proba de nou.');
             };
 
@@ -722,6 +728,7 @@
 
                 fixat = new Array(total).fill(false);
                 renderitzarPuzzle();
+                log('🧩 Arrossega les peces!');
             };
 
             img.onerror = () => {
@@ -800,7 +807,7 @@
                 victoryOverlay.classList.add('active');
             } else {
                 const correctes = fixat.filter(v => v).length;
-                log(`🧩 ${correctes}/${ordre.length} peces`);
+                log(`🧩 ${correctes}/${ordre.length} peces correctes`);
             }
 
             origenIndex = null;
@@ -818,11 +825,14 @@
         carregarBtn.addEventListener('click', carregarImagenAleatoria);
 
         divisionsSelect.addEventListener('change', () => {
-            if (imagenActual) iniciarPuzzle();
+            if (imagenActual && sourceMode === 'online') {
+                iniciarPuzzle();
+            }
         });
 
         initTheme();
         carregarImagenAleatoria();
+    </script>
     </script>
 </body>
 </html>
