@@ -65,18 +65,15 @@
             background: white;
         }
 
-        /* ----- PUZZLE GRID ----- */
         .puzzle-grid {
             display: grid;
             gap: 0;
-            /* sense separació entre cel·les */
             margin-bottom: 20px;
             background: #d0d0d0;
             padding: 0;
             border-radius: 8px;
             min-height: 300px;
             aspect-ratio: 1 / 1;
-            /* mantenir quadrat */
             width: 100%;
         }
 
@@ -88,7 +85,6 @@
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
             user-select: none;
             -webkit-user-select: none;
-            /* Mida per a peces mòbils: ocupen la cel·la menys 8px (4px de marge a cada costat) */
             width: calc(100% - 8px);
             height: calc(100% - 8px);
             margin: 4px;
@@ -102,7 +98,6 @@
             z-index: 100;
         }
 
-        /* Peça fixa: ocupa tota la cel·la, sense marge i sense ombra */
         .puzzle-piece.fixed {
             width: 100%;
             height: 100%;
@@ -121,7 +116,6 @@
             border: 1px solid rgba(255, 255, 255, 0.2);
         }
 
-        /* ----- PREVISUALITZACIÓ ----- */
         .image-preview {
             background: #f5f5f5;
             padding: 15px;
@@ -155,7 +149,6 @@
             min-height: 1.5em;
         }
 
-        /* ----- POP-UP VICTÒRIA ----- */
         .victory-overlay {
             position: fixed;
             top: 0;
@@ -246,7 +239,6 @@
         <div class="log" id="log">Esperant acció...</div>
     </div>
 
-    <!-- POP-UP VICTÒRIA -->
     <div id="victoryOverlay" class="victory-overlay">
         <div class="victory-popup">
             <h2>🎉 ¡VICTÒRIA!</h2>
@@ -256,7 +248,6 @@
     </div>
 
     <script>
-        // ----- ELEMENTS DOM -----
         const carregarBtn = document.getElementById('carregarBtn');
         const puzzleContainer = document.getElementById('puzzleContainer');
         const imagePreview = document.getElementById('imagePreview');
@@ -265,13 +256,13 @@
         const victoryOverlay = document.getElementById('victoryOverlay');
         const victoryBtn = document.getElementById('victoryBtn');
 
-        // ----- ESTAT DEL PUZZLE -----
         let imagenActual = null;
         let divisions = 4;
-        let ordre = [];       // ordre[i] = índex de la peça que està a la posició i
-        let fixat = [];       // fixat[i] = true si la peça a la posició i és la correcta
+        let ordre = [];
+        let fixat = [];
+        let imageWidth = 0;
+        let imageHeight = 0;
 
-        // ----- FUNCIONS AUXILIARS -----
         function log(msg) {
             console.log(msg);
             logDiv.textContent = msg;
@@ -312,28 +303,43 @@
 
             let carregada = false;
 
-            img.onload = () => {
+            img.onload = function() {
                 carregada = true;
-                log('✅ Imatge carregada correctament');
+                imageWidth = this.naturalWidth || this.width;
+                imageHeight = this.naturalHeight || this.height;
+                log(`✅ Imatge carregada (${imageWidth}x${imageHeight})`);
                 imagenActual = imageUrl;
                 mostrarImatge();
                 iniciarPuzzle();
             };
 
-            img.onerror = () => {
+            img.onerror = function() {
                 log('❌ Error en carregar la imatge externa. S\'utilitzarà una de reserva.');
-                imagenActual = generarImatgeReserva();
-                mostrarImatge();
-                iniciarPuzzle();
+                const fallback = generarImatgeReserva();
+                const fallbackImg = new Image();
+                fallbackImg.onload = function() {
+                    imageWidth = this.naturalWidth || this.width;
+                    imageHeight = this.naturalHeight || this.height;
+                    imagenActual = fallback;
+                    mostrarImatge();
+                    iniciarPuzzle();
+                };
+                fallbackImg.src = fallback;
             };
 
             const timeout = setTimeout(() => {
                 if (!carregada) {
                     log('⏱️ Temps d\'espera excedit. Usant imatge de reserva.');
-                    img.src = '';
-                    imagenActual = generarImatgeReserva();
-                    mostrarImatge();
-                    iniciarPuzzle();
+                    const fallback = generarImatgeReserva();
+                    const fallbackImg = new Image();
+                    fallbackImg.onload = function() {
+                        imageWidth = this.naturalWidth || this.width;
+                        imageHeight = this.naturalHeight || this.height;
+                        imagenActual = fallback;
+                        mostrarImatge();
+                        iniciarPuzzle();
+                    };
+                    fallbackImg.src = fallback;
                 }
             }, 10000);
 
@@ -352,10 +358,9 @@
             }
         }
 
-        // ----- INICI DEL PUZZLE -----
         function iniciarPuzzle() {
-            if (!imagenActual) {
-                log('⚠️ No hi ha imatge per crear el puzzle.');
+            if (!imagenActual || imageWidth === 0 || imageHeight === 0) {
+                log('⚠️ No hi ha imatge vàlida per crear el puzzle.');
                 return;
             }
 
@@ -363,26 +368,23 @@
             const total = divisions * divisions;
             log(`📦 Iniciant puzzle ${divisions}×${divisions} (${total} peces)...`);
 
-            // Barrejar l'ordre
             ordre = Array.from({ length: total }, (_, i) => i);
             for (let i = total - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [ordre[i], ordre[j]] = [ordre[j], ordre[i]];
             }
 
-            // Cap peça fixa al principi
             fixat = new Array(total).fill(false);
-
             renderitzarPuzzle();
             log('🔄 Puzzle creat. Arrossega les peces per col·locar-les.');
         }
 
-        // ----- RENDERITZAT DEL PUZZLE -----
         function renderitzarPuzzle() {
             if (!imagenActual) return;
 
             const total = divisions * divisions;
-            const tamanyPeca = 400 / divisions;
+            const pieceWidth = imageWidth / divisions;
+            const pieceHeight = imageHeight / divisions;
 
             puzzleContainer.innerHTML = '';
             puzzleContainer.style.gridTemplateColumns = `repeat(${divisions}, 1fr)`;
@@ -391,8 +393,8 @@
                 const pecaIndex = ordre[i];
                 const fila = Math.floor(pecaIndex / divisions);
                 const columna = pecaIndex % divisions;
-                const offsetX = columna * tamanyPeca;
-                const offsetY = fila * tamanyPeca;
+                const offsetX = columna * pieceWidth;
+                const offsetY = fila * pieceHeight;
 
                 const piece = document.createElement('div');
                 piece.className = 'puzzle-piece';
@@ -400,13 +402,10 @@
                     piece.classList.add('fixed');
                 }
 
-                // Fons: la imatge sencera retallada a la porció que correspon
                 piece.style.backgroundImage = `url('${imagenActual}')`;
                 piece.style.backgroundPosition = `-${offsetX}px -${offsetY}px`;
-                piece.style.backgroundSize = `${divisions * 400}px ${divisions * 400}px`; // 400 és la mida de la imatge
-
-                // La mida i el marge s'apliquen via CSS (width: calc(...) i margin)
-                // No cal posar width/height inline perquè la classe ja ho defineix
+                // Important: backgroundSize ha de ser la mida total de la imatge
+                piece.style.backgroundSize = `${imageWidth}px ${imageHeight}px`;
 
                 piece.dataset.posicio = i;
 
@@ -424,7 +423,6 @@
             }
         }
 
-        // ----- DRAG & DROP -----
         let origenIndex = null;
 
         function handleDragStart(e) {
@@ -462,10 +460,8 @@
                 return;
             }
 
-            // Intercanviar l'ordre
             [ordre[origenIndex], ordre[destiIndex]] = [ordre[destiIndex], ordre[origenIndex]];
 
-            // Recalcular quines posicions són fixes
             for (let i = 0; i < ordre.length; i++) {
                 fixat[i] = (ordre[i] === i);
             }
@@ -488,7 +484,6 @@
             origenIndex = null;
         }
 
-        // ----- POP-UP DE VICTÒRIA -----
         function mostrarPopupVictoria() {
             victoryOverlay.classList.add('active');
         }
@@ -502,16 +497,14 @@
             carregarImagenAleatoria();
         });
 
-        // ----- ESDEVENIMENTS DELS CONTROLS -----
         carregarBtn.addEventListener('click', carregarImagenAleatoria);
 
         divisionsSelect.addEventListener('change', () => {
-            if (imagenActual) {
+            if (imagenActual && imageWidth > 0 && imageHeight > 0) {
                 iniciarPuzzle();
             }
         });
 
-        // ----- INICI -----
         carregarImagenAleatoria();
     </script>
 </body>
