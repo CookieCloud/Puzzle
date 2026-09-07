@@ -733,7 +733,7 @@
             log('🔄 Carregant imatge...');
             
             const seed = Math.floor(Math.random() * 1000000);
-            const imageUrl = `https://source.unsplash.com/400x400/?nature,landscape&sig=${seed}`;
+            const imageUrl = `https://picsum.photos/seed/puzzle${seed}/400/400`;
 
             const img = new Image();
             img.crossOrigin = 'anonymous';
@@ -748,13 +748,12 @@
             };
 
             img.onerror = () => {
-                log('❌ Reintentan...');
-                // Reintentar una vegada
-                setTimeout(() => carregarImagenAleatoria(), 1000);
+                log('❌ Error al carregar. Proba de nou.');
             };
 
             img.src = imageUrl;
         }
+        
         function iniciarPuzzle() {
             if (!imagenActual) {
                 log('⚠️ Carrega una imatge primer');
