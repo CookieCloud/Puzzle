@@ -727,8 +727,8 @@
             img.src = url;
         });
 
-        // REFRESH
-        refreshBtn.addEventListener('click', () => {
+        // FUNCIÓN CARREGA ÚLTIMA
+        function carregarUltima() {
             if (lastSource === 'picsum') {
                 carregarImagenAleatoria();
             } else if (lastSource === 'flickr') {
@@ -738,8 +738,12 @@
             } else if (lastSource === 'url') {
                 loadCustomBtn.click();
             }
-        });
+        }
 
+        // REFRESH
+        refreshBtn.addEventListener('click', carregarUltima);
+        refreshBtn.title = 'Nova foto';
+        
         function log(msg) {
             console.log(msg);
             logDiv.textContent = msg;
@@ -910,7 +914,7 @@
 
         victoryBtn.addEventListener('click', () => {
             victoryOverlay.classList.remove('active');
-            carregarImagenAleatoria();
+            carregarUltima();
         });
 
         divisionsSelect.addEventListener('change', () => {
