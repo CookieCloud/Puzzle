@@ -118,40 +118,6 @@
             letter-spacing: 0.5px;
         }
 
-        .controls {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-
-        .control-group {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-
-        .control-group label {
-            font-size: 12px;
-            color: var(--text-secondary);
-            font-weight: 500;
-        }
-
-        select, input[type="text"], input[type="file"] {
-            padding: 10px;
-            border-radius: 6px;
-            border: 2px solid var(--border-color);
-            background: var(--bg-secondary);
-            color: var(--text-primary);
-            font-size: 14px;
-            transition: border-color 0.2s;
-        }
-
-        select:focus, input[type="text"]:focus, input[type="file"]:focus {
-            outline: none;
-            border-color: var(--btn-bg);
-        }
-
         .source-buttons {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -160,25 +126,135 @@
         }
 
         .source-btn {
-            padding: 10px;
+            padding: 12px;
             background: var(--bg-secondary);
             color: var(--text-primary);
             border: 2px solid var(--border-color);
-            border-radius: 6px;
+            border-radius: 8px;
             cursor: pointer;
-            font-size: 12px;
+            font-size: 13px;
             font-weight: 600;
             transition: all 0.2s;
+            text-align: center;
         }
 
         .source-btn.active {
             background: var(--btn-bg);
             color: white;
             border-color: var(--btn-bg);
+            box-shadow: 0 2px 8px var(--shadow);
         }
 
         .source-btn:active {
-            transform: scale(0.98);
+            transform: scale(0.95);
+        }
+
+        .input-group {
+            margin-bottom: 12px;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .file-input-wrapper {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .file-input-wrapper input[type="file"] {
+            position: absolute;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .file-input-label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px;
+            background: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--text-primary);
+            transition: all 0.2s;
+        }
+
+        .file-input-wrapper:hover .file-input-label {
+            border-color: var(--btn-bg);
+            background: var(--bg-tertiary);
+        }
+
+        .url-input-wrapper {
+            flex: 1;
+            display: flex;
+            gap: 8px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 12px;
+            border-radius: 8px;
+            border: 2px solid var(--border-color);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-size: 13px;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--btn-bg);
+        }
+
+        .url-btn {
+            padding: 12px 16px !important;
+            width: auto !important;
+            margin-bottom: 0 !important;
+            background: var(--btn-bg);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+
+        .url-btn:active {
+            background: var(--btn-hover);
+            transform: scale(0.95);
+        }
+
+        .theme-options, .url-options {
+            display: none;
+        }
+
+        .theme-options.active, .url-options.active {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .theme-btn {
+            padding: 10px !important;
+            width: 100% !important;
+            margin-bottom: 0 !important;
+            background: var(--bg-secondary) !important;
+            color: var(--text-primary) !important;
+            border: 2px solid var(--border-color) !important;
+            font-size: 13px !important;
+            transition: all 0.2s;
+        }
+
+        .theme-btn.active {
+            background: var(--btn-bg) !important;
+            color: white !important;
+            border-color: var(--btn-bg) !important;
         }
 
         .puzzle-grid {
@@ -318,6 +394,39 @@
             transform: scale(0.98);
         }
 
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .control-group label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        select {
+            padding: 10px;
+            border-radius: 6px;
+            border: 2px solid var(--border-color);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: var(--btn-bg);
+        }
+
         @keyframes popIn {
             0% {
                 transform: scale(0.8);
@@ -350,28 +459,32 @@
             <button class="theme-toggle" id="themeToggle" title="Canviar mode fosc">🌙</button>
         </div>
 
-        <!-- FONT SELECTOR -->
+        <!-- ORIGEN DE LA FOTO -->
         <div class="section-title">📸 Origen de la foto</div>
         <div class="source-buttons">
-            <button class="source-btn active" data-source="unsplash">Unsplash</button>
-            <button class="source-btn" data-source="pexels">Pexels</button>
-            <button class="source-btn" data-source="pixabay">Pixabay</button>
-            <button class="source-btn" data-source="custom">URL Custom</button>
+            <button class="source-btn active" data-source="animals">🦁 Animals i Plantes</button>
+            <button class="source-btn" data-source="landscape">🏔️ Paisatges</button>
+            <button class="source-btn" data-source="urban">🏙️ Ciutats</button>
+            <button class="source-btn" data-source="water">🌊 Aigua</button>
         </div>
 
-        <!-- CUSTOM URL INPUT -->
-        <div id="customUrlContainer" style="display: none; margin-bottom: 12px;">
-            <input type="text" id="customUrl" placeholder="Enganxa una URL de foto (400x400)">
-            <button id="loadCustomBtn" style="margin-top: 8px;">Carregar URL</button>
+        <!-- FITXER LOCAL -->
+        <div class="input-group">
+            <div class="file-input-wrapper">
+                <input type="file" id="fileUpload" accept="image/*">
+                <label class="file-input-label">📁 Puja Fitxer</label>
+            </div>
         </div>
 
-        <!-- FILE UPLOAD -->
-        <div style="margin-bottom: 12px;">
-            <label style="font-size: 12px; color: var(--text-secondary); display: block; margin-bottom: 5px; font-weight: 500;">📁 O puja una foto</label>
-            <input type="file" id="fileUpload" accept="image/*">
+        <!-- URL CUSTOM -->
+        <div class="input-group">
+            <div class="url-input-wrapper">
+                <input type="text" id="customUrl" placeholder="Enganxa URL de foto...">
+                <button class="url-btn" id="loadCustomBtn">🔗</button>
+            </div>
         </div>
 
-        <!-- NEW IMAGE BUTTON -->
+        <!-- BOTÓ NOVA IMATGE -->
         <button id="carregarBtn">Carregar Imatge Nova</button>
 
         <!-- DIVISIONS -->
@@ -421,7 +534,6 @@
         const finalImage = document.getElementById('finalImage');
         const themeToggle = document.getElementById('themeToggle');
         const fileUpload = document.getElementById('fileUpload');
-        const customUrlContainer = document.getElementById('customUrlContainer');
         const customUrl = document.getElementById('customUrl');
         const loadCustomBtn = document.getElementById('loadCustomBtn');
         const sourceButtons = document.querySelectorAll('.source-btn');
@@ -431,7 +543,24 @@
         let ordre = [];
         let fixat = [];
         let pecesDataURL = [];
-        let currentSource = 'unsplash';
+        let currentSource = 'animals';
+        let sourceMode = 'online'; // 'online', 'file', 'url'
+
+        // TEMES AMB PICSUM
+        const themes = {
+            animals: { name: '🦁 Animals i Plantes', id: 'animals' },
+            landscape: { name: '🏔️ Paisatges', id: 'landscape' },
+            urban: { name: '🏙️ Ciutats', id: 'urban' },
+            water: { name: '🌊 Aigua', id: 'water' }
+        };
+
+        // IMATGES PER PICSUM
+        const pictureMaps = {
+            animals: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+            landscape: [11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
+            urban: [21, 22, 23, 24, 25, 26, 27, 28, 29, 30],
+            water: [31, 32, 33, 34, 35, 36, 37, 38, 39, 40]
+        };
 
         // THEME TOGGLE
         function initTheme() {
@@ -455,12 +584,7 @@
                 sourceButtons.forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 currentSource = btn.dataset.source;
-                
-                if (currentSource === 'custom') {
-                    customUrlContainer.style.display = 'block';
-                } else {
-                    customUrlContainer.style.display = 'none';
-                }
+                sourceMode = 'online';
             });
         });
 
@@ -473,6 +597,8 @@
                     imagenActual = event.target.result;
                     previewImg.src = imagenActual;
                     finalImage.src = imagenActual;
+                    sourceMode = 'file';
+                    resetSourceButtons();
                     iniciarPuzzle();
                     log('✅ Foto pujada');
                 };
@@ -480,7 +606,7 @@
             }
         });
 
-        // CUSTOM URL LOAD
+        // CUSTOM URL
         loadCustomBtn.addEventListener('click', () => {
             const url = customUrl.value.trim();
             if (!url) {
@@ -494,14 +620,20 @@
                 imagenActual = url;
                 previewImg.src = url;
                 finalImage.src = url;
+                sourceMode = 'url';
+                resetSourceButtons();
                 iniciarPuzzle();
-                log('✅ Foto carregada');
+                log('✅ URL carregada');
             };
             img.onerror = () => {
-                log('❌ Error al carregar la URL');
+                log('❌ Error. Verifica que la URL sigui vàlida');
             };
             img.src = url;
         });
+
+        function resetSourceButtons() {
+            sourceButtons.forEach(b => b.classList.remove('active'));
+        }
 
         function log(msg) {
             console.log(msg);
@@ -509,21 +641,19 @@
         }
 
         function carregarImagenAleatoria() {
+            if (sourceMode !== 'online') {
+                resetSourceButtons();
+                sourceButtons.forEach(b => {
+                    if (b.dataset.source === 'animals') b.classList.add('active');
+                });
+                sourceMode = 'online';
+            }
+
             log('🔄 Carregant imatge...');
             
-            let imageUrl;
-            
-            if (currentSource === 'unsplash') {
-                const seed = Math.floor(Math.random() * 1000000);
-                imageUrl = `https://source.unsplash.com/400x400/?nature,landscape&sig=${seed}`;
-            } else if (currentSource === 'pexels') {
-                imageUrl = `https://images.pexels.com/photos/1181690/pexels-photo-1181690.jpeg?w=400&h=400&fit=crop`;
-            } else if (currentSource === 'pixabay') {
-                imageUrl = `https://pixabay.com/get/g6a9ec80c25c7f5a048b09e627c0e3e36d6dd0370bfd1e43186a89c9d6ea9e4d7_640.jpg`;
-            } else {
-                log('❌ Selecciona una font');
-                return;
-            }
+            const pictures = pictureMaps[currentSource];
+            const randomPic = pictures[Math.floor(Math.random() * pictures.length)];
+            const imageUrl = `https://picsum.photos/seed/pic${randomPic}/400/400`;
 
             const img = new Image();
             img.crossOrigin = 'anonymous';
@@ -536,13 +666,18 @@
             };
 
             img.onerror = () => {
-                log('❌ Error al carregar. Proba una altra font.');
+                log('❌ Error al carregar. Proba de nou.');
             };
 
             img.src = imageUrl;
         }
 
         function iniciarPuzzle() {
+            if (!imagenActual) {
+                log('⚠️ Carrega una imatge primer');
+                return;
+            }
+
             divisions = parseInt(divisionsSelect.value);
             const total = divisions * divisions;
             
