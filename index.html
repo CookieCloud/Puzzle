@@ -10,14 +10,12 @@
             padding: 0;
             box-sizing: border-box;
         }
-
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 20px;
         }
-
         .container {
             max-width: 600px;
             margin: 0 auto;
@@ -26,13 +24,11 @@
             padding: 20px;
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
         }
-
         h1 {
             text-align: center;
             margin-bottom: 20px;
             color: #667eea;
         }
-
         button {
             display: block;
             width: 100%;
@@ -45,18 +41,16 @@
             font-weight: bold;
             cursor: pointer;
             margin-bottom: 15px;
-            transition: background 0.2s;
+            transition: background 0.2s, transform 0.1s;
         }
-
-        button:hover {
+        button:active {
             background: #5568d3;
+            transform: scale(0.98);
         }
-
         .controls {
             text-align: center;
             margin-bottom: 20px;
         }
-
         select {
             padding: 8px 12px;
             border-radius: 6px;
@@ -64,58 +58,41 @@
             font-size: 14px;
             background: white;
         }
-
         .puzzle-grid {
             display: grid;
             gap: 0;
             margin-bottom: 20px;
             background: #d0d0d0;
-            padding: 0;
+            padding: 4px;
             border-radius: 8px;
-            min-height: 300px;
             aspect-ratio: 1 / 1;
             width: 100%;
         }
-
         .puzzle-piece {
-            background-size: cover;
+            background-size: 400px 400px;
             background-position: center;
-            border-radius: 4px;
+            border-radius: 2px;
             cursor: grab;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
             user-select: none;
             -webkit-user-select: none;
-            width: calc(100% - 8px);
-            height: calc(100% - 8px);
-            margin: 4px;
-            transition: width 0.2s, height 0.2s, margin 0.2s, box-shadow 0.2s;
+            touch-action: none;
             position: relative;
         }
-
-        .puzzle-piece:active {
+        .puzzle-piece.unfixed {
+            margin: 4px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+        .puzzle-piece.fixed {
+            margin: 0;
+            box-shadow: none;
+            cursor: default;
+            border-radius: 0;
+        }
+        .puzzle-piece:active:not(.fixed) {
             cursor: grabbing;
-            opacity: 0.85;
+            opacity: 0.8;
             z-index: 100;
         }
-
-        .puzzle-piece.fixed {
-            width: 100%;
-            height: 100%;
-            margin: 0;
-            cursor: default;
-            box-shadow: none;
-            border-radius: 0;
-            opacity: 1;
-        }
-
-        .puzzle-piece.fixed::after {
-            content: '';
-            position: absolute;
-            inset: 0;
-            pointer-events: none;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
         .image-preview {
             background: #f5f5f5;
             padding: 15px;
@@ -127,28 +104,23 @@
             align-items: center;
             justify-content: center;
         }
-
         .image-preview img {
             max-width: 100%;
             max-height: 250px;
             border-radius: 6px;
         }
-
         .image-preview .placeholder {
             color: #999;
             font-style: italic;
         }
-
         .log {
             background: #f0f0f0;
             padding: 10px;
             border-radius: 6px;
             font-size: 12px;
-            margin-top: 10px;
             color: #666;
             min-height: 1.5em;
         }
-
         .victory-overlay {
             position: fixed;
             top: 0;
@@ -162,33 +134,36 @@
             z-index: 1000;
             backdrop-filter: blur(4px);
         }
-
         .victory-overlay.active {
             display: flex;
         }
-
         .victory-popup {
             background: white;
-            padding: 40px 50px;
+            padding: 40px 30px;
             border-radius: 20px;
             text-align: center;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
             animation: popIn 0.4s ease-out;
             max-width: 90%;
         }
-
         .victory-popup h2 {
             font-size: 2.5rem;
             color: #667eea;
             margin-bottom: 10px;
         }
-
         .victory-popup p {
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             color: #333;
             margin-bottom: 25px;
         }
-
+        .victory-popup .final-puzzle {
+            margin: 20px 0;
+            border-radius: 12px;
+            max-width: 300px;
+            margin-left: auto;
+            margin-right: auto;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
         .victory-popup button {
             display: inline-block;
             width: auto;
@@ -197,16 +172,16 @@
             color: white;
             border: none;
             border-radius: 8px;
-            font-size: 1.1rem;
+            font-size: 1rem;
             font-weight: bold;
             cursor: pointer;
             transition: background 0.2s;
+            margin-top: 15px;
         }
-
-        .victory-popup button:hover {
+        .victory-popup button:active {
             background: #5568d3;
+            transform: scale(0.98);
         }
-
         @keyframes popIn {
             0% {
                 transform: scale(0.8);
@@ -229,6 +204,7 @@
                     <option value="2">2×2 (4 peces)</option>
                     <option value="3">3×3 (9 peces)</option>
                     <option value="4" selected>4×4 (16 peces)</option>
+                    <option value="5">5×5 (25 peces)</option>
                 </select>
             </label>
         </div>
@@ -243,7 +219,9 @@
         <div class="victory-popup">
             <h2>🎉 ¡VICTÒRIA!</h2>
             <p>Has completat el puzzle!</p>
-            <button id="victoryBtn">Acceptar · Nova imatge</button>
+            <img id="finalImage" class="final-puzzle" src="" alt="Puzzle completat">
+            <br>
+            <button id="victoryBtn">Jugar de Nou</button>
         </div>
     </div>
 
@@ -255,13 +233,14 @@
         const logDiv = document.getElementById('log');
         const victoryOverlay = document.getElementById('victoryOverlay');
         const victoryBtn = document.getElementById('victoryBtn');
+        const finalImage = document.getElementById('finalImage');
 
         let imagenActual = null;
         let divisions = 4;
         let ordre = [];
         let fixat = [];
-        let imageWidth = 0;
-        let imageHeight = 0;
+        let imageWidth = 400;
+        let imageHeight = 400;
 
         function log(msg) {
             console.log(msg);
@@ -294,79 +273,68 @@
         function carregarImagenAleatoria() {
             log('🔄 Carregant imatge...');
             imagePreview.innerHTML = '<span class="placeholder">Carregant...</span>';
-
-            const seed = Math.floor(Math.random() * 100000);
+            const seed = Math.floor(Math.random() * 1000000);
             const imageUrl = `https://picsum.photos/seed/${seed}/400/400`;
-
+            
             const img = new Image();
             img.crossOrigin = 'anonymous';
-
             let carregada = false;
 
             img.onload = function() {
                 carregada = true;
-                imageWidth = this.naturalWidth || this.width;
-                imageHeight = this.naturalHeight || this.height;
-                log(`✅ Imatge carregada (${imageWidth}x${imageHeight})`);
+                imageWidth = 400;
+                imageHeight = 400;
+                log(`✅ Imatge carregada`);
                 imagenActual = imageUrl;
+                finalImage.src = imageUrl;
                 mostrarImatge();
                 iniciarPuzzle();
             };
 
             img.onerror = function() {
-                log('❌ Error en carregar la imatge externa. S\'utilitzarà una de reserva.');
+                log('❌ Error. Usant imatge de reserva.');
                 const fallback = generarImatgeReserva();
-                const fallbackImg = new Image();
-                fallbackImg.onload = function() {
-                    imageWidth = this.naturalWidth || this.width;
-                    imageHeight = this.naturalHeight || this.height;
-                    imagenActual = fallback;
-                    mostrarImatge();
-                    iniciarPuzzle();
-                };
-                fallbackImg.src = fallback;
+                imagenActual = fallback;
+                finalImage.src = fallback;
+                imageWidth = 400;
+                imageHeight = 400;
+                mostrarImatge();
+                iniciarPuzzle();
             };
 
             const timeout = setTimeout(() => {
                 if (!carregada) {
-                    log('⏱️ Temps d\'espera excedit. Usant imatge de reserva.');
+                    log('⏱️ Temps d\'espera excedit.');
                     const fallback = generarImatgeReserva();
-                    const fallbackImg = new Image();
-                    fallbackImg.onload = function() {
-                        imageWidth = this.naturalWidth || this.width;
-                        imageHeight = this.naturalHeight || this.height;
-                        imagenActual = fallback;
-                        mostrarImatge();
-                        iniciarPuzzle();
-                    };
-                    fallbackImg.src = fallback;
+                    imagenActual = fallback;
+                    finalImage.src = fallback;
+                    imageWidth = 400;
+                    imageHeight = 400;
+                    mostrarImatge();
+                    iniciarPuzzle();
                 }
-            }, 10000);
+            }, 8000);
 
-            const cleanTimeout = () => clearTimeout(timeout);
-            img.addEventListener('load', cleanTimeout);
-            img.addEventListener('error', cleanTimeout);
-
+            img.addEventListener('load', () => clearTimeout(timeout));
+            img.addEventListener('error', () => clearTimeout(timeout));
             img.src = imageUrl;
         }
 
         function mostrarImatge() {
             if (imagenActual) {
                 imagePreview.innerHTML = `<img src="${imagenActual}" alt="Imatge original">`;
-            } else {
-                imagePreview.innerHTML = '<span class="placeholder">No hi ha imatge</span>';
             }
         }
 
         function iniciarPuzzle() {
-            if (!imagenActual || imageWidth === 0 || imageHeight === 0) {
-                log('⚠️ No hi ha imatge vàlida per crear el puzzle.');
+            if (!imagenActual) {
+                log('⚠️ No hi ha imatge vàlida.');
                 return;
             }
 
             divisions = parseInt(divisionsSelect.value);
             const total = divisions * divisions;
-            log(`📦 Iniciant puzzle ${divisions}×${divisions} (${total} peces)...`);
+            log(`📦 Puzzle ${divisions}×${divisions} (${total} peces)`);
 
             ordre = Array.from({ length: total }, (_, i) => i);
             for (let i = total - 1; i > 0; i--) {
@@ -376,7 +344,6 @@
 
             fixat = new Array(total).fill(false);
             renderitzarPuzzle();
-            log('🔄 Puzzle creat. Arrossega les peces per col·locar-les.');
         }
 
         function renderitzarPuzzle() {
@@ -393,21 +360,25 @@
                 const pecaIndex = ordre[i];
                 const fila = Math.floor(pecaIndex / divisions);
                 const columna = pecaIndex % divisions;
+
                 const offsetX = columna * pieceWidth;
                 const offsetY = fila * pieceHeight;
 
                 const piece = document.createElement('div');
                 piece.className = 'puzzle-piece';
+
                 if (fixat[i]) {
                     piece.classList.add('fixed');
+                } else {
+                    piece.classList.add('unfixed');
                 }
 
                 piece.style.backgroundImage = `url('${imagenActual}')`;
-                piece.style.backgroundPosition = `-${offsetX}px -${offsetY}px`;
-                // Important: backgroundSize ha de ser la mida total de la imatge
                 piece.style.backgroundSize = `${imageWidth}px ${imageHeight}px`;
+                piece.style.backgroundPosition = `-${offsetX}px -${offsetY}px`;
 
                 piece.dataset.posicio = i;
+                piece.dataset.correcta = pecaIndex;
 
                 if (!fixat[i]) {
                     piece.draggable = true;
@@ -415,8 +386,6 @@
                     piece.addEventListener('dragover', handleDragOver);
                     piece.addEventListener('drop', handleDrop);
                     piece.addEventListener('dragend', handleDragEnd);
-                } else {
-                    piece.draggable = false;
                 }
 
                 puzzleContainer.appendChild(piece);
@@ -429,8 +398,7 @@
             const piece = e.target;
             origenIndex = parseInt(piece.dataset.posicio);
             e.dataTransfer.effectAllowed = 'move';
-            e.dataTransfer.setData('text/plain', origenIndex);
-            piece.style.opacity = '0.6';
+            piece.style.opacity = '0.5';
         }
 
         function handleDragOver(e) {
@@ -441,39 +409,29 @@
         function handleDrop(e) {
             e.preventDefault();
             const destiPiece = e.target.closest('.puzzle-piece');
-            if (!destiPiece) return;
+            if (!destiPiece || fixat[destiPiece.dataset.posicio]) return;
 
             const destiIndex = parseInt(destiPiece.dataset.posicio);
-            if (isNaN(destiIndex)) return;
+            if (origenIndex === null || origenIndex === destiIndex) return;
 
-            if (fixat[destiIndex]) {
-                log('🚫 Aquesta peça ja està fixada.');
-                return;
-            }
-
-            if (origenIndex === null) return;
-            if (origenIndex === destiIndex) return;
-
-            if (fixat[origenIndex]) {
-                log('🚫 La peça origen està fixada, no es pot moure.');
-                origenIndex = null;
-                return;
-            }
-
+            // Intercanviar
             [ordre[origenIndex], ordre[destiIndex]] = [ordre[destiIndex], ordre[origenIndex]];
 
+            // Actualitzar fixat
             for (let i = 0; i < ordre.length; i++) {
                 fixat[i] = (ordre[i] === i);
             }
 
             renderitzarPuzzle();
 
+            // Verificar victòria
             const totsFixats = fixat.every(v => v === true);
             if (totsFixats) {
                 log('🎉 ¡VICTÒRIA! Puzzle completat!');
                 mostrarPopupVictoria();
             } else {
-                log('🧩 Segueix intentant-ho...');
+                const correctes = fixat.filter(v => v).length;
+                log(`🧩 ${correctes}/${ordre.length} peces correctes`);
             }
 
             origenIndex = null;
@@ -481,7 +439,6 @@
 
         function handleDragEnd(e) {
             e.target.style.opacity = '1';
-            origenIndex = null;
         }
 
         function mostrarPopupVictoria() {
@@ -500,7 +457,7 @@
         carregarBtn.addEventListener('click', carregarImagenAleatoria);
 
         divisionsSelect.addEventListener('change', () => {
-            if (imagenActual && imageWidth > 0 && imageHeight > 0) {
+            if (imagenActual) {
                 iniciarPuzzle();
             }
         });
