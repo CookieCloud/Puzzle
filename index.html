@@ -540,7 +540,7 @@
     <!-- FLICKR CONFIG MODAL -->
     <div id="flickrModal" class="modal">
         <div class="modal-content">
-            <h2>🖼️ Flickr</h2>
+            <h2>📷 Flickr</h2>
             <p>Enganxa les teves credencials de Flickr. Es guardaran només al teu dispositiu.</p>
             <input type="text" class="modal-input" id="apiKeyInput" placeholder="API Key">
             <input type="text" class="modal-input" id="userIdInput" placeholder="User ID">
@@ -554,7 +554,7 @@
     <!-- VICTORY POPUP -->
     <div id="victoryOverlay" class="victory-overlay">
         <div class="victory-popup">
-            <h2>🎉 ¡VICTÒRIA!</h2>
+            <h2>🎉 ¡VISCA! 🏆</h2>
             <p>Has completat el puzzle!</p>
             <img id="finalImage" class="final-puzzle" src="" alt="Puzzle completat">
             <br>
@@ -620,10 +620,10 @@
         difficultyToggle.addEventListener('click', () => {
             isDifficultyMode = !isDifficultyMode;
             if (isDifficultyMode) {
-                difficultyToggle.textContent = '💀';
+                difficultyToggle.textContent = '👩‍🦳';
                 imagePreview.classList.add('hidden');
             } else {
-                difficultyToggle.textContent = '🎯';
+                difficultyToggle.textContent = '👶';
                 imagePreview.classList.remove('hidden');
             }
         });
@@ -1008,26 +1008,51 @@
         }
 
         // MOBILE TOUCH
-        let touchStart = null;
         let touchPiece = null;
+        let floatingClone = null;
 
         function handleTouchStart(e) {
-            touchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
             touchPiece = e.target.closest('.puzzle-piece');
-            if (touchPiece) {
-                touchPiece.style.opacity = '0.5';
-            }
+            if (!touchPiece || fixat[touchPiece.dataset.posicio]) return;
+
+            // Crear clon flotant
+            floatingClone = touchPiece.cloneNode(true);
+            floatingClone.style.position = 'fixed';
+            floatingClone.style.zIndex = '1001';
+            floatingClone.style.pointerEvents = 'none';
+            floatingClone.style.boxShadow = '0 8px 20px rgba(0,0,0,0.3)';
+            floatingClone.classList.add('unfixed');
+            
+            // Posicionar el clon en el lloc inicial
+            const rect = touchPiece.getBoundingClientRect();
+            floatingClone.style.left = rect.left + 'px';
+            floatingClone.style.top = rect.top + 'px';
+            floatingClone.style.width = rect.width + 'px';
+            floatingClone.style.height = rect.height + 'px';
+            
+            document.body.appendChild(floatingClone);
+            touchPiece.style.opacity = '0.3';
         }
 
         function handleTouchMove(e) {
+            if (!floatingClone) return;
             e.preventDefault();
+
+            const touch = e.touches[0];
+            const rect = floatingClone.getBoundingClientRect();
+            const width = rect.width;
+            const height = rect.height;
+
+            // Centrar el clon al dit
+            floatingClone.style.left = (touch.clientX - width / 2) + 'px';
+            floatingClone.style.top = (touch.clientY - height / 2) + 'px';
         }
 
         function handleTouchEnd(e) {
-            if (!touchPiece || !touchStart) return;
+            if (!touchPiece || !floatingClone) return;
 
-            const touchEnd = { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY };
-            const targetElement = document.elementFromPoint(touchEnd.x, touchEnd.y);
+            const touch = e.changedTouches[0];
+            const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
             const destiPiece = targetElement.closest('.puzzle-piece');
 
             if (destiPiece && destiPiece !== touchPiece && !fixat[destiPiece.dataset.posicio]) {
@@ -1042,11 +1067,13 @@
 
                 renderitzarPuzzle();
                 comprovarVictoria();
+            } else {
+                touchPiece.style.opacity = '1';
             }
 
-            touchPiece.style.opacity = '1';
+            document.body.removeChild(floatingClone);
+            floatingClone = null;
             touchPiece = null;
-            touchStart = null;
         }
 
         function comprovarVictoria() {
