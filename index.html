@@ -6,6 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Puzzle Art</title>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <style>
         :root {
             --bg-primary: #ffffff;
@@ -48,7 +49,7 @@
             background: linear-gradient(135deg, var(--gradient-1) 0%, var(--gradient-2) 100%);
             min-height: 100vh;
             min-height: 100dvh;
-            padding: max(60px, env(safe-area-inset-top)) 10px 10px 10px;
+            padding: max(40px, env(safe-area-inset-top)) 10px 10px 10px;
             color: var(--text-primary);
             transition: background 0.3s;
             -webkit-user-select: none;
@@ -57,7 +58,7 @@
 
         .container {
             max-width: 600px;
-            margin: 50px auto 0 auto;
+            margin: 10px auto 0 auto;
             background: var(--bg-primary);
             border-radius: 12px;
             padding: 12px;
@@ -309,6 +310,8 @@
             width: clamp(280px, 90vw, 400px);
             box-shadow: 0 20px 60px var(--shadow);
             animation: popIn 0.3s ease-out;
+            max-height: 80vh;
+            overflow-y: auto;
         }
 
         .modal-content h2 {
@@ -338,6 +341,34 @@
         .modal-input:focus {
             outline: none;
             border-color: var(--btn-bg);
+        }
+
+        .folder-list {
+            background: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .folder-item {
+            padding: 10px;
+            background: var(--bg-tertiary);
+            border-radius: 6px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .folder-item:hover {
+            background: var(--border-color);
+        }
+
+        .folder-item.selected {
+            background: var(--btn-bg);
+            color: white;
         }
 
         .modal-buttons {
@@ -488,6 +519,12 @@
                 min-height: 80px;
             }
         }
+
+        #googleLoginDiv {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 15px;
+        }
     </style>
 </head>
 <body>
@@ -511,6 +548,7 @@
 
             <button class="icon-btn" id="flickrMyBtn" title="Flickr (meu)">🖼️</button>
             <button class="icon-btn" id="flickrRandomBtn" title="Flickr (aleatori)">🌍</button>
+            <button class="icon-btn" id="googleDriveBtn" title="Google Drive">☁️</button>
             <button class="icon-btn" id="picsumBtn" title="Imatge aleatòria">🎨</button>
 
             <div class="file-input-wrapper">
@@ -541,7 +579,7 @@
     <!-- FLICKR CONFIG MODAL -->
     <div id="flickrModal" class="modal">
         <div class="modal-content">
-            <h2>📷 Flickr</h2>
+            <h2>🖼️ Flickr</h2>
             <p>Enganxa les teves credencials de Flickr. Es guardaran només al teu dispositiu.</p>
             <input type="text" class="modal-input" id="apiKeyInput" placeholder="API Key">
             <input type="text" class="modal-input" id="userIdInput" placeholder="User ID">
@@ -552,10 +590,35 @@
         </div>
     </div>
 
+    <!-- GOOGLE DRIVE MODAL -->
+    <div id="googleDriveModal" class="modal">
+        <div class="modal-content">
+            <h2>☁️ Google Drive</h2>
+            <p>Selecciona una carpeta pública de Google Drive.</p>
+            
+            <div id="googleLoginDiv"></div>
+            
+            <div id="folderListContainer" style="display: none;">
+                <p style="font-size: 12px; margin-bottom: 10px;">Carpetes disponibles:</p>
+                <div id="folderList" class="folder-list"></div>
+            </div>
+
+            <input type="text" class="modal-input" id="folderId" placeholder="ID de carpeta" style="display: none;">
+            <p id="folderIdNote" style="font-size: 11px; color: var(--text-secondary); margin-bottom: 12px; display: none;">
+                O enganxa l'ID de la carpeta
+            </p>
+
+            <div class="modal-buttons">
+                <button class="modal-btn cancel" id="cancelGoogleDriveBtn">Cancelar</button>
+                <button class="modal-btn save" id="saveGoogleDriveBtn" style="display: none;">Guardar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- VICTORY POPUP -->
     <div id="victoryOverlay" class="victory-overlay">
         <div class="victory-popup">
-            <h2>🎉 ¡VISCA! 🏆</h2>
+            <h2>🎉 ¡VISCA !</h2>
             <p>Has completat el puzzle!</p>
             <img id="finalImage" class="final-puzzle" src="" alt="Puzzle completat">
             <br>
@@ -563,10 +626,12 @@
         </div>
     </div>
 
+    <script src="https://apis.google.com/js/api.js"></script>
     <script>
         const divisionsSelect = document.getElementById('divisionsSelect');
         const flickrMyBtn = document.getElementById('flickrMyBtn');
         const flickrRandomBtn = document.getElementById('flickrRandomBtn');
+        const googleDriveBtn = document.getElementById('googleDriveBtn');
         const picsumBtn = document.getElementById('picsumBtn');
         const fileUpload = document.getElementById('fileUpload');
         const customUrl = document.getElementById('customUrl');
@@ -586,6 +651,14 @@
         const userIdInput = document.getElementById('userIdInput');
         const saveFlickrBtn = document.getElementById('saveFlickrBtn');
         const cancelFlickrBtn = document.getElementById('cancelFlickrBtn');
+        const googleDriveModal = document.getElementById('googleDriveModal');
+        const googleLoginDiv = document.getElementById('googleLoginDiv');
+        const folderList = document.getElementById('folderList');
+        const folderListContainer = document.getElementById('folderListContainer');
+        const folderId = document.getElementById('folderId');
+        const folderIdNote = document.getElementById('folderIdNote');
+        const saveGoogleDriveBtn = document.getElementById('saveGoogleDriveBtn');
+        const cancelGoogleDriveBtn = document.getElementById('cancelGoogleDriveBtn');
 
         let imagenActual = null;
         let divisions = 4;
@@ -595,6 +668,10 @@
         let lastSource = 'picsum';
         let isDifficultyMode = false;
         let isMobile = window.innerWidth <= 768;
+        let selectedFolderId = null;
+        let googleAuthToken = null;
+
+        const CLIENT_ID = '841929892793-55hjgk6b07brsruknv6dlenaehve0673.apps.googleusercontent.com';
 
         // DETECT MOBILE
         window.addEventListener('resize', () => {
@@ -621,13 +698,174 @@
         difficultyToggle.addEventListener('click', () => {
             isDifficultyMode = !isDifficultyMode;
             if (isDifficultyMode) {
-                difficultyToggle.textContent = '👩‍🦳';
+                difficultyToggle.textContent = '💀';
                 imagePreview.classList.add('hidden');
             } else {
-                difficultyToggle.textContent = '👶';
+                difficultyToggle.textContent = '🎯';
                 imagePreview.classList.remove('hidden');
             }
         });
+
+        // GOOGLE LOGIN
+        googleDriveBtn.addEventListener('click', () => {
+            const savedFolderId = localStorage.getItem('googleDriveFolderId');
+            if (savedFolderId) {
+                lastSource = 'google-drive';
+                carregarFotoGoogleDrive();
+            } else {
+                googleDriveModal.classList.add('active');
+                initGoogleSignIn();
+            }
+        });
+
+        function initGoogleSignIn() {
+            google.accounts.id.initialize({
+                client_id: CLIENT_ID,
+                callback: handleCredentialResponse
+            });
+
+            google.accounts.id.renderButton(googleLoginDiv, {
+                theme: 'outline',
+                size: 'large',
+                width: '100%'
+            });
+        }
+
+        function handleCredentialResponse(response) {
+            googleAuthToken = response.credential;
+            log('✅ Autenticat amb Google');
+            carregarCarpetesGoogle();
+        }
+
+        function carregarCarpetesGoogle() {
+            if (!googleAuthToken) {
+                log('❌ No autenticat');
+                return;
+            }
+
+            folderList.innerHTML = '<p style="padding: 10px;">Carregant carpetes...</p>';
+            folderListContainer.style.display = 'block';
+            folderId.style.display = 'none';
+            folderIdNote.style.display = 'none';
+
+            fetch(`https://www.googleapis.com/drive/v3/files?q=mimeType='application/vnd.google-apps.folder' and trashed=false&fields=files(id,name)&pageSize=50`, {
+                headers: {
+                    'Authorization': `Bearer ${googleAuthToken}`
+                }
+            })
+            .then(res => {
+                if (!res.ok) {
+                    folderList.innerHTML = '<p style="padding: 10px; color: red;">Error. Enganxa l\'ID manualment.</p>';
+                    folderId.style.display = 'block';
+                    folderIdNote.style.display = 'block';
+                    return null;
+                }
+                return res.json();
+            })
+            .then(data => {
+                if (!data || !data.files || data.files.length === 0) {
+                    folderList.innerHTML = '<p style="padding: 10px;">Cap carpeta trobada. Enganxa l\'ID manualment.</p>';
+                    folderId.style.display = 'block';
+                    folderIdNote.style.display = 'block';
+                    return;
+                }
+
+                folderList.innerHTML = '';
+                data.files.forEach(folder => {
+                    const div = document.createElement('div');
+                    div.className = 'folder-item';
+                    div.textContent = folder.name;
+                    div.addEventListener('click', () => {
+                        document.querySelectorAll('.folder-item').forEach(el => el.classList.remove('selected'));
+                        div.classList.add('selected');
+                        selectedFolderId = folder.id;
+                    });
+                    folderList.appendChild(div);
+                });
+
+                folderId.style.display = 'block';
+                folderIdNote.style.display = 'block';
+                saveGoogleDriveBtn.style.display = 'block';
+            })
+            .catch(err => {
+                log('❌ Error: ' + err.message);
+            });
+        }
+
+        saveGoogleDriveBtn.addEventListener('click', () => {
+            const customId = folderId.value.trim();
+            const id = selectedFolderId || customId;
+
+            if (!id) {
+                log('❌ Selecciona carpeta o enganxa ID');
+                return;
+            }
+
+            localStorage.setItem('googleDriveFolderId', id);
+            folderId.value = '';
+            selectedFolderId = null;
+            googleDriveModal.classList.remove('active');
+            
+            lastSource = 'google-drive';
+            carregarFotoGoogleDrive();
+        });
+
+        cancelGoogleDriveBtn.addEventListener('click', () => {
+            googleDriveModal.classList.remove('active');
+            folderId.value = '';
+            selectedFolderId = null;
+        });
+
+        function carregarFotoGoogleDrive() {
+            const folderId = localStorage.getItem('googleDriveFolderId');
+            
+            if (!folderId) {
+                log('❌ Configura Google Drive primer');
+                return;
+            }
+
+            if (!googleAuthToken) {
+                log('❌ Necessites autenticar-te primer');
+                return;
+            }
+
+            log('🔄 Carregant fotos de Google Drive...');
+
+            const query = `'${folderId}' in parents and (mimeType='image/jpeg' or mimeType='image/png' or mimeType='image/gif' or mimeType='image/webp') and trashed=false`;
+            
+            fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id,name,webContentLink)&pageSize=50`, {
+                headers: {
+                    'Authorization': `Bearer ${googleAuthToken}`
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (!data.files || data.files.length === 0) {
+                    log('❌ Cap imatge a la carpeta');
+                    return;
+                }
+
+                const imagen = data.files[Math.floor(Math.random() * data.files.length)];
+                const imageUrl = imagen.webContentLink.replace('&export=download', '');
+
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                img.onload = () => {
+                    imagenActual = imageUrl;
+                    previewImg.src = imageUrl;
+                    finalImage.src = imageUrl;
+                    iniciarPuzzle();
+                    log('✅ Foto de Google Drive carregada');
+                };
+                img.onerror = () => {
+                    log('❌ Error al carregar la foto');
+                };
+                img.src = imageUrl;
+            })
+            .catch(err => {
+                log('❌ Error de connexió');
+            });
+        }
 
         // FLICKR MY
         flickrMyBtn.addEventListener('click', () => {
@@ -833,6 +1071,8 @@
                 carregarFlickrMy();
             } else if (lastSource === 'flickr-random') {
                 carregarFlickrRandom();
+            } else if (lastSource === 'google-drive') {
+                carregarFotoGoogleDrive();
             } else if (lastSource === 'file') {
                 log('❌ Selecciona un fitxer');
             } else if (lastSource === 'url') {
@@ -1016,7 +1256,6 @@
             touchPiece = e.target.closest('.puzzle-piece');
             if (!touchPiece || fixat[touchPiece.dataset.posicio]) return;
 
-            // Crear clon flotant
             floatingClone = touchPiece.cloneNode(true);
             floatingClone.style.position = 'fixed';
             floatingClone.style.zIndex = '1001';
@@ -1024,7 +1263,6 @@
             floatingClone.style.boxShadow = '0 8px 20px rgba(0,0,0,0.3)';
             floatingClone.classList.add('unfixed');
             
-            // Posicionar el clon en el lloc inicial
             const rect = touchPiece.getBoundingClientRect();
             floatingClone.style.left = rect.left + 'px';
             floatingClone.style.top = rect.top + 'px';
@@ -1044,7 +1282,6 @@
             const width = rect.width;
             const height = rect.height;
 
-            // Centrar el clon al dit
             floatingClone.style.left = (touch.clientX - width / 2) + 'px';
             floatingClone.style.top = (touch.clientY - height / 2) + 'px';
         }
@@ -1080,7 +1317,7 @@
         function comprovarVictoria() {
             const totsFixats = fixat.every(v => v === true);
             if (totsFixats) {
-                log('🎉 ¡VISCA!');
+                log('🎉 ¡VISCA !');
                 victoryOverlay.classList.add('active');
             } else {
                 const correctes = fixat.filter(v => v).length;
