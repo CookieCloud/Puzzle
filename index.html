@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Puzzle Art</title>
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
+
     <style>
         :root {
             --bg-primary: #ffffff;
@@ -594,23 +594,20 @@
     <div id="googleDriveModal" class="modal">
         <div class="modal-content">
             <h2>☁️ Google Drive</h2>
-            <p>Selecciona una carpeta pública de Google Drive.</p>
+            <p>Comparteix una carpeta pública i enganxa l'ID.</p>
             
-            <div id="googleLoginDiv"></div>
-            
-            <div id="folderListContainer" style="display: none;">
-                <p style="font-size: 12px; margin-bottom: 10px;">Carpetes disponibles:</p>
-                <div id="folderList" class="folder-list"></div>
-            </div>
-
-            <input type="text" class="modal-input" id="folderId" placeholder="ID de carpeta" style="display: none;">
-            <p id="folderIdNote" style="font-size: 11px; color: var(--text-secondary); margin-bottom: 12px; display: none;">
-                O enganxa l'ID de la carpeta
+            <p style="font-size: 12px; background: var(--bg-secondary); padding: 10px; border-radius: 6px; margin-bottom: 15px; line-height: 1.6;">
+                <strong>Com:</strong><br>
+                1. Crea/comparteix carpeta pública a Google Drive<br>
+                2. Obri URL de la carpeta<br>
+                3. Copia l'ID del URL: <code style="font-size: 11px;">drive.google.com/drive/folders/<strong>AQUÍ_ANAVA_L_ID</strong></code>
             </p>
+
+            <input type="text" class="modal-input" id="folderId" placeholder="Enganxa l'ID de la carpeta...">
 
             <div class="modal-buttons">
                 <button class="modal-btn cancel" id="cancelGoogleDriveBtn">Cancelar</button>
-                <button class="modal-btn save" id="saveGoogleDriveBtn" style="display: none;">Guardar</button>
+                <button class="modal-btn save" id="saveGoogleDriveBtn">Guardar</button>
             </div>
         </div>
     </div>
@@ -626,7 +623,7 @@
         </div>
     </div>
 
-    <script src="https://apis.google.com/js/api.js"></script>
+
     <script>
         const divisionsSelect = document.getElementById('divisionsSelect');
         const flickrMyBtn = document.getElementById('flickrMyBtn');
@@ -836,6 +833,45 @@
             selectedFolderId = null;
         });
 
+        // GOOGLE DRIVE - SIMPLE (sense autenticació)
+        googleDriveBtn.addEventListener('click', () => {
+            const savedFolderId = localStorage.getItem('googleDriveFolderId');
+            if (savedFolderId) {
+                lastSource = 'google-drive';
+                carregarFotoGoogleDrive();
+            } else {
+                googleDriveModal.classList.add('active');
+                folderId.focus();
+            }
+        });
+
+        saveGoogleDriveBtn.addEventListener('click', () => {
+            const id = folderId.value.trim();
+
+            if (!id) {
+                log('❌ Enganxa un ID de carpeta vàlid');
+                return;
+            }
+
+            // Validar format ID (simple)
+            if (id.length < 20) {
+                log('❌ L\'ID sembla massa curt');
+                return;
+            }
+
+            localStorage.setItem('googleDriveFolderId', id);
+            folderId.value = '';
+            googleDriveModal.classList.remove('active');
+            
+            lastSource = 'google-drive';
+            carregarFotoGoogleDrive();
+        });
+
+        cancelGoogleDriveBtn.addEventListener('click', () => {
+            googleDriveModal.classList.remove('active');
+            folderId.value = '';
+        });
+
         function carregarFotoGoogleDrive() {
             const folderId = localStorage.getItem('googleDriveFolderId');
             
@@ -844,52 +880,40 @@
                 return;
             }
 
-            const auth2 = gapi.auth2.getAuthInstance();
-            if (!auth2 || !auth2.isSignedIn.get()) {
-                log('❌ Necessites autenticar-te primer');
-                googleDriveModal.classList.add('active');
-                initGoogleSignIn();
-                return;
-            }
-
             log('🔄 Carregant fotos de Google Drive...');
 
-            const query = `'${folderId}' in parents and (mimeType='image/jpeg' or mimeType='image/png' or mimeType='image/gif' or mimeType='image/webp') and trashed=false`;
-            const token = auth2.currentUser.get().getAuthResponse().access_token;
+            // Usar l'API pública sense autenticació
+            const query = encodeURIComponent(`'${folderId}' in parents and (mimeType='image/jpeg' or mimeType='image/png' or mimeType='image/gif' or mimeType='image/webp') and trashed=false`);
             
-            fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id,name,webContentLink)&pageSize=50`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            })
-                
-            .then(res => res.json())
-            .then(data => {
-                if (!data.files || data.files.length === 0) {
-                    log('❌ Cap imatge a la carpeta');
-                    return;
-                }
+            fetch(`https://www.googleapis.com/drive/v3/files?q=${query}&fields=files(id,name,webContentLink)&pageSize=50&key=AIzaSyDYwzXahRVLyPI2_tZAic51gWumaKNWWUE`)
+                .then(res => res.json())
+                .then(data => {
+                    if (!data.files || data.files.length === 0) {
+                        log('❌ Cap imatge a la carpeta. Verifica l\'ID i que sigui pública.');
+                        return;
+                    }
 
-                const imagen = data.files[Math.floor(Math.random() * data.files.length)];
-                const imageUrl = imagen.webContentLink.replace('&export=download', '');
+                    const imagen = data.files[Math.floor(Math.random() * data.files.length)];
+                    // Convertir webContentLink per descarregar directament
+                    const imageUrl = imagen.webContentLink.replace('&export=download', '');
 
-                const img = new Image();
-                img.crossOrigin = 'anonymous';
-                img.onload = () => {
-                    imagenActual = imageUrl;
-                    previewImg.src = imageUrl;
-                    finalImage.src = imageUrl;
-                    iniciarPuzzle();
-                    log('✅ Foto de Google Drive carregada');
-                };
-                img.onerror = () => {
-                    log('❌ Error al carregar la foto');
-                };
-                img.src = imageUrl;
-            })
-            .catch(err => {
-                log('❌ Error de connexió');
-            });
+                    const img = new Image();
+                    img.crossOrigin = 'anonymous';
+                    img.onload = () => {
+                        imagenActual = imageUrl;
+                        previewImg.src = imageUrl;
+                        finalImage.src = imageUrl;
+                        iniciarPuzzle();
+                        log('✅ Foto de Google Drive carregada');
+                    };
+                    img.onerror = () => {
+                        log('❌ Error al carregar la foto. Verifica que la carpeta sigui pública.');
+                    };
+                    img.src = imageUrl;
+                })
+                .catch(err => {
+                    log('❌ Error: ' + err.message);
+                });
         }
 
         // FLICKR MY
