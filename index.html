@@ -63,162 +63,143 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 20px;
+            gap: 10px;
         }
 
         h1 {
             color: var(--btn-bg);
             font-size: 1.8rem;
+            flex: 1;
         }
 
-        .theme-toggle {
+        .header-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .theme-toggle, .difficulty-toggle {
             background: var(--bg-secondary);
             border: none;
             border-radius: 50%;
             width: 44px;
             height: 44px;
             cursor: pointer;
-            font-size: 20px;
+            font-size: 18px;
             transition: background 0.3s;
             display: flex;
             align-items: center;
             justify-content: center;
+            flex-shrink: 0;
         }
 
-        .theme-toggle:active {
+        .theme-toggle:active, .difficulty-toggle:active {
             background: var(--bg-tertiary);
         }
 
-        button:not(.theme-toggle) {
-            display: block;
-            width: 100%;
-            padding: 12px;
-            background: var(--btn-bg);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 15px;
-            font-weight: bold;
-            cursor: pointer;
-            margin-bottom: 12px;
-            transition: background 0.2s;
-        }
-
-        button:not(.theme-toggle):active {
-            background: var(--btn-hover);
-            transform: scale(0.98);
-        }
-
-        .input-group {
-            margin-bottom: 12px;
+        .controls-bar {
             display: flex;
             gap: 8px;
+            margin-bottom: 15px;
             align-items: center;
+            flex-wrap: wrap;
+        }
+
+        select {
+            padding: 8px 10px;
+            border-radius: 6px;
+            border: 2px solid var(--border-color);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-size: 12px;
+            flex-shrink: 0;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: var(--btn-bg);
+        }
+
+        .icon-btn {
+            background: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            flex-shrink: 0;
+            color: var(--text-primary);
+        }
+
+        .icon-btn:active {
+            background: var(--btn-bg);
+            color: white;
+            border-color: var(--btn-bg);
+            transform: scale(0.95);
+        }
+
+        .icon-btn:hover {
+            border-color: var(--btn-bg);
         }
 
         .file-input-wrapper {
-            flex: 1;
             position: relative;
             overflow: hidden;
+            display: flex;
         }
 
         .file-input-wrapper input[type="file"] {
             position: absolute;
             opacity: 0;
             cursor: pointer;
-        }
-
-        .file-input-label {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            padding: 12px;
-            background: var(--bg-secondary);
-            border: 2px solid var(--border-color);
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 14px;
-            color: var(--text-primary);
-            transition: all 0.2s;
-        }
-
-        .file-input-wrapper:hover .file-input-label {
-            border-color: var(--btn-bg);
-            background: var(--bg-tertiary);
+            width: 100%;
+            height: 100%;
         }
 
         .url-input-wrapper {
-            flex: 1;
             display: flex;
-            gap: 8px;
+            gap: 6px;
+            flex: 1;
+            min-width: 200px;
         }
 
-        input[type="text"], input[type="password"] {
+        input[type="text"] {
             flex: 1;
-            padding: 12px;
-            border-radius: 8px;
+            padding: 8px;
+            border-radius: 6px;
             border: 2px solid var(--border-color);
             background: var(--bg-secondary);
             color: var(--text-primary);
-            font-size: 13px;
+            font-size: 12px;
         }
 
-        input[type="text"]:focus, input[type="password"]:focus {
+        input[type="text"]:focus {
             outline: none;
             border-color: var(--btn-bg);
         }
 
-        .url-btn, .flickr-btn {
-            padding: 12px 16px !important;
+        .url-btn {
+            padding: 8px 12px !important;
             width: auto !important;
             margin-bottom: 0 !important;
             background: var(--btn-bg);
             color: white;
             border: none;
-            border-radius: 8px;
+            border-radius: 6px;
             cursor: pointer;
             font-weight: 600;
-            font-size: 14px;
+            font-size: 12px;
             transition: background 0.2s;
+            flex-shrink: 0;
         }
 
-        .url-btn:active, .flickr-btn:active {
+        .url-btn:active {
             background: var(--btn-hover);
             transform: scale(0.95);
-        }
-
-        .controls {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-
-        .control-group {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-
-        .control-group label {
-            font-size: 12px;
-            color: var(--text-secondary);
-            font-weight: 500;
-        }
-
-        select {
-            padding: 10px;
-            border-radius: 6px;
-            border: 2px solid var(--border-color);
-            background: var(--bg-secondary);
-            color: var(--text-primary);
-            font-size: 14px;
-        }
-
-        select:focus {
-            outline: none;
-            border-color: var(--btn-bg);
         }
 
         .puzzle-grid {
@@ -271,6 +252,11 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            transition: all 0.3s;
+        }
+
+        .image-preview.hidden {
+            display: none;
         }
 
         .image-preview img {
@@ -469,6 +455,9 @@
                 width: 300px;
                 max-height: 300px;
             }
+            .url-input-wrapper {
+                min-width: 150px;
+            }
         }
     </style>
 </head>
@@ -476,42 +465,35 @@
     <div class="container">
         <div class="header">
             <h1>🧩 Puzzle Art</h1>
-            <button class="theme-toggle" id="themeToggle" title="Canviar mode fosc">🌙</button>
+            <div class="header-buttons">
+                <button class="difficulty-toggle" id="difficultyToggle" title="Mode fàcil/difícil">🎯</button>
+                <button class="theme-toggle" id="themeToggle" title="Canviar mode fosc">🌙</button>
+            </div>
         </div>
 
-        <!-- FLICKR -->
-        <button id="flickrBtn">🖼️ Carregar de Flickr</button>
+        <!-- CONTROLS BAR -->
+        <div class="controls-bar">
+            <select id="divisionsSelect" title="Nombre de peces">
+                <option value="2">2×2</option>
+                <option value="3">3×3</option>
+                <option value="4" selected>4×4</option>
+                <option value="5">5×5</option>
+            </select>
 
-        <!-- FITXER LOCAL -->
-        <div class="input-group">
+            <button class="icon-btn" id="flickrBtn" title="Flickr">🖼️</button>
+            <button class="icon-btn" id="picsumBtn" title="Imatge aleatòria">🎨</button>
+
             <div class="file-input-wrapper">
-                <input type="file" id="fileUpload" accept="image/*">
-                <label class="file-input-label">📁 Puja Fitxer</label>
+                <input type="file" id="fileUpload" accept="image/*" title="Puja fitxer">
+                <button class="icon-btn" title="Puja fitxer">📁</button>
             </div>
-        </div>
 
-        <!-- URL CUSTOM -->
-        <div class="input-group">
             <div class="url-input-wrapper">
-                <input type="text" id="customUrl" placeholder="Enganxa URL de foto...">
-                <button class="url-btn" id="loadCustomBtn">🔗</button>
+                <input type="text" id="customUrl" placeholder="URL..." title="Enganxa URL">
+                <button class="url-btn" id="loadCustomBtn" title="Carregar URL">🔗</button>
             </div>
-        </div>
 
-        <!-- BOTÓ NOVA IMATGE -->
-        <button id="carregarBtn">Carregar Imatge Aleatòria</button>
-
-        <!-- DIVISIONS -->
-        <div class="controls">
-            <div class="control-group">
-                <label for="divisionsSelect">Divisions:</label>
-                <select id="divisionsSelect">
-                    <option value="2">2×2 (4 peces)</option>
-                    <option value="3">3×3 (9 peces)</option>
-                    <option value="4" selected>4×4 (16 peces)</option>
-                    <option value="5">5×5 (25 peces)</option>
-                </select>
-            </div>
+            <button class="icon-btn" id="refreshBtn" title="Recarregar última">🔄</button>
         </div>
 
         <!-- PUZZLE -->
@@ -552,19 +534,22 @@
     </div>
 
     <script>
-        const carregarBtn = document.getElementById('carregarBtn');
+        const divisionsSelect = document.getElementById('divisionsSelect');
         const flickrBtn = document.getElementById('flickrBtn');
+        const picsumBtn = document.getElementById('picsumBtn');
+        const fileUpload = document.getElementById('fileUpload');
+        const customUrl = document.getElementById('customUrl');
+        const loadCustomBtn = document.getElementById('loadCustomBtn');
+        const refreshBtn = document.getElementById('refreshBtn');
         const puzzleContainer = document.getElementById('puzzleContainer');
         const previewImg = document.getElementById('previewImg');
-        const divisionsSelect = document.getElementById('divisionsSelect');
         const logDiv = document.getElementById('log');
         const victoryOverlay = document.getElementById('victoryOverlay');
         const victoryBtn = document.getElementById('victoryBtn');
         const finalImage = document.getElementById('finalImage');
         const themeToggle = document.getElementById('themeToggle');
-        const fileUpload = document.getElementById('fileUpload');
-        const customUrl = document.getElementById('customUrl');
-        const loadCustomBtn = document.getElementById('loadCustomBtn');
+        const difficultyToggle = document.getElementById('difficultyToggle');
+        const imagePreview = document.getElementById('imagePreview');
         const flickrModal = document.getElementById('flickrModal');
         const apiKeyInput = document.getElementById('apiKeyInput');
         const userIdInput = document.getElementById('userIdInput');
@@ -576,7 +561,8 @@
         let ordre = [];
         let fixat = [];
         let pecesDataURL = [];
-        let sourceMode = 'random';
+        let lastSource = 'picsum';
+        let isDifficultyMode = false;
 
         // THEME TOGGLE
         function initTheme() {
@@ -594,12 +580,25 @@
             themeToggle.textContent = isDark ? '☀️' : '🌙';
         });
 
+        // DIFFICULTY TOGGLE
+        difficultyToggle.addEventListener('click', () => {
+            isDifficultyMode = !isDifficultyMode;
+            if (isDifficultyMode) {
+                difficultyToggle.textContent = '💀';
+                imagePreview.classList.add('hidden');
+            } else {
+                difficultyToggle.textContent = '🎯';
+                imagePreview.classList.remove('hidden');
+            }
+        });
+
         // FLICKR MODAL
         flickrBtn.addEventListener('click', () => {
             const savedApiKey = localStorage.getItem('flickrApiKey');
             const savedUserId = localStorage.getItem('flickrUserId');
             
             if (savedApiKey && savedUserId) {
+                lastSource = 'flickr';
                 carregarFlickr();
             } else {
                 flickrModal.classList.add('active');
@@ -621,7 +620,7 @@
             userIdInput.value = '';
             flickrModal.classList.remove('active');
             
-            log('🔄 Carregant fotos de Flickr...');
+            lastSource = 'flickr';
             carregarFlickr();
         });
 
@@ -660,7 +659,6 @@
                     const fotos = data.photos.photo;
                     const fotoAleatoria = fotos[Math.floor(Math.random() * fotos.length)];
                     
-                    // Construir URL: https://live.staticflickr.com/{server-id}/{id}_{secret}_b.jpg
                     const imageUrl = `https://live.staticflickr.com/${fotoAleatoria.server}/${fotoAleatoria.id}_${fotoAleatoria.secret}_b.jpg`;
 
                     const img = new Image();
@@ -669,7 +667,6 @@
                         imagenActual = imageUrl;
                         previewImg.src = imageUrl;
                         finalImage.src = imageUrl;
-                        sourceMode = 'flickr';
                         iniciarPuzzle();
                         log('✅ Foto de Flickr carregada');
                     };
@@ -683,6 +680,12 @@
                 });
         }
 
+        // PICSUM
+        picsumBtn.addEventListener('click', () => {
+            lastSource = 'picsum';
+            carregarImagenAleatoria();
+        });
+
         // FILE UPLOAD
         fileUpload.addEventListener('change', (e) => {
             const file = e.target.files[0];
@@ -692,7 +695,7 @@
                     imagenActual = event.target.result;
                     previewImg.src = imagenActual;
                     finalImage.src = imagenActual;
-                    sourceMode = 'file';
+                    lastSource = 'file';
                     iniciarPuzzle();
                     log('✅ Foto pujada');
                 };
@@ -714,7 +717,7 @@
                 imagenActual = url;
                 previewImg.src = url;
                 finalImage.src = url;
-                sourceMode = 'url';
+                lastSource = 'url';
                 iniciarPuzzle();
                 log('✅ URL carregada');
             };
@@ -722,6 +725,19 @@
                 log('❌ Error. Verifica que la URL sigui vàlida');
             };
             img.src = url;
+        });
+
+        // REFRESH
+        refreshBtn.addEventListener('click', () => {
+            if (lastSource === 'picsum') {
+                carregarImagenAleatoria();
+            } else if (lastSource === 'flickr') {
+                carregarFlickr();
+            } else if (lastSource === 'file') {
+                log('❌ Selecciona un fitxer');
+            } else if (lastSource === 'url') {
+                loadCustomBtn.click();
+            }
         });
 
         function log(msg) {
@@ -742,7 +758,6 @@
                 imagenActual = imageUrl;
                 previewImg.src = imageUrl;
                 finalImage.src = imageUrl;
-                sourceMode = 'random';
                 iniciarPuzzle();
                 log('✅ Imatge carregada');
             };
@@ -753,7 +768,7 @@
 
             img.src = imageUrl;
         }
-        
+
         function iniciarPuzzle() {
             if (!imagenActual) {
                 log('⚠️ Carrega una imatge primer');
@@ -879,7 +894,7 @@
 
             const totsFixats = fixat.every(v => v === true);
             if (totsFixats) {
-                log('🎉 ¡VICTÒRIA!');
+                log('🎉 ¡FELICITATS!');
                 victoryOverlay.classList.add('active');
             } else {
                 const correctes = fixat.filter(v => v).length;
@@ -897,8 +912,6 @@
             victoryOverlay.classList.remove('active');
             carregarImagenAleatoria();
         });
-
-        carregarBtn.addEventListener('click', carregarImagenAleatoria);
 
         divisionsSelect.addEventListener('change', () => {
             if (imagenActual) iniciarPuzzle();
