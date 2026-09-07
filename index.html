@@ -885,7 +885,7 @@
             // Usar l'API pública sense autenticació
             const query = encodeURIComponent(`'${folderId}' in parents and (mimeType='image/jpeg' or mimeType='image/png' or mimeType='image/gif' or mimeType='image/webp') and trashed=false`);
             
-            fetch(`https://www.googleapis.com/drive/v3/files?q=${query}&fields=files(id,name,webContentLink)&pageSize=50&key=AIzaSyDYwzXahRVLyPI2_tZAic51gWumaKNWWUE`)
+            fetch(`https://www.googleapis.com/drive/v3/files?q=${query}&fields=files(id,name,webContentLink)&pageSize=50&key=AIzaSyAfAatMQmXQBiXBox4jpvIZUbpcaInR3ZQ`)
                 .then(res => res.json())
                 .then(data => {
                     if (!data.files || data.files.length === 0) {
