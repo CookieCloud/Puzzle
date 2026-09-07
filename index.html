@@ -5,23 +5,34 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Puzzle Art</title>
     <style>
-        /* Estils sense canvis respecte al teu original */
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 20px;
         }
+
         .container {
             max-width: 600px;
             margin: 0 auto;
             background: white;
             border-radius: 16px;
             padding: 20px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
         }
-        h1 { text-align: center; margin-bottom: 20px; color: #667eea; }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #667eea;
+        }
+
         button {
             display: block;
             width: 100%;
@@ -34,41 +45,84 @@
             font-weight: bold;
             cursor: pointer;
             margin-bottom: 15px;
+            transition: background 0.2s;
         }
-        button:active { background: #5568d3; }
+
+        button:hover {
+            background: #5568d3;
+        }
+
+        button:active {
+            background: #4a5cbd;
+        }
+
         .controls {
             text-align: center;
             margin-bottom: 20px;
         }
+
         select {
             padding: 8px 12px;
             border-radius: 6px;
             border: 2px solid #667eea;
             font-size: 14px;
+            background: white;
         }
+
+        /* ----- PUZZLE GRID ----- */
         .puzzle-grid {
             display: grid;
-            gap: 4px;
+            gap: 0;
+            /* sense separació per defecte */
             margin-bottom: 20px;
-            background: #f0f0f0;
-            padding: 8px;
+            background: #d0d0d0;
+            /* color de fons que es veu entre peces no fixes */
+            padding: 0;
             border-radius: 8px;
             min-height: 300px;
+            aspect-ratio: 1 / 1;
+            width: 100%;
         }
+
         .puzzle-piece {
             background-size: cover;
             background-position: center;
             border-radius: 4px;
             cursor: grab;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
             user-select: none;
             -webkit-user-select: none;
+            margin: 4px;
+            /* separació entre peces mòbils */
+            transition: margin 0.2s, box-shadow 0.2s;
+            position: relative;
         }
+
         .puzzle-piece:active {
             cursor: grabbing;
-            opacity: 0.8;
+            opacity: 0.85;
             z-index: 100;
         }
+
+        /* Peça fixa: s'enganxa (sense marge) i no es pot moure */
+        .puzzle-piece.fixed {
+            margin: 0;
+            cursor: default;
+            box-shadow: none;
+            opacity: 1;
+            border-radius: 0;
+        }
+
+        .puzzle-piece.fixed::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            /* petit contorn per a les fixes (opcional) */;
+        }
+
+        /* ---- PREVISUALITZACIÓ ---- */
         .image-preview {
             background: #f5f5f5;
             padding: 15px;
@@ -80,15 +134,18 @@
             align-items: center;
             justify-content: center;
         }
+
         .image-preview img {
             max-width: 100%;
             max-height: 250px;
             border-radius: 6px;
         }
+
         .image-preview .placeholder {
             color: #999;
             font-style: italic;
         }
+
         .log {
             background: #f0f0f0;
             padding: 10px;
@@ -98,14 +155,85 @@
             color: #666;
             min-height: 1.5em;
         }
+
+        /* ----- POP-UP VICTÒRIA ----- */
+        .victory-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            display: none;
+            /* amagat per defecte */
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(4px);
+        }
+
+        .victory-overlay.active {
+            display: flex;
+        }
+
+        .victory-popup {
+            background: white;
+            padding: 40px 50px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            animation: popIn 0.4s ease-out;
+            max-width: 90%;
+        }
+
+        .victory-popup h2 {
+            font-size: 2.5rem;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .victory-popup p {
+            font-size: 1.2rem;
+            color: #333;
+            margin-bottom: 25px;
+        }
+
+        .victory-popup button {
+            display: inline-block;
+            width: auto;
+            padding: 12px 40px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .victory-popup button:hover {
+            background: #5568d3;
+        }
+
+        @keyframes popIn {
+            0% {
+                transform: scale(0.8);
+                opacity: 0;
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🎨 Puzzle Art</h1>
+        <h1>🧩 Puzzle Art</h1>
         <button id="carregarBtn">Carregar Imatge Nova</button>
         <div class="controls">
-            <label>Divisions: 
+            <label>Divisions:
                 <select id="divisionsSelect">
                     <option value="2">2×2 (4 peces)</option>
                     <option value="3">3×3 (9 peces)</option>
@@ -120,22 +248,38 @@
         <div class="log" id="log">Esperant acció...</div>
     </div>
 
+    <!-- POP-UP VICTÒRIA -->
+    <div id="victoryOverlay" class="victory-overlay">
+        <div class="victory-popup">
+            <h2>🎉 ¡VICTÒRIA!</h2>
+            <p>Has completat el puzzle!</p>
+            <button id="victoryBtn">Acceptar · Nova imatge</button>
+        </div>
+    </div>
+
     <script>
+        // ----- ELEMENTS DOM -----
         const carregarBtn = document.getElementById('carregarBtn');
         const puzzleContainer = document.getElementById('puzzleContainer');
         const imagePreview = document.getElementById('imagePreview');
         const divisionsSelect = document.getElementById('divisionsSelect');
         const logDiv = document.getElementById('log');
+        const victoryOverlay = document.getElementById('victoryOverlay');
+        const victoryBtn = document.getElementById('victoryBtn');
 
-        let imagenActual = null;
+        // ----- ESTAT DEL PUZZLE -----
+        let imagenActual = null; // URL de la imatge
         let divisions = 4;
+        let ordre = []; // ordre[i] = índex de la peça que està a la posició i
+        let fixat = []; // fixat[i] = true si la peça a la posició i és la correcta (i no es pot moure)
 
+        // ----- FUNCIONS AUXILIARS -----
         function log(msg) {
             console.log(msg);
             logDiv.textContent = msg;
         }
 
-        // Genera imatge de reserva (gradient + emoji) per si falla la càrrega
+        // Genera imatge de reserva (gradient + emoji)
         function generarImatgeReserva() {
             const canvas = document.createElement('canvas');
             canvas.width = 400;
@@ -159,6 +303,7 @@
             return canvas.toDataURL('image/png');
         }
 
+        // Carrega una imatge aleatòria i inicia el puzzle
         function carregarImagenAleatoria() {
             log('🔄 Carregant imatge...');
             imagePreview.innerHTML = '<span class="placeholder">Carregant...</span>';
@@ -176,14 +321,14 @@
                 log('✅ Imatge carregada correctament');
                 imagenActual = imageUrl;
                 mostrarImatge();
-                crearPuzzle();
+                iniciarPuzzle();
             };
 
             img.onerror = () => {
                 log('❌ Error en carregar la imatge externa. S\'utilitzarà una de reserva.');
                 imagenActual = generarImatgeReserva();
                 mostrarImatge();
-                crearPuzzle();
+                iniciarPuzzle();
             };
 
             // Timeout per si la càrrega es bloqueja
@@ -193,7 +338,7 @@
                     img.src = '';
                     imagenActual = generarImatgeReserva();
                     mostrarImatge();
-                    crearPuzzle();
+                    iniciarPuzzle();
                 }
             }, 10000);
 
@@ -213,109 +358,189 @@
             }
         }
 
-        // Intercanvia dos nodes al DOM
-        function swapNodes(nodeA, nodeB) {
-            const parent = nodeA.parentNode;
-            // Crear un element temporal per facilitar l'intercanvi
-            const temp = document.createElement('span');
-            parent.replaceChild(temp, nodeA);
-            parent.replaceChild(nodeA, nodeB);
-            parent.replaceChild(nodeB, temp);
-        }
-
-        function crearPuzzle() {
+        // ----- INICIALITZACIÓ DEL PUZZLE -----
+        function iniciarPuzzle() {
             if (!imagenActual) {
                 log('⚠️ No hi ha imatge per crear el puzzle.');
                 return;
             }
 
             divisions = parseInt(divisionsSelect.value);
-            log(`📦 Creant puzzle ${divisions}×${divisions}...`);
+            const total = divisions * divisions;
+            log(`📦 Iniciant puzzle ${divisions}×${divisions} (${total} peces)...`);
+
+            // Crear ordre barrejat
+            ordre = Array.from({ length: total }, (_, i) => i);
+            for (let i = total - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [ordre[i], ordre[j]] = [ordre[j], ordre[i]];
+            }
+
+            // Cap peça fixa al principi
+            fixat = new Array(total).fill(false);
+
+            renderitzarPuzzle();
+            log(`🔄 Puzzle creat. Arrossega les peces per col·locar-les.`);
+        }
+
+        // ----- RENDERITZAT -----
+        function renderitzarPuzzle() {
+            if (!imagenActual) return;
+
+            const total = divisions * divisions;
+            const tamanyPeca = 400 / divisions;
 
             puzzleContainer.innerHTML = '';
             puzzleContainer.style.gridTemplateColumns = `repeat(${divisions}, 1fr)`;
 
-            const totalPieces = divisions * divisions;
-            const tamanyPeca = 400 / divisions;
-
-            // Crear array aleatori (barrejar les posicions)
-            const orden = Array.from({ length: totalPieces }, (_, i) => i);
-            for (let i = totalPieces - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [orden[i], orden[j]] = [orden[j], orden[i]];
-            }
-
-            // Crear peces en l'ordre barrejat
-            orden.forEach((posicioCorrecta) => {
-                const piece = document.createElement('div');
-                piece.className = 'puzzle-piece';
-                piece.draggable = true;
-                // Emmagatzemar la posició que li correspon (0..N-1)
-                piece.dataset.correct = posicioCorrecta;
-
-                const fila = Math.floor(posicioCorrecta / divisions);
-                const columna = posicioCorrecta % divisions;
+            for (let i = 0; i < total; i++) {
+                const pecaIndex = ordre[i]; // quin índex de peça va en aquesta posició
+                const fila = Math.floor(pecaIndex / divisions);
+                const columna = pecaIndex % divisions;
                 const offsetX = columna * tamanyPeca;
                 const offsetY = fila * tamanyPeca;
+
+                const piece = document.createElement('div');
+                piece.className = 'puzzle-piece';
+                if (fixat[i]) {
+                    piece.classList.add('fixed');
+                }
 
                 piece.style.backgroundImage = `url('${imagenActual}')`;
                 piece.style.backgroundPosition = `-${offsetX}px -${offsetY}px`;
                 piece.style.backgroundSize = `${divisions * tamanyPeca}px ${divisions * tamanyPeca}px`;
-                piece.style.width = `${tamanyPeca}px`;
-                piece.style.height = `${tamanyPeca}px`;
+                // La mida la controla el grid, però assegurem que ocupi tota la cel·la
+                piece.style.width = '100%';
+                piece.style.height = '100%';
 
-                // Esdeveniments d'arrossegament
-                piece.addEventListener('dragstart', (e) => {
-                    e.dataTransfer.effectAllowed = 'move';
-                    e.target.dataset.dragging = 'true';
-                });
+                // Emmagatzemar la posició actual (i) per a drag&drop
+                piece.dataset.posicio = i;
 
-                piece.addEventListener('dragover', (e) => {
-                    e.preventDefault(); // necessari per permetre drop
-                });
-
-                piece.addEventListener('drop', (e) => {
-                    e.preventDefault();
-                    const dragging = document.querySelector('[data-dragging="true"]');
-                    if (dragging && dragging !== piece) {
-                        // Intercanviar els nodes al DOM
-                        swapNodes(dragging, piece);
-                        // Verificar si el puzzle està resolt
-                        verificarSolucio();
-                    }
-                });
-
-                piece.addEventListener('dragend', (e) => {
-                    piece.dataset.dragging = 'false';
-                });
+                // Si no és fixa, es pot arrossegar
+                if (!fixat[i]) {
+                    piece.draggable = true;
+                    piece.addEventListener('dragstart', handleDragStart);
+                    piece.addEventListener('dragover', handleDragOver);
+                    piece.addEventListener('drop', handleDrop);
+                    piece.addEventListener('dragend', handleDragEnd);
+                } else {
+                    piece.draggable = false;
+                }
 
                 puzzleContainer.appendChild(piece);
-            });
-
-            log(`✅ ${totalPieces} peces creades`);
-        }
-
-        function verificarSolucio() {
-            const pieces = Array.from(puzzleContainer.children);
-            const totsCorrects = pieces.every((p, idx) => {
-                const correct = parseInt(p.dataset.correct);
-                return correct === idx;
-            });
-
-            if (totsCorrects) {
-                log('🎉 ¡VICTÒRIA! Puzzle completat!');
-            } else {
-                log('🧩 Segueix intentant-ho...');
             }
         }
 
-        // Esdeveniments
-        carregarBtn.addEventListener('click', carregarImagenAleatoria);
-        divisionsSelect.addEventListener('change', () => {
-            if (imagenActual) crearPuzzle();
+        // ----- DRAG & DROP -----
+        let origenIndex = null;
+
+        function handleDragStart(e) {
+            const piece = e.target;
+            origenIndex = parseInt(piece.dataset.posicio);
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', origenIndex);
+            // Guardem l'element per a estils
+            piece.style.opacity = '0.6';
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault(); // necessari per a drop
+            e.dataTransfer.dropEffect = 'move';
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            const destiPiece = e.target.closest('.puzzle-piece');
+            if (!destiPiece) return;
+
+            const destiIndex = parseInt(destiPiece.dataset.posicio);
+            if (isNaN(destiIndex)) return;
+
+            // No podem soltar sobre una peça fixa
+            if (fixat[destiIndex]) {
+                log('🚫 Aquesta peça ja està fixada.');
+                return;
+            }
+
+            // L'origen pot ser null si no s'ha iniciat des de una peça
+            if (origenIndex === null) return;
+            // No podem intercanviar amb la mateixa posició
+            if (origenIndex === destiIndex) return;
+
+            // Assegurar que l'origen no estigui fixat (no hauria de ser possible arrossegar una fixa)
+            if (fixat[origenIndex]) {
+                log('🚫 La peça origen està fixada, no es pot moure.');
+                origenIndex = null;
+                return;
+            }
+
+            // Intercanviar l'ordre
+            [ordre[origenIndex], ordre[destiIndex]] = [ordre[destiIndex], ordre[origenIndex]];
+
+            // Actualitzar l'estat de fixat: recórrer totes les posicions
+            for (let i = 0; i < ordre.length; i++) {
+                if (ordre[i] === i) {
+                    fixat[i] = true;
+                } else {
+                    fixat[i] = false;
+                }
+            }
+
+            // Re-renderitzar
+            renderitzarPuzzle();
+
+            // Verificar si totes les posicions estan fixades = victòria
+            const totsFixats = fixat.every(v => v === true);
+            if (totsFixats) {
+                log('🎉 ¡VICTÒRIA! Puzzle completat!');
+                mostrarPopupVictoria();
+            } else {
+                log('🧩 Segueix intentant-ho...');
+            }
+
+            origenIndex = null;
+        }
+
+        function handleDragEnd(e) {
+            e.target.style.opacity = '1';
+            origenIndex = null;
+        }
+
+        // ----- POP-UP DE VICTÒRIA -----
+        function mostrarPopupVictoria() {
+            victoryOverlay.classList.add('active');
+        }
+
+        function amagarPopupVictoria() {
+            victoryOverlay.classList.remove('active');
+        }
+
+        // Quan es fa clic al botó del pop-up, carregar nova imatge
+        victoryBtn.addEventListener('click', () => {
+            amagarPopupVictoria();
+            carregarImagenAleatoria();
         });
 
-        // Iniciar
+        // També es pot tancar fent clic fora del pop-up (opcional)
+        victoryOverlay.addEventListener('click', (e) => {
+            if (e.target === victoryOverlay) {
+                // No tanquem per clic fora, per evitar tancament accidental
+                // però ho deixem comentat: si es vol, es pot descomentar
+                // amagarPopupVictoria();
+            }
+        });
+
+        // ----- ESDEVENIMENTS DELS CONTROLS -----
+        carregarBtn.addEventListener('click', carregarImagenAleatoria);
+
+        divisionsSelect.addEventListener('change', () => {
+            if (imagenActual) {
+                // Reiniciar el puzzle amb les noves divisions
+                iniciarPuzzle();
+            }
+        });
+
+        // ----- INICI -----
         carregarImagenAleatoria();
     </script>
 </body>
