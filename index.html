@@ -480,9 +480,10 @@
                 <option value="5">5×5</option>
             </select>
 
-            <button class="icon-btn" id="flickrBtn" title="Flickr">🖼️</button>
+            <button class="icon-btn" id="flickrMyBtn" title="Flickr (meu)">🖼️</button>
+            <button class="icon-btn" id="flickrRandomBtn" title="Flickr (aleatori)">🌍</button>
             <button class="icon-btn" id="picsumBtn" title="Imatge aleatòria">🎨</button>
-
+            
             <div class="file-input-wrapper">
                 <input type="file" id="fileUpload" accept="image/*" title="Puja fitxer">
                 <button class="icon-btn" title="Puja fitxer">📁</button>
@@ -535,7 +536,8 @@
 
     <script>
         const divisionsSelect = document.getElementById('divisionsSelect');
-        const flickrBtn = document.getElementById('flickrBtn');
+        const flickrMyBtn = document.getElementById('flickrMyBtn');
+        const flickrRandomBtn = document.getElementById('flickrRandomBtn');
         const picsumBtn = document.getElementById('picsumBtn');
         const fileUpload = document.getElementById('fileUpload');
         const customUrl = document.getElementById('customUrl');
@@ -592,18 +594,32 @@
             }
         });
 
-        // FLICKR MODAL
-        flickrBtn.addEventListener('click', () => {
+        // FLICKR MY
+        flickrMyBtn.addEventListener('click', () => {
             const savedApiKey = localStorage.getItem('flickrApiKey');
             const savedUserId = localStorage.getItem('flickrUserId');
             
             if (savedApiKey && savedUserId) {
-                lastSource = 'flickr';
-                carregarFlickr();
+                lastSource = 'flickr-my';
+                carregarFlickrMy();
             } else {
                 flickrModal.classList.add('active');
             }
         });
+
+        // FLICKR RANDOM
+        flickrRandomBtn.addEventListener('click', () => {
+            const savedApiKey = localStorage.getItem('flickrApiKey');
+            
+            if (savedApiKey) {
+                lastSource = 'flickr-random';
+                carregarFlickrRandom();
+            } else {
+                log('❌ Necesites API Key de Flickr');
+                log('Enganxa API Key al botó 🖼️');
+            }
+        });
+        
 
         saveFlickrBtn.addEventListener('click', () => {
             const apiKey = apiKeyInput.value.trim();
@@ -630,7 +646,7 @@
             flickrModal.classList.remove('active');
         });
 
-        function carregarFlickr() {
+        function carregarFlickrMy() {
             const apiKey = localStorage.getItem('flickrApiKey');
             const userId = localStorage.getItem('flickrUserId');
 
@@ -639,7 +655,7 @@
                 return;
             }
 
-            log('🔄 Carregant fotos de Flickr...');
+            log('🔄 Carregant fotos teves...');
 
             const url = `https://www.flickr.com/services/rest/?method=flickr.people.getPublicPhotos&user_id=${userId}&api_key=${apiKey}&format=json&nojsoncallback=1&per_page=30`;
 
@@ -668,7 +684,56 @@
                         previewImg.src = imageUrl;
                         finalImage.src = imageUrl;
                         iniciarPuzzle();
-                        log('✅ Foto de Flickr carregada');
+                        log('✅ Foto teva carregada');
+                    };
+                    img.onerror = () => {
+                        log('❌ Error al carregar la foto');
+                    };
+                    img.src = imageUrl;
+                })
+                .catch(error => {
+                    log('❌ Error de conexió: ' + error.message);
+                });
+        }
+
+        function carregarFlickrRandom() {
+            const apiKey = localStorage.getItem('flickrApiKey');
+
+            if (!apiKey) {
+                log('❌ Necesites API Key');
+                return;
+            }
+
+            log('🔄 Carregant foto aleatòria...');
+
+            const url = `https://www.flickr.com/services/rest/?method=flickr.interestingness.getList&api_key=${apiKey}&format=json&nojsoncallback=1&per_page=50&page=${Math.floor(Math.random() * 10) + 1}`;
+
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.stat === 'fail') {
+                        log('❌ Error: ' + data.message);
+                        return;
+                    }
+
+                    if (!data.photos || data.photos.photo.length === 0) {
+                        log('❌ No hi ha fotos disponibles');
+                        return;
+                    }
+
+                    const fotos = data.photos.photo;
+                    const fotoAleatoria = fotos[Math.floor(Math.random() * fotos.length)];
+                    
+                    const imageUrl = `https://live.staticflickr.com/${fotoAleatoria.server}/${fotoAleatoria.id}_${fotoAleatoria.secret}_b.jpg`;
+
+                    const img = new Image();
+                    img.crossOrigin = 'anonymous';
+                    img.onload = () => {
+                        imagenActual = imageUrl;
+                        previewImg.src = imageUrl;
+                        finalImage.src = imageUrl;
+                        iniciarPuzzle();
+                        log('✅ Foto aleatòria carregada');
                     };
                     img.onerror = () => {
                         log('❌ Error al carregar la foto');
@@ -731,15 +796,16 @@
         function carregarUltima() {
             if (lastSource === 'picsum') {
                 carregarImagenAleatoria();
-            } else if (lastSource === 'flickr') {
-                carregarFlickr();
+            } else if (lastSource === 'flickr-my') {
+                carregarFlickrMy();
+            } else if (lastSource === 'flickr-random') {
+                carregarFlickrRandom();
             } else if (lastSource === 'file') {
                 log('❌ Selecciona un fitxer');
             } else if (lastSource === 'url') {
                 loadCustomBtn.click();
             }
         }
-
         // REFRESH
         refreshBtn.addEventListener('click', carregarUltima);
         refreshBtn.title = 'Nova foto';
