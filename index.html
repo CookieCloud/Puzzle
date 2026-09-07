@@ -882,10 +882,9 @@
 
             log('🔄 Carregant fotos de Google Drive...');
 
-            // Usar l'API pública sense autenticació
             const query = encodeURIComponent(`'${folderId}' in parents and (mimeType='image/jpeg' or mimeType='image/png' or mimeType='image/gif' or mimeType='image/webp') and trashed=false`);
             
-            fetch(`https://www.googleapis.com/drive/v3/files?q=${query}&fields=files(id,name,webContentLink)&pageSize=50&key=AIzaSyAfAatMQmXQBiXBox4jpvIZUbpcaInR3ZQ`)
+            fetch(`https://www.googleapis.com/drive/v3/files?q=${query}&fields=files(id,name)&pageSize=50&key=AIzaSyAfAatMQmXQBiXBox4jpvIZUbpcaInR3ZQ`)
                 .then(res => res.json())
                 .then(data => {
                     if (!data.files || data.files.length === 0) {
@@ -894,22 +893,24 @@
                     }
 
                     const imagen = data.files[Math.floor(Math.random() * data.files.length)];
-                    // Convertir webContentLink per descarregar directament
-                    const imageUrl = imagen.webContentLink.replace('&export=download', '');
+                    
+                    // Usar proxy CORS per evitar bloqueig
+                    const driveUrl = `https://drive.google.com/uc?id=${imagen.id}&export=download`;
+                    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(driveUrl)}`;
 
                     const img = new Image();
                     img.crossOrigin = 'anonymous';
                     img.onload = () => {
-                        imagenActual = imageUrl;
-                        previewImg.src = imageUrl;
-                        finalImage.src = imageUrl;
+                        imagenActual = proxyUrl;
+                        previewImg.src = proxyUrl;
+                        finalImage.src = proxyUrl;
                         iniciarPuzzle();
                         log('✅ Foto de Google Drive carregada');
                     };
                     img.onerror = () => {
-                        log('❌ Error al carregar la foto. Verifica que la carpeta sigui pública.');
+                        log('❌ Error al carregar. Prova manual: enganxa URL de la foto a "URL..."');
                     };
-                    img.src = imageUrl;
+                    img.src = proxyUrl;
                 })
                 .catch(err => {
                     log('❌ Error: ' + err.message);
