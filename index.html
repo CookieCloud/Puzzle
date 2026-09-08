@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
     PUZZLE ART PWA
-    Version: 2.12
+    Version: 2.13
     
     FIX: imagePreview (ajuda) roman sempre fixa
     Només s'amaga quan l'usuari activa mode 🚀
@@ -553,7 +553,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🧩 Puzzle <span id="version">v2.12</span></h1>
+            <h1>🧩 Puzzle <span id="version">v2.13</span></h1>
         </div>
         <div class="controls-bar">
             <select id="divisionsSelect" title="Nombre de peces">
@@ -843,10 +843,11 @@
         }
 
         picsumBtn.addEventListener('click', () => {
+            puzzleContainer.innerHTML = ''; 
             lastSource = 'picsum';
             carregarImagenAleatoria();
         });
-
+        
         function carregarUltima() {
             if (lastSource === 'picsum') {
                 carregarImagenAleatoria();
@@ -857,7 +858,10 @@
             }
         }
 
-        refreshBtn.addEventListener('click', carregarUltima);
+        refreshBtn.addEventListener('click', () => {
+            puzzleContainer.innerHTML = ''; // Neteja la pantalla immediatament
+            carregarUltima();
+        });
 
         function log(msg) {
             console.log(msg);
@@ -885,71 +889,83 @@
             img.src = imageUrl;
         }
 
-        function iniciarPuzzle() {
-            if (!imagenActual) {
-                log('⚠️ Carrega una imatge primer');
+    function iniciarPuzzle() {
+        if (!imagenActual) {
+            log('⚠️ Carrega una imatge primer');
+            return;
+        }
+        
+        divisions = parseInt(divisionsSelect.value);
+        const total = divisions * divisions;
+        log(`📦 Creant puzzle ${divisions}×${divisions}...`);
+    
+        const canvas = document.createElement('canvas');
+        canvas.width = 400;
+        canvas.height = 400;
+        const ctx = canvas.getContext('2d');
+    
+        const processImage = () => {
+            try {
+                ctx.drawImage(previewImg, 0, 0, 400, 400);
+            } catch (e) {
+                log('❌ Error al dibuixar la imatge');
                 return;
             }
+    
+            pecesDataURL = [];
+            const pieceSize = 400 / divisions;
+            for (let row = 0; row < divisions; row++) {
+                for (let col = 0; col < divisions; col++) {
+                    const pieceCanvas = document.createElement('canvas');
+                    pieceCanvas.width = pieceSize;
+                    pieceCanvas.height = pieceSize;
+                    const pctx = pieceCanvas.getContext('2d');
+                    pctx.drawImage(
+                        canvas,
+                        col * pieceSize, row * pieceSize, pieceSize, pieceSize,
+                        0, 0, pieceSize, pieceSize
+                    );
+                    pecesDataURL.push(pieceCanvas.toDataURL());
+                }
+            }
+    
+            ordre = Array.from({ length: total }, (_, i) => i);
+            for (let i = total - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [ordre[i], ordre[j]] = [ordre[j], ordre[i]];
+            }
+            fixat = new Array(total).fill(false);
+    
+            // NOU CODI: Mostrar la imatge sencera al tauler abans de dividir
+            puzzleContainer.innerHTML = ''; 
+            puzzleContainer.style.gridTemplateColumns = '1fr'; 
             
-            divisions = parseInt(divisionsSelect.value);
-            const total = divisions * divisions;
-            log(`📦 Creant puzzle ${divisions}×${divisions}...`);
+            const imatgeSenceraDiv = document.createElement('div');
+            imatgeSenceraDiv.style.width = '100%';
+            imatgeSenceraDiv.style.height = '100%';
+            imatgeSenceraDiv.style.backgroundImage = `url('${imagenActual}')`;
+            imatgeSenceraDiv.style.backgroundSize = '100% 100%';
+            imatgeSenceraDiv.style.backgroundPosition = 'center';
+            imatgeSenceraDiv.style.borderRadius = '6px';
+            
+            puzzleContainer.appendChild(imatgeSenceraDiv);
+    
+            if (!isDifficultyMode) {
+                imagePreview.classList.remove('hidden');
+                log('✨ Veient la foto sencera (ajuda visible)...');
+            } else {
+                log('✨ Veient la foto sencera (sense ajuda)...');
+            }
+    
+            // Esperem 2.5 segons amb la imatge sencera al tauler abans de trencar-la
+            setTimeout(() => {
+                renderitzarPuzzle(true); // renderitzarPuzzle ja s'encarrega de buidar el contenidor i aplicar el grid
+                log('🧩 Arrossega les peces!');
+            }, 2500);
+    };
 
-            const canvas = document.createElement('canvas');
-            canvas.width = 400;
-            canvas.height = 400;
-            const ctx = canvas.getContext('2d');
-
-            const processImage = () => {
-                try {
-                    ctx.drawImage(previewImg, 0, 0, 400, 400);
-                } catch (e) {
-                    log('❌ Error al dibuixar la imatge');
-                    return;
-                }
-
-                pecesDataURL = [];
-                const pieceSize = 400 / divisions;
-                for (let row = 0; row < divisions; row++) {
-                    for (let col = 0; col < divisions; col++) {
-                        const pieceCanvas = document.createElement('canvas');
-                        pieceCanvas.width = pieceSize;
-                        pieceCanvas.height = pieceSize;
-                        const pctx = pieceCanvas.getContext('2d');
-                        pctx.drawImage(
-                            canvas,
-                            col * pieceSize, row * pieceSize, pieceSize, pieceSize,
-                            0, 0, pieceSize, pieceSize
-                        );
-                        pecesDataURL.push(pieceCanvas.toDataURL());
-                    }
-                }
-
-                ordre = Array.from({ length: total }, (_, i) => i);
-                for (let i = total - 1; i > 0; i--) {
-                    const j = Math.floor(Math.random() * (i + 1));
-                    [ordre[i], ordre[j]] = [ordre[j], ordre[i]];
-                }
-                fixat = new Array(total).fill(false);
-
-                // MOSTRAR IMATGE SENCERA DURANT 2.5 SEGONS
-                // imagePreview roman FIXA - NO s'amaga!
-                if (!isDifficultyMode) {
-                    imagePreview.classList.remove('hidden');
-                    log('✨ Veient la foto sencera (ajuda visible)...');
-                } else {
-                    log('✨ Veient la foto sencera (sense ajuda)...');
-                }
-
-                setTimeout(() => {
-                    // Renderitzar el puzzle amb animacio entrada
-                    renderitzarPuzzle(true);
-                    log('🧩 Arrossega les peces!');
-                }, 2500);
-            };
-
-            processImage();
-        }
+    processImage();
+}
 
         function renderitzarPuzzle(animate = false) {
             const total = divisions * divisions;
@@ -1087,9 +1103,10 @@
 
         victoryBtn.addEventListener('click', () => {
             victoryOverlay.classList.remove('active');
+            puzzleContainer.innerHTML = ''; // Amaga el puzzle completat antic
             carregarUltima();
         });
-
+        
         divisionsSelect.addEventListener('change', () => {
             if (imagenActual) iniciarPuzzle();
         });
