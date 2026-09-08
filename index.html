@@ -544,11 +544,12 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🧩 Puzzle</h1>2.04
+            <h1>🧩 Puzzle</h1>
             <div class="header-buttons">
                 <button class="difficulty-toggle" id="difficultyToggle" title="Mode fàcil/difícil">🔴</button>
                 <button class="theme-toggle" id="themeToggle" title="Canviar mode fosc">🌙</button>
             </div>
+            2.05
         </div>
 
         <!-- CONTROLS BAR -->
@@ -879,8 +880,13 @@
                 imagenActual = imageUrl;
                 previewImg.src = imageUrl;
                 finalImage.src = imageUrl;
-                iniciarPuzzle();
-                log('✅ Foto carregada');
+                
+                // ASSEGURAR QUE LA IMATGE S'HA CARREGAT AL NAVEGADOR
+                previewImg.onload = () => {
+                    log('✅ Foto carregada');
+                    // AHORA SÍ, iniciar el puzzle
+                    iniciarPuzzle();
+                };
             };
             img.onerror = () => {
                 log('❌ Error al carregar la foto');
@@ -925,8 +931,13 @@
                 imagenActual = imageUrl;
                 previewImg.src = imageUrl;
                 finalImage.src = imageUrl;
-                iniciarPuzzle();
-                log('✅ Imatge carregada');
+                
+                // ASSEGURAR QUE LA IMATGE S'HA CARREGAT AL NAVEGADOR
+                previewImg.onload = () => {
+                    log('✅ Imatge carregada');
+                    // AHORA SÍ, iniciar el puzzle
+                    iniciarPuzzle();
+                };
             };
 
             img.onerror = () => {
