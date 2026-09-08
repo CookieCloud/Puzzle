@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
     PUZZLE ART PWA
-    Version: 2.15
+    Version: 2.16
     
     FIX: imagePreview (ajuda) roman sempre fixa
     Només s'amaga quan l'usuari activa mode 🚀
@@ -556,7 +556,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🧩 Puzzle <span id="version">v2.15</span></h1>
+            <h1>🧩 Puzzle <span id="version">v2.16</span></h1>
         </div>
         <div class="controls-bar">
             <select id="divisionsSelect" title="Nombre de peces">
@@ -629,7 +629,7 @@
         let fixat = [];
         let pecesDataURL = [];
         let lastSource = 'picsum';
-        let isDifficultyMode = false;
+        let isDifficultyMode = true;
         let isAnimationsEnabled = true;
         let isMobile = window.innerWidth <= 768;
 
