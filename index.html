@@ -571,7 +571,6 @@
         <div class="header">
             <h1>🧩 Puzzle <span id="version">v2.11</span></h1>
         </div>
-
         <!-- CONTROLS BAR -->
         <div class="controls-bar">
             <select id="divisionsSelect" title="Nombre de peces">
@@ -580,7 +579,6 @@
                 <option value="4" selected>4×4</option>
                 <option value="5">5×5</option>
             </select>
-
             <button class="icon-btn" id="flickrMyBtn" title="Flickr (meu)">🖼️</button>
             <button class="icon-btn" id="flickrRandomBtn" title="Flickr (aleatori)">🌍</button>
             <button class="icon-btn" id="picsumBtn" title="Imatge aleatòria">🎨</button>
@@ -592,19 +590,15 @@
             <button class="icon-btn" id="helpToggle" title="Amb ajuda o sense">🆘</button>
             <button class="theme-toggle" id="themeToggle" title="Canviar mode fosc">🌙</button>
         </div>
-
         <!-- PUZZLE -->
         <div id="puzzleContainer" class="puzzle-grid"></div>
-
         <!-- PREVIEW -->
         <div id="imagePreview" class="image-preview">
             <img id="previewImg" src="" alt="Original" crossOrigin="anonymous">
         </div>
-
         <!-- LOG -->
         <div class="log" id="log">Carregant...</div>
     </div>
-
     <!-- FLICKR CONFIG MODAL -->
     <div id="flickrModal" class="modal">
         <div class="modal-content">
@@ -618,7 +612,6 @@
             </div>
         </div>
     </div>
-
     <!-- VICTORY POPUP -->
     <div id="victoryOverlay" class="victory-overlay">
         <div class="victory-popup">
@@ -629,7 +622,6 @@
             <button id="victoryBtn">Jugar de Nou</button>
         </div>
     </div>
-
     <script>
         const divisionsSelect = document.getElementById('divisionsSelect');
         const flickrMyBtn = document.getElementById('flickrMyBtn');
@@ -651,7 +643,6 @@
         const userIdInput = document.getElementById('userIdInput');
         const saveFlickrBtn = document.getElementById('saveFlickrBtn');
         const cancelFlickrBtn = document.getElementById('cancelFlickrBtn');
-
         let imagenActual = null;
         let divisions = 4;
         let ordre = [];
@@ -673,12 +664,10 @@
             'entrance-zoom',
             'entrance-ghost'
         ];
-
         // DETECT MOBILE
         window.addEventListener('resize', () => {
             isMobile = window.innerWidth <= 768;
         });
-
         // THEME TOGGLE
         function initTheme() {
             const isDark = localStorage.getItem('darkMode') === 'true';
@@ -687,14 +676,12 @@
                 themeToggle.textContent = '☀️';
             }
         }
-
         themeToggle.addEventListener('click', () => {
             document.body.classList.toggle('dark-mode');
             const isDark = document.body.classList.contains('dark-mode');
             localStorage.setItem('darkMode', isDark);
             themeToggle.textContent = isDark ? '☀️' : '🌙';
         });
-
         // HELP TOGGLE (amb ajuda vs sense ajuda)
         helpToggle.addEventListener('click', () => {
             isDifficultyMode = !isDifficultyMode;
@@ -706,14 +693,12 @@
                 imagePreview.classList.remove('hidden');
             }
         });
-
         // ANIMATIONS TOGGLE
         function initAnimations() {
             const saved = localStorage.getItem('enableAnimations');
             isAnimationsEnabled = saved !== 'false';
             updateAnimationsButton();
         }
-
         function updateAnimationsButton() {
             if (isAnimationsEnabled) {
                 animationsToggle.textContent = '✨';
@@ -723,18 +708,15 @@
                 animationsToggle.style.opacity = '0.4';
             }
         }
-
         animationsToggle.addEventListener('click', () => {
             isAnimationsEnabled = !isAnimationsEnabled;
             localStorage.setItem('enableAnimations', isAnimationsEnabled);
             updateAnimationsButton();
             log(isAnimationsEnabled ? '✨ Animacions activades' : '✨ Animacions desactivades');
         });
-
         function getRandomAnimation() {
             return animationTypes[Math.floor(Math.random() * animationTypes.length)];
         }
-
         // FLICKR MY
         flickrMyBtn.addEventListener('click', () => {
             const savedApiKey = localStorage.getItem('flickrApiKey');
@@ -747,7 +729,6 @@
                 flickrModal.classList.add('active');
             }
         });
-
         // FLICKR RANDOM
         flickrRandomBtn.addEventListener('click', () => {
             const savedApiKey = localStorage.getItem('flickrApiKey');
@@ -759,16 +740,13 @@
                 log('❌ Necessites API Key de Flickr');
             }
         });
-
         saveFlickrBtn.addEventListener('click', () => {
             const apiKey = apiKeyInput.value.trim();
             const userId = userIdInput.value.trim();
-
             if (!apiKey || !userId) {
                 log('❌ Omple tots els camps');
                 return;
             }
-
             localStorage.setItem('flickrApiKey', apiKey);
             localStorage.setItem('flickrUserId', userId);
             apiKeyInput.value = '';
@@ -778,74 +756,59 @@
             lastSource = 'flickr-my';
             carregarFlickrMy();
         });
-
         cancelFlickrBtn.addEventListener('click', () => {
             apiKeyInput.value = '';
             userIdInput.value = '';
             flickrModal.classList.remove('active');
         });
-
         function carregarFlickrMy() {
             const apiKey = localStorage.getItem('flickrApiKey');
             const userId = localStorage.getItem('flickrUserId');
-
             if (!apiKey || !userId) {
                 log('❌ Configura Flickr primer');
                 return;
             }
-
             log('🔄 Obtenint TOTES les fotos teves...');
             obtenerTodasLasFotos(userId, apiKey, 'flickr-my');
         }
-
         function carregarFlickrRandom() {
             const apiKey = localStorage.getItem('flickrApiKey');
-
             if (!apiKey) {
                 log('❌ Necessites API Key');
                 return;
             }
-
             log('🔄 Obtenint TOTES les fotos interessants...');
             obtenerTodasLasFotosRandom(apiKey, 'flickr-random');
         }
-
         async function obtenerTodasLasFotos(userId, apiKey, source) {
             try {
                 let todasLasFotos = [];
                 let page = 1;
                 let hasMore = true;
-
                 while (hasMore) {
                     const url = `https://www.flickr.com/services/rest/?method=flickr.people.getPublicPhotos&user_id=${userId}&api_key=${apiKey}&format=json&nojsoncallback=1&per_page=500&page=${page}`;
                     
                     const response = await fetch(url);
                     const data = await response.json();
-
                     if (data.stat === 'fail') {
                         log('❌ Error: ' + data.message);
                         return;
                     }
-
                     if (!data.photos || data.photos.photo.length === 0) {
                         hasMore = false;
                     } else {
                         todasLasFotos = todasLasFotos.concat(data.photos.photo);
                         page++;
-
                         if (todasLasFotos.length > 1000) {
                             hasMore = false;
                         }
                     }
                 }
-
                 log(`✅ Trobades ${todasLasFotos.length} fotos`);
-
                 if (todasLasFotos.length === 0) {
                     log('❌ Cap foto disponible');
                     return;
                 }
-
                 const fotoAleatoria = todasLasFotos[Math.floor(Math.random() * todasLasFotos.length)];
                 const imageUrl = `https://live.staticflickr.com/${fotoAleatoria.server}/${fotoAleatoria.id}_${fotoAleatoria.secret}_b.jpg`;
                 cargarImagenDesdeUrl(imageUrl, source);
@@ -853,43 +816,35 @@
                 log('❌ Error: ' + err.message);
             }
         }
-
         async function obtenerTodasLasFotosRandom(apiKey, source) {
             try {
                 let todasLasFotos = [];
                 let page = 1;
                 let hasMore = true;
-
                 while (hasMore) {
                     const url = `https://www.flickr.com/services/rest/?method=flickr.interestingness.getList&api_key=${apiKey}&format=json&nojsoncallback=1&per_page=500&page=${page}`;
                     
                     const response = await fetch(url);
                     const data = await response.json();
-
                     if (data.stat === 'fail') {
                         log('❌ Error: ' + data.message);
                         return;
                     }
-
                     if (!data.photos || data.photos.photo.length === 0) {
                         hasMore = false;
                     } else {
                         todasLasFotos = todasLasFotos.concat(data.photos.photo);
                         page++;
-
                         if (todasLasFotos.length > 1000) {
                             hasMore = false;
                         }
                     }
                 }
-
                 log(`✅ Trobades ${todasLasFotos.length} fotos`);
-
                 if (todasLasFotos.length === 0) {
                     log('❌ Cap foto disponible');
                     return;
                 }
-
                 const fotoAleatoria = todasLasFotos[Math.floor(Math.random() * todasLasFotos.length)];
                 const imageUrl = `https://live.staticflickr.com/${fotoAleatoria.server}/${fotoAleatoria.id}_${fotoAleatoria.secret}_b.jpg`;
                 cargarImagenDesdeUrl(imageUrl, source);
@@ -897,7 +852,6 @@
                 log('❌ Error: ' + err.message);
             }
         }
-
         function cargarImagenDesdeUrl(imageUrl, source) {
             const img = new Image();
             img.crossOrigin = 'anonymous';
@@ -918,13 +872,11 @@
             };
             img.src = imageUrl;
         }
-
         // PICSUM
         picsumBtn.addEventListener('click', () => {
             lastSource = 'picsum';
             carregarImagenAleatoria();
         });
-
         // REFRESH
         function carregarUltima() {
             if (lastSource === 'picsum') {
@@ -935,23 +887,18 @@
                 carregarFlickrRandom();
             }
         }
-
         refreshBtn.addEventListener('click', carregarUltima);
-
         function log(msg) {
             console.log(msg);
             logDiv.textContent = msg;
         }
-
         function carregarImagenAleatoria() {
             log('🔄 Carregant imatge...');
             
             const seed = Math.floor(Math.random() * 1000000);
             const imageUrl = `https://picsum.photos/seed/puzzle${seed}/400/400`;
-
             const img = new Image();
             img.crossOrigin = 'anonymous';
-
             img.onload = () => {
                 imagenActual = imageUrl;
                 
@@ -964,30 +911,24 @@
                 previewImg.src = imageUrl;
                 finalImage.src = imageUrl;
             };
-
             img.onerror = () => {
                 log('❌ Error al carregar. Proba de nou.');
             };
-
             img.src = imageUrl;
         }
-
         function iniciarPuzzle() {
             if (!imagenActual) {
                 log('⚠️ Carrega una imatge primer');
                 return;
             }
-
             divisions = parseInt(divisionsSelect.value);
             const total = divisions * divisions;
             
             log(`📦 Creant puzzle ${divisions}×${divisions}...`);
-
             const canvas = document.createElement('canvas');
             canvas.width = 400;
             canvas.height = 400;
             const ctx = canvas.getContext('2d');
-
             // USAR previewImg DIRECTAMENT (ja està carregada!)
             const processImage = () => {
                 try {
@@ -999,32 +940,26 @@
                 
                 pecesDataURL = [];
                 const pieceSize = 400 / divisions;
-
                 for (let row = 0; row < divisions; row++) {
                     for (let col = 0; col < divisions; col++) {
                         const pieceCanvas = document.createElement('canvas');
                         pieceCanvas.width = pieceSize;
                         pieceCanvas.height = pieceSize;
                         const pctx = pieceCanvas.getContext('2d');
-
                         pctx.drawImage(
                             canvas,
                             col * pieceSize, row * pieceSize, pieceSize, pieceSize,
                             0, 0, pieceSize, pieceSize
                         );
-
                         pecesDataURL.push(pieceCanvas.toDataURL());
                     }
                 }
-
                 ordre = Array.from({ length: total }, (_, i) => i);
                 for (let i = total - 1; i > 0; i--) {
                     const j = Math.floor(Math.random() * (i + 1));
                     [ordre[i], ordre[j]] = [ordre[j], ordre[i]];
                 }
-
                 fixat = new Array(total).fill(false);
-
                 // MOSTRAR IMATGE SENCERA DURANT 2.5 SEGONS, DESPRÉS ANIMAR ENTRADA DEL PUZZLE
                 imagePreview.classList.remove('hide-animation', 'hidden');
                 // Forçar el render abans de començar el compte enrere
@@ -1047,101 +982,79 @@
                     // Renderitzar el puzzle amb animació d'entrada
                     renderitzarPuzzle(true);
                     log('🧩 Arrossega les peces!');
-                    }, 2500
-              );
-
+                }, 2500);
+            };
             // CRIDAR DIRECTAMENT, perquè previewImg ja s'ha carregat al onload de carregarImagenAleatoria()
             processImage();
         }
-
         function renderitzarPuzzle(animate = false) {
             const total = divisions * divisions;
-
             puzzleContainer.innerHTML = '';
             puzzleContainer.style.gridTemplateColumns = `repeat(${divisions}, 1fr)`;
-
             for (let i = 0; i < total; i++) {
                 const pecaIndex = ordre[i];
                 const piece = document.createElement('div');
                 piece.className = 'puzzle-piece';
-
                 if (fixat[i]) {
                     piece.classList.add('fixed');
                 } else {
                     piece.classList.add('unfixed');
                 }
-
                 piece.style.backgroundImage = `url('${pecesDataURL[pecaIndex]}')`;
                 piece.style.backgroundSize = '100% 100%';
                 piece.style.backgroundPosition = 'center';
                 piece.dataset.posicio = i;
-
                 // AFEGIR ANIMACIÓ D'ENTRADA
                 if (animate && isAnimationsEnabled) {
                     const randomAnimation = getRandomAnimation();
                     piece.classList.add(randomAnimation);
                     piece.style.animationDelay = (i * 0.05) + 's';
                 }
-
                 if (!fixat[i]) {
                     piece.draggable = true;
                     piece.addEventListener('dragstart', handleDragStart);
                     piece.addEventListener('dragover', handleDragOver);
                     piece.addEventListener('drop', handleDrop);
                     piece.addEventListener('dragend', handleDragEnd);
-
                     piece.addEventListener('touchstart', handleTouchStart);
                     piece.addEventListener('touchmove', handleTouchMove);
                     piece.addEventListener('touchend', handleTouchEnd);
                 }
-
                 puzzleContainer.appendChild(piece);
             }
         }
-
         let origenIndex = null;
-
         function handleDragStart(e) {
             origenIndex = parseInt(e.target.dataset.posicio);
             e.dataTransfer.effectAllowed = 'move';
             e.target.style.opacity = '0.5';
         }
-
         function handleDragOver(e) {
             e.preventDefault();
             e.dataTransfer.dropEffect = 'move';
         }
-
         function handleDrop(e) {
             e.preventDefault();
             const destiPiece = e.target.closest('.puzzle-piece');
             if (!destiPiece || fixat[destiPiece.dataset.posicio]) return;
-
             const destiIndex = parseInt(destiPiece.dataset.posicio);
             if (origenIndex === null || origenIndex === destiIndex) return;
-
             [ordre[origenIndex], ordre[destiIndex]] = [ordre[destiIndex], ordre[origenIndex]];
-
             for (let i = 0; i < ordre.length; i++) {
                 fixat[i] = (ordre[i] === i);
             }
-
             renderitzarPuzzle(false);
             comprovarVictoria();
             origenIndex = null;
         }
-
         function handleDragEnd(e) {
             e.target.style.opacity = '1';
         }
-
         let touchPiece = null;
         let floatingClone = null;
-
         function handleTouchStart(e) {
             touchPiece = e.target.closest('.puzzle-piece');
             if (!touchPiece || fixat[touchPiece.dataset.posicio]) return;
-
             floatingClone = touchPiece.cloneNode(true);
             floatingClone.style.position = 'fixed';
             floatingClone.style.zIndex = '1001';
@@ -1158,48 +1071,37 @@
             document.body.appendChild(floatingClone);
             touchPiece.style.opacity = '0.3';
         }
-
         function handleTouchMove(e) {
             if (!floatingClone) return;
             e.preventDefault();
-
             const touch = e.touches[0];
             const rect = floatingClone.getBoundingClientRect();
             const width = rect.width;
             const height = rect.height;
-
             floatingClone.style.left = (touch.clientX - width / 2) + 'px';
             floatingClone.style.top = (touch.clientY - height / 2) + 'px';
         }
-
         function handleTouchEnd(e) {
             if (!touchPiece || !floatingClone) return;
-
             const touch = e.changedTouches[0];
             const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
             const destiPiece = targetElement.closest('.puzzle-piece');
-
             if (destiPiece && destiPiece !== touchPiece && !fixat[destiPiece.dataset.posicio]) {
                 const origenIndex = parseInt(touchPiece.dataset.posicio);
                 const destiIndex = parseInt(destiPiece.dataset.posicio);
-
                 [ordre[origenIndex], ordre[destiIndex]] = [ordre[destiIndex], ordre[origenIndex]];
-
                 for (let i = 0; i < ordre.length; i++) {
                     fixat[i] = (ordre[i] === i);
                 }
-
                 renderitzarPuzzle(false);
                 comprovarVictoria();
             } else {
                 touchPiece.style.opacity = '1';
             }
-
             document.body.removeChild(floatingClone);
             floatingClone = null;
             touchPiece = null;
         }
-
         function comprovarVictoria() {
             const totsFixats = fixat.every(v => v === true);
             if (totsFixats) {
@@ -1210,16 +1112,13 @@
                 log(`🧩 ${correctes}/${ordre.length} peces correctes`);
             }
         }
-
         victoryBtn.addEventListener('click', () => {
             victoryOverlay.classList.remove('active');
             carregarUltima();
         });
-
         divisionsSelect.addEventListener('change', () => {
             if (imagenActual) iniciarPuzzle();
         });
-
         initTheme();
         initAnimations();
         carregarImagenAleatoria();
