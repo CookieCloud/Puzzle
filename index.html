@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
     PUZZLE ART PWA
-    Version: 2.23
+    Version: 2.24
     
     FIX: imagePreview (ajuda) roman sempre fixa
     Només s'amaga quan l'usuari activa mode 🚀
@@ -114,7 +114,7 @@
             gap: 6px;
             margin-bottom: 12px;
             align-items: center;
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
         }
         select {
             padding: clamp(6px, 2vw, 8px) clamp(6px, 2vw, 10px);
@@ -125,6 +125,7 @@
             font-size: clamp(11px, 2.5vw, 12px);
             flex-shrink: 0;
             touch-action: manipulation;
+            height: clamp(36px, 10vw, 44px);
         }
         select:focus {
             outline: none;
@@ -556,7 +557,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🧩 Puzzle <span id="version">v2.23</span></h1>
+            <h1>🧩 Puzzle <span id="version">v2.24</span></h1>
         </div>
         <div class="controls-bar">
             <select id="divisionsSelect" title="Nombre de peces">
