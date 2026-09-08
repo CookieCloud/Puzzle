@@ -1,18 +1,10 @@
 <!DOCTYPE html>
 <!--
     PUZZLE ART PWA
-    Version: 2.11
+    Version: 2.12
     
-    Features:
-    - Flickr integration (personal + random)
-    - Picsum random images
-    - Responsive design (desktop/mobile/tablet)
-    - Touch support with floating piece
-    - Dark/Light mode
-    - Help/No help mode
-    - Entrance animations (random or disabled)
-    - Victory popup
-    - CORS-safe image handling
+    FIX: imagePreview (ajuda) roman sempre fixa
+    Només s'amaga quan l'usuari activa mode 🚀
 -->
 <html lang="ca">
 <head>
@@ -502,11 +494,6 @@
             }
         }
         
-        @keyframes imageHide {
-            0% { opacity: 1; transform: scale(1); }
-            100% { opacity: 0; transform: scale(0.9); }
-        }
-        
         .puzzle-piece.entrance-spin {
             animation: puzzleEntrance 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
         }
@@ -538,9 +525,6 @@
             animation: puzzleGhost 0.8s ease-out forwards;
         }
         
-        .image-preview.hide-animation {
-            animation: imageHide 0.4s ease-out forwards;
-        }
         @media (max-width: 600px) {
             body {
                 padding: 8px;
@@ -569,9 +553,8 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🧩 Puzzle <span id="version">v2.11</span></h1>
+            <h1>🧩 Puzzle <span id="version">v2.12</span></h1>
         </div>
-        <!-- CONTROLS BAR -->
         <div class="controls-bar">
             <select id="divisionsSelect" title="Nombre de peces">
                 <option value="2">2×2</option>
@@ -581,25 +564,19 @@
             </select>
             <button class="icon-btn" id="flickrMyBtn" title="Flickr (meu)">🖼️</button>
             <button class="icon-btn" id="flickrRandomBtn" title="Flickr (aleatori)">🌍</button>
-            <button class="icon-btn" id="picsumBtn" title="Imatge aleatòria">🎨</button>
+            <button class="icon-btn" id="picsumBtn" title="Imatge aleatoria">🎨</button>
             <button class="icon-btn" id="refreshBtn" title="Nova foto">🔄</button>
-            
-            <!-- BOTONS DE CONFIGURACIÓ A LA DRETA -->
             <div style="flex: 1;"></div>
             <button class="icon-btn" id="animationsToggle" title="Activar/desactivar animacions">✨</button>
             <button class="icon-btn" id="helpToggle" title="Amb ajuda o sense">🆘</button>
             <button class="theme-toggle" id="themeToggle" title="Canviar mode fosc">🌙</button>
         </div>
-        <!-- PUZZLE -->
         <div id="puzzleContainer" class="puzzle-grid"></div>
-        <!-- PREVIEW -->
         <div id="imagePreview" class="image-preview">
             <img id="previewImg" src="" alt="Original" crossOrigin="anonymous">
         </div>
-        <!-- LOG -->
         <div class="log" id="log">Carregant...</div>
     </div>
-    <!-- FLICKR CONFIG MODAL -->
     <div id="flickrModal" class="modal">
         <div class="modal-content">
             <h2>🖼️ Flickr</h2>
@@ -612,10 +589,9 @@
             </div>
         </div>
     </div>
-    <!-- VICTORY POPUP -->
     <div id="victoryOverlay" class="victory-overlay">
         <div class="victory-popup">
-            <h2>🎉 ¡VISCA!</h2>
+            <h2>🎉 VISCA!</h2>
             <p>Has completat el puzzle!</p>
             <img id="finalImage" class="final-puzzle" src="" alt="Puzzle completat">
             <br>
@@ -643,6 +619,7 @@
         const userIdInput = document.getElementById('userIdInput');
         const saveFlickrBtn = document.getElementById('saveFlickrBtn');
         const cancelFlickrBtn = document.getElementById('cancelFlickrBtn');
+
         let imagenActual = null;
         let divisions = 4;
         let ordre = [];
@@ -652,23 +629,17 @@
         let isDifficultyMode = false;
         let isAnimationsEnabled = true;
         let isMobile = window.innerWidth <= 768;
+
         const animationTypes = [
-            'entrance-spin',
-            'entrance-fall',
-            'entrance-explosion',
-            'entrance-flip',
-            'entrance-slide',
-            'entrance-slide-right',
-            'entrance-bounce',
-            'entrance-wave',
-            'entrance-zoom',
-            'entrance-ghost'
+            'entrance-spin', 'entrance-fall', 'entrance-explosion', 'entrance-flip',
+            'entrance-slide', 'entrance-slide-right', 'entrance-bounce', 'entrance-wave',
+            'entrance-zoom', 'entrance-ghost'
         ];
-        // DETECT MOBILE
+
         window.addEventListener('resize', () => {
             isMobile = window.innerWidth <= 768;
         });
-        // THEME TOGGLE
+
         function initTheme() {
             const isDark = localStorage.getItem('darkMode') === 'true';
             if (isDark) {
@@ -676,52 +647,50 @@
                 themeToggle.textContent = '☀️';
             }
         }
+
         themeToggle.addEventListener('click', () => {
             document.body.classList.toggle('dark-mode');
             const isDark = document.body.classList.contains('dark-mode');
             localStorage.setItem('darkMode', isDark);
             themeToggle.textContent = isDark ? '☀️' : '🌙';
         });
-        // HELP TOGGLE (amb ajuda vs sense ajuda)
+
         helpToggle.addEventListener('click', () => {
             isDifficultyMode = !isDifficultyMode;
             if (isDifficultyMode) {
-                helpToggle.textContent = '🚀';  // Sense ajuda - mode difícil
+                helpToggle.textContent = '🚀';
                 imagePreview.classList.add('hidden');
             } else {
-                helpToggle.textContent = '🆘';  // Amb ajuda - mode fàcil
+                helpToggle.textContent = '🆘';
                 imagePreview.classList.remove('hidden');
             }
         });
-        // ANIMATIONS TOGGLE
+
         function initAnimations() {
             const saved = localStorage.getItem('enableAnimations');
             isAnimationsEnabled = saved !== 'false';
             updateAnimationsButton();
         }
+
         function updateAnimationsButton() {
-            if (isAnimationsEnabled) {
-                animationsToggle.textContent = '✨';
-                animationsToggle.style.opacity = '1';
-            } else {
-                animationsToggle.textContent = '✨';
-                animationsToggle.style.opacity = '0.4';
-            }
+            animationsToggle.textContent = '✨';
+            animationsToggle.style.opacity = isAnimationsEnabled ? '1' : '0.4';
         }
+
         animationsToggle.addEventListener('click', () => {
             isAnimationsEnabled = !isAnimationsEnabled;
             localStorage.setItem('enableAnimations', isAnimationsEnabled);
             updateAnimationsButton();
             log(isAnimationsEnabled ? '✨ Animacions activades' : '✨ Animacions desactivades');
         });
+
         function getRandomAnimation() {
             return animationTypes[Math.floor(Math.random() * animationTypes.length)];
         }
-        // FLICKR MY
+
         flickrMyBtn.addEventListener('click', () => {
             const savedApiKey = localStorage.getItem('flickrApiKey');
             const savedUserId = localStorage.getItem('flickrUserId');
-            
             if (savedApiKey && savedUserId) {
                 lastSource = 'flickr-my';
                 carregarFlickrMy();
@@ -729,10 +698,9 @@
                 flickrModal.classList.add('active');
             }
         });
-        // FLICKR RANDOM
+
         flickrRandomBtn.addEventListener('click', () => {
             const savedApiKey = localStorage.getItem('flickrApiKey');
-            
             if (savedApiKey) {
                 lastSource = 'flickr-random';
                 carregarFlickrRandom();
@@ -740,6 +708,7 @@
                 log('❌ Necessites API Key de Flickr');
             }
         });
+
         saveFlickrBtn.addEventListener('click', () => {
             const apiKey = apiKeyInput.value.trim();
             const userId = userIdInput.value.trim();
@@ -752,15 +721,16 @@
             apiKeyInput.value = '';
             userIdInput.value = '';
             flickrModal.classList.remove('active');
-            
             lastSource = 'flickr-my';
             carregarFlickrMy();
         });
+
         cancelFlickrBtn.addEventListener('click', () => {
             apiKeyInput.value = '';
             userIdInput.value = '';
             flickrModal.classList.remove('active');
         });
+
         function carregarFlickrMy() {
             const apiKey = localStorage.getItem('flickrApiKey');
             const userId = localStorage.getItem('flickrUserId');
@@ -768,18 +738,20 @@
                 log('❌ Configura Flickr primer');
                 return;
             }
-            log('🔄 Obtenint TOTES les fotos teves...');
+            log('🔄 Obtenint totes les fotos...');
             obtenerTodasLasFotos(userId, apiKey, 'flickr-my');
         }
+
         function carregarFlickrRandom() {
             const apiKey = localStorage.getItem('flickrApiKey');
             if (!apiKey) {
                 log('❌ Necessites API Key');
                 return;
             }
-            log('🔄 Obtenint TOTES les fotos interessants...');
+            log('🔄 Obtenint fotos interessants...');
             obtenerTodasLasFotosRandom(apiKey, 'flickr-random');
         }
+
         async function obtenerTodasLasFotos(userId, apiKey, source) {
             try {
                 let todasLasFotos = [];
@@ -787,7 +759,6 @@
                 let hasMore = true;
                 while (hasMore) {
                     const url = `https://www.flickr.com/services/rest/?method=flickr.people.getPublicPhotos&user_id=${userId}&api_key=${apiKey}&format=json&nojsoncallback=1&per_page=500&page=${page}`;
-                    
                     const response = await fetch(url);
                     const data = await response.json();
                     if (data.stat === 'fail') {
@@ -816,6 +787,7 @@
                 log('❌ Error: ' + err.message);
             }
         }
+
         async function obtenerTodasLasFotosRandom(apiKey, source) {
             try {
                 let todasLasFotos = [];
@@ -823,7 +795,6 @@
                 let hasMore = true;
                 while (hasMore) {
                     const url = `https://www.flickr.com/services/rest/?method=flickr.interestingness.getList&api_key=${apiKey}&format=json&nojsoncallback=1&per_page=500&page=${page}`;
-                    
                     const response = await fetch(url);
                     const data = await response.json();
                     if (data.stat === 'fail') {
@@ -852,18 +823,16 @@
                 log('❌ Error: ' + err.message);
             }
         }
+
         function cargarImagenDesdeUrl(imageUrl, source) {
             const img = new Image();
             img.crossOrigin = 'anonymous';
             img.onload = () => {
                 imagenActual = imageUrl;
-                
-                // SETEAR onload PRIMER, ANTES de src
                 previewImg.onload = () => {
                     log('✅ Foto carregada');
                     iniciarPuzzle();
                 };
-                
                 previewImg.src = imageUrl;
                 finalImage.src = imageUrl;
             };
@@ -872,12 +841,12 @@
             };
             img.src = imageUrl;
         }
-        // PICSUM
+
         picsumBtn.addEventListener('click', () => {
             lastSource = 'picsum';
             carregarImagenAleatoria();
         });
-        // REFRESH
+
         function carregarUltima() {
             if (lastSource === 'picsum') {
                 carregarImagenAleatoria();
@@ -887,27 +856,26 @@
                 carregarFlickrRandom();
             }
         }
+
         refreshBtn.addEventListener('click', carregarUltima);
+
         function log(msg) {
             console.log(msg);
             logDiv.textContent = msg;
         }
+
         function carregarImagenAleatoria() {
             log('🔄 Carregant imatge...');
-            
             const seed = Math.floor(Math.random() * 1000000);
             const imageUrl = `https://picsum.photos/seed/puzzle${seed}/400/400`;
             const img = new Image();
             img.crossOrigin = 'anonymous';
             img.onload = () => {
                 imagenActual = imageUrl;
-                
-                // SETEAR onload PRIMER, ANTES de src
                 previewImg.onload = () => {
                     log('✅ Imatge carregada');
                     iniciarPuzzle();
                 };
-                
                 previewImg.src = imageUrl;
                 finalImage.src = imageUrl;
             };
@@ -916,20 +884,22 @@
             };
             img.src = imageUrl;
         }
+
         function iniciarPuzzle() {
             if (!imagenActual) {
                 log('⚠️ Carrega una imatge primer');
                 return;
             }
+            
             divisions = parseInt(divisionsSelect.value);
             const total = divisions * divisions;
-            
             log(`📦 Creant puzzle ${divisions}×${divisions}...`);
+
             const canvas = document.createElement('canvas');
             canvas.width = 400;
             canvas.height = 400;
             const ctx = canvas.getContext('2d');
-            // USAR previewImg DIRECTAMENT (ja està carregada!)
+
             const processImage = () => {
                 try {
                     ctx.drawImage(previewImg, 0, 0, 400, 400);
@@ -937,7 +907,7 @@
                     log('❌ Error al dibuixar la imatge');
                     return;
                 }
-                
+
                 pecesDataURL = [];
                 const pieceSize = 400 / divisions;
                 for (let row = 0; row < divisions; row++) {
@@ -954,62 +924,54 @@
                         pecesDataURL.push(pieceCanvas.toDataURL());
                     }
                 }
+
                 ordre = Array.from({ length: total }, (_, i) => i);
                 for (let i = total - 1; i > 0; i--) {
                     const j = Math.floor(Math.random() * (i + 1));
                     [ordre[i], ordre[j]] = [ordre[j], ordre[i]];
                 }
                 fixat = new Array(total).fill(false);
-                // MOSTRAR IMATGE SENCERA DURANT 2.5 SEGONS, DESPRÉS ANIMAR ENTRADA DEL PUZZLE
-                imagePreview.classList.remove('hide-animation', 'hidden');
-                // Forçar el render abans de començar el compte enrere
-                requestAnimationFrame(() => {
-                    imagePreview.offsetHeight; // reflow forçat
-                    log('✨ Veient la foto sencera...');
-                });
-                
+
+                // MOSTRAR IMATGE SENCERA DURANT 2.5 SEGONS
+                // imagePreview roman FIXA - NO s'amaga!
+                if (!isDifficultyMode) {
+                    imagePreview.classList.remove('hidden');
+                    log('✨ Veient la foto sencera (ajuda visible)...');
+                } else {
+                    log('✨ Veient la foto sencera (sense ajuda)...');
+                }
+
                 setTimeout(() => {
-                    // Animar la desaparició de la imatge
-                    imagePreview.classList.add('hide-animation');
-                    
-                    // Si mode difícil està actiu, amagar la imatge après l'animació
-                    if (isDifficultyMode) {
-                        setTimeout(() => {
-                            imagePreview.classList.add('hidden');
-                        }, 400);
-                    }
-                    
-                    // Renderitzar el puzzle amb animació d'entrada
+                    // Renderitzar el puzzle amb animacio entrada
                     renderitzarPuzzle(true);
                     log('🧩 Arrossega les peces!');
                 }, 2500);
             };
-            // CRIDAR DIRECTAMENT, perquè previewImg ja s'ha carregat al onload de carregarImagenAleatoria()
+
             processImage();
         }
+
         function renderitzarPuzzle(animate = false) {
             const total = divisions * divisions;
             puzzleContainer.innerHTML = '';
             puzzleContainer.style.gridTemplateColumns = `repeat(${divisions}, 1fr)`;
+
             for (let i = 0; i < total; i++) {
                 const pecaIndex = ordre[i];
                 const piece = document.createElement('div');
                 piece.className = 'puzzle-piece';
-                if (fixat[i]) {
-                    piece.classList.add('fixed');
-                } else {
-                    piece.classList.add('unfixed');
-                }
+                piece.classList.add(fixat[i] ? 'fixed' : 'unfixed');
                 piece.style.backgroundImage = `url('${pecesDataURL[pecaIndex]}')`;
                 piece.style.backgroundSize = '100% 100%';
                 piece.style.backgroundPosition = 'center';
                 piece.dataset.posicio = i;
-                // AFEGIR ANIMACIÓ D'ENTRADA
+
                 if (animate && isAnimationsEnabled) {
                     const randomAnimation = getRandomAnimation();
                     piece.classList.add(randomAnimation);
                     piece.style.animationDelay = (i * 0.05) + 's';
                 }
+
                 if (!fixat[i]) {
                     piece.draggable = true;
                     piece.addEventListener('dragstart', handleDragStart);
@@ -1023,16 +985,20 @@
                 puzzleContainer.appendChild(piece);
             }
         }
+
         let origenIndex = null;
+
         function handleDragStart(e) {
             origenIndex = parseInt(e.target.dataset.posicio);
             e.dataTransfer.effectAllowed = 'move';
             e.target.style.opacity = '0.5';
         }
+
         function handleDragOver(e) {
             e.preventDefault();
             e.dataTransfer.dropEffect = 'move';
         }
+
         function handleDrop(e) {
             e.preventDefault();
             const destiPiece = e.target.closest('.puzzle-piece');
@@ -1047,11 +1013,14 @@
             comprovarVictoria();
             origenIndex = null;
         }
+
         function handleDragEnd(e) {
             e.target.style.opacity = '1';
         }
+
         let touchPiece = null;
         let floatingClone = null;
+
         function handleTouchStart(e) {
             touchPiece = e.target.closest('.puzzle-piece');
             if (!touchPiece || fixat[touchPiece.dataset.posicio]) return;
@@ -1061,16 +1030,17 @@
             floatingClone.style.pointerEvents = 'none';
             floatingClone.style.boxShadow = '0 8px 20px rgba(0,0,0,0.3)';
             floatingClone.classList.add('unfixed');
-            
+
             const rect = touchPiece.getBoundingClientRect();
             floatingClone.style.left = rect.left + 'px';
             floatingClone.style.top = rect.top + 'px';
             floatingClone.style.width = rect.width + 'px';
             floatingClone.style.height = rect.height + 'px';
-            
+
             document.body.appendChild(floatingClone);
             touchPiece.style.opacity = '0.3';
         }
+
         function handleTouchMove(e) {
             if (!floatingClone) return;
             e.preventDefault();
@@ -1081,6 +1051,7 @@
             floatingClone.style.left = (touch.clientX - width / 2) + 'px';
             floatingClone.style.top = (touch.clientY - height / 2) + 'px';
         }
+
         function handleTouchEnd(e) {
             if (!touchPiece || !floatingClone) return;
             const touch = e.changedTouches[0];
@@ -1102,23 +1073,27 @@
             floatingClone = null;
             touchPiece = null;
         }
+
         function comprovarVictoria() {
             const totsFixats = fixat.every(v => v === true);
             if (totsFixats) {
-                log('🎉 ¡VISCA!');
+                log('🎉 VISCA!');
                 victoryOverlay.classList.add('active');
             } else {
                 const correctes = fixat.filter(v => v).length;
                 log(`🧩 ${correctes}/${ordre.length} peces correctes`);
             }
         }
+
         victoryBtn.addEventListener('click', () => {
             victoryOverlay.classList.remove('active');
             carregarUltima();
         });
+
         divisionsSelect.addEventListener('change', () => {
             if (imagenActual) iniciarPuzzle();
         });
+
         initTheme();
         initAnimations();
         carregarImagenAleatoria();
