@@ -1116,6 +1116,14 @@
 
         initTheme();
         initAnimations();
+        // Sincronitzar el mode difícil al carregar
+        if (isDifficultyMode) {
+            helpToggle.textContent = '🚀';
+            imagePreview.classList.add('hidden');
+        } else {
+            helpToggle.textContent = '🆘';
+            imagePreview.classList.remove('hidden');
+        }
         carregarImagenAleatoria();
     </script>
 </body>
