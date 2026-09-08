@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
     PUZZLE ART PWA
-    Version: 2.07
+    Version: 2.08
     
     Features:
     - Flickr integration (personal + random)
@@ -563,7 +563,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🧩 Puzzle <span id="version">v2.07</span></h1>
+            <h1>🧩 Puzzle <span id="version">v2.08</span></h1>
         </div>
 
         <!-- CONTROLS BAR -->
@@ -592,7 +592,7 @@
 
         <!-- PREVIEW -->
         <div id="imagePreview" class="image-preview">
-            <img id="previewImg" src="" alt="Original">
+            <img id="previewImg" src="" alt="Original" crossOrigin="anonymous">
         </div>
 
         <!-- LOG -->
@@ -897,15 +897,15 @@
             img.crossOrigin = 'anonymous';
             img.onload = () => {
                 imagenActual = imageUrl;
-                previewImg.src = imageUrl;
-                finalImage.src = imageUrl;
                 
-                // ASSEGURAR QUE LA IMATGE S'HA CARREGAT AL NAVEGADOR
+                // SETEAR onload PRIMER, ANTES de src
                 previewImg.onload = () => {
                     log('✅ Foto carregada');
-                    // AHORA SÍ, iniciar el puzzle
                     iniciarPuzzle();
                 };
+                
+                previewImg.src = imageUrl;
+                finalImage.src = imageUrl;
             };
             img.onerror = () => {
                 log('❌ Error al carregar la foto');
@@ -948,15 +948,15 @@
 
             img.onload = () => {
                 imagenActual = imageUrl;
-                previewImg.src = imageUrl;
-                finalImage.src = imageUrl;
                 
-                // ASSEGURAR QUE LA IMATGE S'HA CARREGAT AL NAVEGADOR
+                // SETEAR onload PRIMER, ANTES de src
                 previewImg.onload = () => {
                     log('✅ Imatge carregada');
-                    // AHORA SÍ, iniciar el puzzle
                     iniciarPuzzle();
                 };
+                
+                previewImg.src = imageUrl;
+                finalImage.src = imageUrl;
             };
 
             img.onerror = () => {
