@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
     PUZZLE ART PWA
-    Version: 2.10
+    Version: 2.11
     
     Features:
     - Flickr integration (personal + random)
@@ -502,6 +502,11 @@
             }
         }
         
+        @keyframes imageHide {
+            0% { opacity: 1; transform: scale(1); }
+            100% { opacity: 0; transform: scale(0.9); }
+        }
+        
         .puzzle-piece.entrance-spin {
             animation: puzzleEntrance 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
         }
@@ -564,7 +569,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🧩 Puzzle <span id="version">v2.10</span></h1>
+            <h1>🧩 Puzzle <span id="version">v2.11</span></h1>
         </div>
 
         <!-- CONTROLS BAR -->
@@ -1022,9 +1027,12 @@
 
                 // MOSTRAR IMATGE SENCERA DURANT 2.5 SEGONS, DESPRÉS ANIMAR ENTRADA DEL PUZZLE
                 imagePreview.classList.remove('hide-animation', 'hidden');
-                imagePreview.offsetHeight;
-                log('✨ Veient la foto sencera...');
-
+                // Forçar el render abans de començar el compte enrere
+                requestAnimationFrame(() => {
+                    imagePreview.offsetHeight; // reflow forçat
+                    log('✨ Veient la foto sencera...');
+                });
+                
                 setTimeout(() => {
                     // Animar la desaparició de la imatge
                     imagePreview.classList.add('hide-animation');
@@ -1033,14 +1041,14 @@
                     if (isDifficultyMode) {
                         setTimeout(() => {
                             imagePreview.classList.add('hidden');
-                        }, 400); // Esperar a que acabi la animació (0.4s)
+                        }, 400);
                     }
                     
                     // Renderitzar el puzzle amb animació d'entrada
                     renderitzarPuzzle(true);
                     log('🧩 Arrossega les peces!');
-                }, 2500); // 2.5 segons per veure la foto completa
-            };
+                    }, 2500
+              );
 
             // CRIDAR DIRECTAMENT, perquè previewImg ja s'ha carregat al onload de carregarImagenAleatoria()
             processImage();
