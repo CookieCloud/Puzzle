@@ -3,10 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no, maximum-scale=1">
-    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Puzzle Art</title>
-
     <style>
         :root {
             --bg-primary: #ffffff;
@@ -21,7 +20,6 @@
             --gradient-2: #764ba2;
             --shadow: rgba(0, 0, 0, 0.2);
         }
-
         body.dark-mode {
             --bg-primary: #1e1e1e;
             --bg-secondary: #2d2d2d;
@@ -35,7 +33,6 @@
             --gradient-2: #3a3a5a;
             --shadow: rgba(0, 0, 0, 0.5);
         }
-
         * {
             margin: 0;
             padding: 0;
@@ -43,7 +40,6 @@
             -webkit-tap-highlight-color: transparent;
             -webkit-touch-callout: none;
         }
-
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: linear-gradient(135deg, var(--gradient-1) 0%, var(--gradient-2) 100%);
@@ -55,7 +51,6 @@
             -webkit-user-select: none;
             user-select: none;
         }
-
         .container {
             max-width: 600px;
             margin: 10px auto 0 auto;
@@ -65,7 +60,6 @@
             box-shadow: 0 10px 40px var(--shadow);
             transition: background 0.3s;
         }
-
         .header {
             display: flex;
             justify-content: space-between;
@@ -73,18 +67,15 @@
             margin-bottom: 12px;
             gap: 8px;
         }
-
         h1 {
             color: var(--btn-bg);
             font-size: clamp(1.2rem, 5vw, 1.8rem);
             flex: 1;
         }
-
         .header-buttons {
             display: flex;
             gap: 6px;
         }
-
         .theme-toggle, .difficulty-toggle {
             background: var(--bg-secondary);
             border: none;
@@ -100,11 +91,9 @@
             flex-shrink: 0;
             touch-action: manipulation;
         }
-
         .theme-toggle:active, .difficulty-toggle:active {
             background: var(--bg-tertiary);
         }
-
         .controls-bar {
             display: flex;
             gap: 6px;
@@ -112,7 +101,6 @@
             align-items: center;
             flex-wrap: wrap;
         }
-
         select {
             padding: clamp(6px, 2vw, 8px) clamp(6px, 2vw, 10px);
             border-radius: 6px;
@@ -123,12 +111,10 @@
             flex-shrink: 0;
             touch-action: manipulation;
         }
-
         select:focus {
             outline: none;
             border-color: var(--btn-bg);
         }
-
         .icon-btn {
             background: var(--bg-secondary);
             border: 2px solid var(--border-color);
@@ -145,71 +131,12 @@
             color: var(--text-primary);
             touch-action: manipulation;
         }
-
         .icon-btn:active {
             background: var(--btn-bg);
             color: white;
             border-color: var(--btn-bg);
             transform: scale(0.95);
         }
-
-        .file-input-wrapper {
-            position: relative;
-            overflow: hidden;
-            display: flex;
-        }
-
-        .file-input-wrapper input[type="file"] {
-            position: absolute;
-            opacity: 0;
-            cursor: pointer;
-            width: 100%;
-            height: 100%;
-        }
-
-        .url-input-wrapper {
-            display: flex;
-            gap: 4px;
-            flex: 1;
-            min-width: 150px;
-        }
-
-        input[type="text"] {
-            flex: 1;
-            padding: clamp(6px, 2vw, 8px);
-            border-radius: 6px;
-            border: 2px solid var(--border-color);
-            background: var(--bg-secondary);
-            color: var(--text-primary);
-            font-size: clamp(11px, 2.5vw, 12px);
-        }
-
-        input[type="text"]:focus {
-            outline: none;
-            border-color: var(--btn-bg);
-        }
-
-        .url-btn {
-            padding: clamp(6px, 2vw, 8px) clamp(8px, 2vw, 12px) !important;
-            width: auto !important;
-            margin-bottom: 0 !important;
-            background: var(--btn-bg);
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: clamp(11px, 2.5vw, 12px);
-            transition: background 0.2s;
-            flex-shrink: 0;
-            touch-action: manipulation;
-        }
-
-        .url-btn:active {
-            background: var(--btn-hover);
-            transform: scale(0.95);
-        }
-
         .puzzle-grid {
             display: grid;
             gap: 0;
@@ -221,7 +148,6 @@
             width: 100%;
             touch-action: none;
         }
-
         .puzzle-piece {
             background-size: cover;
             background-position: center;
@@ -231,26 +157,22 @@
             touch-action: none;
             position: relative;
         }
-
         .puzzle-piece.unfixed {
             margin: 2px;
             box-shadow: 0 2px 8px var(--shadow);
             border-radius: 2px;
         }
-
         .puzzle-piece.fixed {
             margin: 0;
             box-shadow: none;
             cursor: default;
             border-radius: 0;
         }
-
         .puzzle-piece:active:not(.fixed) {
             cursor: grabbing;
             opacity: 0.8;
             z-index: 100;
         }
-
         .image-preview {
             background: var(--bg-secondary);
             padding: clamp(10px, 2vw, 15px);
@@ -263,17 +185,14 @@
             justify-content: center;
             transition: all 0.3s;
         }
-
         .image-preview.hidden {
             display: none;
         }
-
         .image-preview img {
             max-width: 100%;
             max-height: 100%;
             border-radius: 6px;
         }
-
         .log {
             background: var(--bg-tertiary);
             padding: clamp(8px, 2vw, 10px);
@@ -283,7 +202,6 @@
             min-height: 1.5em;
             word-wrap: break-word;
         }
-
         .modal {
             position: fixed;
             top: 0;
@@ -297,11 +215,9 @@
             z-index: 2000;
             backdrop-filter: blur(4px);
         }
-
         .modal.active {
             display: flex;
         }
-
         .modal-content {
             background: var(--bg-primary);
             padding: clamp(20px, 5vw, 30px);
@@ -313,20 +229,17 @@
             max-height: 80vh;
             overflow-y: auto;
         }
-
         .modal-content h2 {
             color: var(--btn-bg);
             margin-bottom: 12px;
             font-size: clamp(1.3rem, 4vw, 1.5rem);
         }
-
         .modal-content p {
             color: var(--text-secondary);
             font-size: clamp(12px, 2.5vw, 13px);
             margin-bottom: 12px;
             line-height: 1.5;
         }
-
         .modal-input {
             width: 100%;
             padding: clamp(10px, 2vw, 12px);
@@ -337,46 +250,15 @@
             color: var(--text-primary);
             font-size: clamp(12px, 2.5vw, 14px);
         }
-
         .modal-input:focus {
             outline: none;
             border-color: var(--btn-bg);
         }
-
-        .folder-list {
-            background: var(--bg-secondary);
-            border: 2px solid var(--border-color);
-            border-radius: 8px;
-            padding: 10px;
-            margin-bottom: 15px;
-            max-height: 300px;
-            overflow-y: auto;
-        }
-
-        .folder-item {
-            padding: 10px;
-            background: var(--bg-tertiary);
-            border-radius: 6px;
-            margin-bottom: 8px;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-
-        .folder-item:hover {
-            background: var(--border-color);
-        }
-
-        .folder-item.selected {
-            background: var(--btn-bg);
-            color: white;
-        }
-
         .modal-buttons {
             display: flex;
             gap: 8px;
             margin-top: 15px;
         }
-
         .modal-btn {
             flex: 1;
             padding: clamp(10px, 2vw, 12px);
@@ -388,25 +270,20 @@
             font-size: clamp(12px, 2.5vw, 14px);
             touch-action: manipulation;
         }
-
         .modal-btn.save {
             background: var(--btn-bg);
             color: white;
         }
-
         .modal-btn.save:active {
             background: var(--btn-hover);
         }
-
         .modal-btn.cancel {
             background: var(--bg-tertiary);
             color: var(--text-primary);
         }
-
         .modal-btn.cancel:active {
             background: var(--border-color);
         }
-
         .victory-overlay {
             position: fixed;
             top: 0;
@@ -420,11 +297,9 @@
             z-index: 1000;
             backdrop-filter: blur(4px);
         }
-
         .victory-overlay.active {
             display: flex;
         }
-
         .victory-popup {
             background: var(--bg-primary);
             padding: clamp(20px, 5vw, 40px);
@@ -436,19 +311,16 @@
             max-height: 95vh;
             overflow-y: auto;
         }
-
         .victory-popup h2 {
             font-size: clamp(1.8rem, 6vw, 2.5rem);
             color: var(--btn-bg);
             margin-bottom: 10px;
         }
-
         .victory-popup p {
             font-size: clamp(0.9rem, 3vw, 1.1rem);
             color: var(--text-primary);
             margin-bottom: 15px;
         }
-
         .victory-popup .final-puzzle {
             margin: 15px 0;
             border-radius: 12px;
@@ -458,7 +330,6 @@
             max-height: 50vh;
             box-shadow: 0 4px 15px var(--shadow);
         }
-
         .victory-popup button {
             display: inline-block;
             width: auto;
@@ -474,12 +345,10 @@
             margin-top: 15px;
             touch-action: manipulation;
         }
-
         .victory-popup button:active {
             background: var(--btn-hover);
             transform: scale(0.98);
         }
-
         @keyframes popIn {
             0% {
                 transform: scale(0.8);
@@ -490,40 +359,28 @@
                 opacity: 1;
             }
         }
-
         @media (max-width: 600px) {
             body {
                 padding: 8px;
             }
-
             .container {
                 padding: 10px;
                 border-radius: 10px;
             }
-
             .controls-bar {
                 gap: 4px;
             }
-
             .puzzle-grid {
                 padding: 2px;
             }
-
             .puzzle-piece.unfixed {
                 margin: 1px;
             }
         }
-
         @media (max-height: 700px) {
             .image-preview {
                 min-height: 80px;
             }
-        }
-
-        #googleLoginDiv {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 15px;
         }
     </style>
 </head>
@@ -546,22 +403,9 @@
                 <option value="5">5×5</option>
             </select>
 
-            <button class="icon-btn" id="flickrMyBtn" title="Flickr">🖼️</button>
-            <button class="icon-btn" id="flickrRandomBtn" title="Flickr (Global)">🌍</button>
+            <button class="icon-btn" id="flickrMyBtn" title="Flickr (meu)">🖼️</button>
+            <button class="icon-btn" id="flickrRandomBtn" title="Flickr (aleatori)">🌍</button>
             <button class="icon-btn" id="picsumBtn" title="Imatge aleatòria">🎨</button>
-            <!-- 
-            <button class="icon-btn" id="googleDriveBtn" title="Google Drive">☁️</button> 
-
-            <div class="file-input-wrapper">
-                <input type="file" id="fileUpload" accept="image/*" title="Puja fitxer">
-                <button class="icon-btn" title="Puja fitxer">📁</button>
-            </div>
-
-            <div class="url-input-wrapper">
-                <input type="text" id="customUrl" placeholder="URL..." title="Enganxa URL">
-                <button class="url-btn" id="loadCustomBtn" title="Carregar URL">🔗</button>
-            </div>
-            -->
             <button class="icon-btn" id="refreshBtn" title="Nova foto">🔄</button>
         </div>
 
@@ -591,32 +435,10 @@
         </div>
     </div>
 
-    <!-- GOOGLE DRIVE MODAL -->
-    <div id="googleDriveModal" class="modal">
-        <div class="modal-content">
-            <h2>☁️ Google Drive</h2>
-            <p>Comparteix una carpeta pública i enganxa l'ID.</p>
-            
-            <p style="font-size: 12px; background: var(--bg-secondary); padding: 10px; border-radius: 6px; margin-bottom: 15px; line-height: 1.6;">
-                <strong>Com:</strong><br>
-                1. Crea/comparteix carpeta pública a Google Drive<br>
-                2. Obri URL de la carpeta<br>
-                3. Copia l'ID del URL: <code style="font-size: 11px;">drive.google.com/drive/folders/<strong>AQUÍ_ANAVA_L_ID</strong></code>
-            </p>
-
-            <input type="text" class="modal-input" id="folderId" placeholder="Enganxa l'ID de la carpeta...">
-
-            <div class="modal-buttons">
-                <button class="modal-btn cancel" id="cancelGoogleDriveBtn">Cancelar</button>
-                <button class="modal-btn save" id="saveGoogleDriveBtn">Guardar</button>
-            </div>
-        </div>
-    </div>
-
     <!-- VICTORY POPUP -->
     <div id="victoryOverlay" class="victory-overlay">
         <div class="victory-popup">
-            <h2>🎉 ¡VISCA !</h2>
+            <h2>🎉 ¡VISCA!</h2>
             <p>Has completat el puzzle!</p>
             <img id="finalImage" class="final-puzzle" src="" alt="Puzzle completat">
             <br>
@@ -624,16 +446,11 @@
         </div>
     </div>
 
-
     <script>
         const divisionsSelect = document.getElementById('divisionsSelect');
         const flickrMyBtn = document.getElementById('flickrMyBtn');
         const flickrRandomBtn = document.getElementById('flickrRandomBtn');
-        const googleDriveBtn = document.getElementById('googleDriveBtn');
         const picsumBtn = document.getElementById('picsumBtn');
-        const fileUpload = document.getElementById('fileUpload');
-        const customUrl = document.getElementById('customUrl');
-        const loadCustomBtn = document.getElementById('loadCustomBtn');
         const refreshBtn = document.getElementById('refreshBtn');
         const puzzleContainer = document.getElementById('puzzleContainer');
         const previewImg = document.getElementById('previewImg');
@@ -649,14 +466,6 @@
         const userIdInput = document.getElementById('userIdInput');
         const saveFlickrBtn = document.getElementById('saveFlickrBtn');
         const cancelFlickrBtn = document.getElementById('cancelFlickrBtn');
-        const googleDriveModal = document.getElementById('googleDriveModal');
-        const googleLoginDiv = document.getElementById('googleLoginDiv');
-        const folderList = document.getElementById('folderList');
-        const folderListContainer = document.getElementById('folderListContainer');
-        const folderId = document.getElementById('folderId');
-        const folderIdNote = document.getElementById('folderIdNote');
-        const saveGoogleDriveBtn = document.getElementById('saveGoogleDriveBtn');
-        const cancelGoogleDriveBtn = document.getElementById('cancelGoogleDriveBtn');
 
         let imagenActual = null;
         let divisions = 4;
@@ -666,10 +475,6 @@
         let lastSource = 'picsum';
         let isDifficultyMode = false;
         let isMobile = window.innerWidth <= 768;
-        let selectedFolderId = null;
-        let googleAuthToken = null;
-
-        const CLIENT_ID = '841929892793-55hjgk6b07brsruknv6dlenaehve0673.apps.googleusercontent.com';
 
         // DETECT MOBILE
         window.addEventListener('resize', () => {
@@ -703,220 +508,6 @@
                 imagePreview.classList.remove('hidden');
             }
         });
-
-        // GOOGLE LOGIN
-        googleDriveBtn.addEventListener('click', () => {
-            const savedFolderId = localStorage.getItem('googleDriveFolderId');
-            if (savedFolderId) {
-                lastSource = 'google-drive';
-                carregarFotoGoogleDrive();
-            } else {
-                googleDriveModal.classList.add('active');
-                initGoogleSignIn();
-            }
-        });
-
-        function initGoogleSignIn() {
-            google.accounts.id.initialize({
-                client_id: CLIENT_ID
-            });
-
-            google.accounts.id.renderButton(googleLoginDiv, {
-                theme: 'outline',
-                size: 'large',
-                width: '100%'
-            });
-
-            google.accounts.id.promptAsync((notification) => {
-                if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-                    handleSignIn();
-                }
-            });
-        }
-
-        function handleSignIn() {
-            gapi.load('client:auth2', () => {
-                gapi.auth2.init({
-                    client_id: CLIENT_ID,
-                    scope: 'https://www.googleapis.com/auth/drive.readonly'
-                }).then(() => {
-                    const auth2 = gapi.auth2.getAuthInstance();
-                    if (auth2.isSignedIn.get()) {
-                        const profile = auth2.currentUser.get();
-                        googleAuthToken = profile.getAuthResponse().id_token;
-                        log('✅ Autenticat amb Google');
-                        carregarCarpetesGoogle();
-                    }
-                });
-            });
-        }
-
-        function carregarCarpetesGoogle() {
-            const auth2 = gapi.auth2.getAuthInstance();
-            if (!auth2 || !auth2.isSignedIn.get()) {
-                log('❌ No autenticat');
-                return;
-            }
-
-            folderList.innerHTML = '<p style="padding: 10px;">Carregant carpetes...</p>';
-            folderListContainer.style.display = 'block';
-            folderId.style.display = 'none';
-            folderIdNote.style.display = 'none';
-
-            const token = auth2.currentUser.get().getAuthResponse().access_token;
-
-            fetch(`https://www.googleapis.com/drive/v3/files?q=mimeType='application/vnd.google-apps.folder' and trashed=false&fields=files(id,name)&pageSize=50`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            })
-                
-            .then(res => {
-                if (!res.ok) {
-                    folderList.innerHTML = '<p style="padding: 10px; color: red;">Error. Enganxa l\'ID manualment.</p>';
-                    folderId.style.display = 'block';
-                    folderIdNote.style.display = 'block';
-                    return null;
-                }
-                return res.json();
-            })
-            .then(data => {
-                if (!data || !data.files || data.files.length === 0) {
-                    folderList.innerHTML = '<p style="padding: 10px;">Cap carpeta trobada. Enganxa l\'ID manualment.</p>';
-                    folderId.style.display = 'block';
-                    folderIdNote.style.display = 'block';
-                    return;
-                }
-
-                folderList.innerHTML = '';
-                data.files.forEach(folder => {
-                    const div = document.createElement('div');
-                    div.className = 'folder-item';
-                    div.textContent = folder.name;
-                    div.addEventListener('click', () => {
-                        document.querySelectorAll('.folder-item').forEach(el => el.classList.remove('selected'));
-                        div.classList.add('selected');
-                        selectedFolderId = folder.id;
-                    });
-                    folderList.appendChild(div);
-                });
-
-                folderId.style.display = 'block';
-                folderIdNote.style.display = 'block';
-                saveGoogleDriveBtn.style.display = 'block';
-            })
-            .catch(err => {
-                log('❌ Error: ' + err.message);
-            });
-        }
-
-        saveGoogleDriveBtn.addEventListener('click', () => {
-            const customId = folderId.value.trim();
-            const id = selectedFolderId || customId;
-
-            if (!id) {
-                log('❌ Selecciona carpeta o enganxa ID');
-                return;
-            }
-
-            localStorage.setItem('googleDriveFolderId', id);
-            folderId.value = '';
-            selectedFolderId = null;
-            googleDriveModal.classList.remove('active');
-            
-            lastSource = 'google-drive';
-            carregarFotoGoogleDrive();
-        });
-
-        cancelGoogleDriveBtn.addEventListener('click', () => {
-            googleDriveModal.classList.remove('active');
-            folderId.value = '';
-            selectedFolderId = null;
-        });
-
-        // GOOGLE DRIVE - SIMPLE (sense autenticació)
-        googleDriveBtn.addEventListener('click', () => {
-            const savedFolderId = localStorage.getItem('googleDriveFolderId');
-            if (savedFolderId) {
-                lastSource = 'google-drive';
-                carregarFotoGoogleDrive();
-            } else {
-                googleDriveModal.classList.add('active');
-                folderId.focus();
-            }
-        });
-
-        saveGoogleDriveBtn.addEventListener('click', () => {
-            const id = folderId.value.trim();
-
-            if (!id) {
-                log('❌ Enganxa un ID de carpeta vàlid');
-                return;
-            }
-
-            // Validar format ID (simple)
-            if (id.length < 20) {
-                log('❌ L\'ID sembla massa curt');
-                return;
-            }
-
-            localStorage.setItem('googleDriveFolderId', id);
-            folderId.value = '';
-            googleDriveModal.classList.remove('active');
-            
-            lastSource = 'google-drive';
-            carregarFotoGoogleDrive();
-        });
-
-        cancelGoogleDriveBtn.addEventListener('click', () => {
-            googleDriveModal.classList.remove('active');
-            folderId.value = '';
-        });
-
-        function carregarFotoGoogleDrive() {
-            const folderId = localStorage.getItem('googleDriveFolderId');
-            
-            if (!folderId) {
-                log('❌ Configura Google Drive primer');
-                return;
-            }
-
-            log('🔄 Carregant fotos de Google Drive...');
-
-            const query = encodeURIComponent(`'${folderId}' in parents and (mimeType='image/jpeg' or mimeType='image/png' or mimeType='image/gif' or mimeType='image/webp') and trashed=false`);
-            
-            fetch(`https://www.googleapis.com/drive/v3/files?q=${query}&fields=files(id,name)&pageSize=50&key=AIzaSyAfAatMQmXQBiXBox4jpvIZUbpcaInR3ZQ`)
-                .then(res => res.json())
-                .then(data => {
-                    if (!data.files || data.files.length === 0) {
-                        log('❌ Cap imatge a la carpeta. Verifica l\'ID i que sigui pública.');
-                        return;
-                    }
-
-                    const imagen = data.files[Math.floor(Math.random() * data.files.length)];
-                    
-                    // Usar proxy CORS per evitar bloqueig
-                    const driveUrl = `https://drive.google.com/uc?id=${imagen.id}&export=download`;
-                    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(driveUrl)}`;
-
-                    const img = new Image();
-                    img.crossOrigin = 'anonymous';
-                    img.onload = () => {
-                        imagenActual = proxyUrl;
-                        previewImg.src = proxyUrl;
-                        finalImage.src = proxyUrl;
-                        iniciarPuzzle();
-                        log('✅ Foto de Google Drive carregada');
-                    };
-                    img.onerror = () => {
-                        log('❌ Error al carregar. Prova manual: enganxa URL de la foto a "URL..."');
-                    };
-                    img.src = proxyUrl;
-                })
-                .catch(err => {
-                    log('❌ Error: ' + err.message);
-                });
-        }
 
         // FLICKR MY
         flickrMyBtn.addEventListener('click', () => {
@@ -978,7 +569,6 @@
             }
 
             log('🔄 Obtenint TOTES les fotos teves...');
-
             obtenerTodasLasFotos(userId, apiKey, 'flickr-my');
         }
 
@@ -991,7 +581,6 @@
             }
 
             log('🔄 Obtenint TOTES les fotos interessants...');
-
             obtenerTodasLasFotosRandom(apiKey, 'flickr-random');
         }
 
@@ -1018,7 +607,6 @@
                         todasLasFotos = todasLasFotos.concat(data.photos.photo);
                         page++;
 
-                        // Si ja tenim més de 1000, parem (per no sobrecarregar)
                         if (todasLasFotos.length > 1000) {
                             hasMore = false;
                         }
@@ -1032,10 +620,8 @@
                     return;
                 }
 
-                // Random de TOTES
                 const fotoAleatoria = todasLasFotos[Math.floor(Math.random() * todasLasFotos.length)];
                 const imageUrl = `https://live.staticflickr.com/${fotoAleatoria.server}/${fotoAleatoria.id}_${fotoAleatoria.secret}_b.jpg`;
-
                 cargarImagenDesdeUrl(imageUrl, source);
             } catch (err) {
                 log('❌ Error: ' + err.message);
@@ -1065,7 +651,6 @@
                         todasLasFotos = todasLasFotos.concat(data.photos.photo);
                         page++;
 
-                        // Si ja tenim més de 1000, parem
                         if (todasLasFotos.length > 1000) {
                             hasMore = false;
                         }
@@ -1079,10 +664,8 @@
                     return;
                 }
 
-                // Random de TOTES
                 const fotoAleatoria = todasLasFotos[Math.floor(Math.random() * todasLasFotos.length)];
                 const imageUrl = `https://live.staticflickr.com/${fotoAleatoria.server}/${fotoAleatoria.id}_${fotoAleatoria.secret}_b.jpg`;
-
                 cargarImagenDesdeUrl(imageUrl, source);
             } catch (err) {
                 log('❌ Error: ' + err.message);
@@ -1097,7 +680,7 @@
                 previewImg.src = imageUrl;
                 finalImage.src = imageUrl;
                 iniciarPuzzle();
-                log('✅ Foto carregada (de ' + (source === 'flickr-my' ? 'les teves' : 'interessants') + ')');
+                log('✅ Foto carregada');
             };
             img.onerror = () => {
                 log('❌ Error al carregar la foto');
@@ -1105,105 +688,10 @@
             img.src = imageUrl;
         }
 
-
-        function carregarFlickrRandom() {
-            const apiKey = localStorage.getItem('flickrApiKey');
-
-            if (!apiKey) {
-                log('❌ Necessites API Key');
-                return;
-            }
-
-            log('🔄 Carregant foto aleatòria...');
-
-            // Carrega 100 fotos interesants de pàgina aleatòria
-            const randomPage = Math.floor(Math.random() * 5) + 1;
-            const url = `https://www.flickr.com/services/rest/?method=flickr.interestingness.getList&api_key=${apiKey}&format=json&nojsoncallback=1&per_page=100&page=${randomPage}`;
-
-            fetch(url)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.stat === 'fail') {
-                        log('❌ Error: ' + data.message);
-                        return;
-                    }
-
-                    if (!data.photos || data.photos.photo.length === 0) {
-                        log('❌ No hi ha fotos disponibles');
-                        return;
-                    }
-
-                    const fotos = data.photos.photo;
-                    // Random de les 100 fotos carregades
-                    const fotoAleatoria = fotos[Math.floor(Math.random() * fotos.length)];
-                    
-                    const imageUrl = `https://live.staticflickr.com/${fotoAleatoria.server}/${fotoAleatoria.id}_${fotoAleatoria.secret}_b.jpg`;
-
-                    const img = new Image();
-                    img.crossOrigin = 'anonymous';
-                    img.onload = () => {
-                        imagenActual = imageUrl;
-                        previewImg.src = imageUrl;
-                        finalImage.src = imageUrl;
-                        iniciarPuzzle();
-                        log('✅ Foto aleatòria carregada (random)');
-                    };
-                    img.onerror = () => {
-                        log('❌ Error al carregar la foto');
-                    };
-                    img.src = imageUrl;
-                })
-                .catch(error => {
-                    log('❌ Error de conexió');
-                });
-        }
-
-
         // PICSUM
         picsumBtn.addEventListener('click', () => {
             lastSource = 'picsum';
             carregarImagenAleatoria();
-        });
-
-        // FILE UPLOAD
-        fileUpload.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    imagenActual = event.target.result;
-                    previewImg.src = imagenActual;
-                    finalImage.src = imagenActual;
-                    lastSource = 'file';
-                    iniciarPuzzle();
-                    log('✅ Foto pujada');
-                };
-                reader.readAsDataURL(file);
-            }
-        });
-
-        // CUSTOM URL
-        loadCustomBtn.addEventListener('click', () => {
-            const url = customUrl.value.trim();
-            if (!url) {
-                log('❌ Enganxa una URL vàlida');
-                return;
-            }
-            
-            const img = new Image();
-            img.crossOrigin = 'anonymous';
-            img.onload = () => {
-                imagenActual = url;
-                previewImg.src = url;
-                finalImage.src = url;
-                lastSource = 'url';
-                iniciarPuzzle();
-                log('✅ URL carregada');
-            };
-            img.onerror = () => {
-                log('❌ Error. Verifica que la URL sigui vàlida');
-            };
-            img.src = url;
         });
 
         // REFRESH
@@ -1214,12 +702,6 @@
                 carregarFlickrMy();
             } else if (lastSource === 'flickr-random') {
                 carregarFlickrRandom();
-            } else if (lastSource === 'google-drive') {
-                carregarFotoGoogleDrive();
-            } else if (lastSource === 'file') {
-                log('❌ Selecciona un fitxer');
-            } else if (lastSource === 'url') {
-                loadCustomBtn.click();
             }
         }
 
@@ -1337,14 +819,12 @@
                 piece.dataset.posicio = i;
 
                 if (!fixat[i]) {
-                    // DESKTOP DRAG
                     piece.draggable = true;
                     piece.addEventListener('dragstart', handleDragStart);
                     piece.addEventListener('dragover', handleDragOver);
                     piece.addEventListener('drop', handleDrop);
                     piece.addEventListener('dragend', handleDragEnd);
 
-                    // MOBILE TOUCH
                     piece.addEventListener('touchstart', handleTouchStart);
                     piece.addEventListener('touchmove', handleTouchMove);
                     piece.addEventListener('touchend', handleTouchEnd);
@@ -1354,7 +834,6 @@
             }
         }
 
-        // DESKTOP DRAG AND DROP
         let origenIndex = null;
 
         function handleDragStart(e) {
@@ -1391,7 +870,6 @@
             e.target.style.opacity = '1';
         }
 
-        // MOBILE TOUCH
         let touchPiece = null;
         let floatingClone = null;
 
@@ -1460,7 +938,7 @@
         function comprovarVictoria() {
             const totsFixats = fixat.every(v => v === true);
             if (totsFixats) {
-                log('🎉 ¡VISCA !');
+                log('🎉 ¡VISCA!');
                 victoryOverlay.classList.add('active');
             } else {
                 const correctes = fixat.filter(v => v).length;
