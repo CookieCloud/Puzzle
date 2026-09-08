@@ -976,46 +976,134 @@
                 return;
             }
 
-            log('🔄 Carregant fotos teves...');
+            log('🔄 Obtenint TOTES les fotos teves...');
 
-            const url = `https://www.flickr.com/services/rest/?method=flickr.people.getPublicPhotos&user_id=${userId}&api_key=${apiKey}&format=json&nojsoncallback=1&per_page=30`;
+            obtenerTodasLasFotos(userId, apiKey, 'flickr-my');
+        }
 
-            fetch(url)
-                .then(response => response.json())
-                .then(data => {
+        function carregarFlickrRandom() {
+            const apiKey = localStorage.getItem('flickrApiKey');
+
+            if (!apiKey) {
+                log('❌ Necessites API Key');
+                return;
+            }
+
+            log('🔄 Obtenint TOTES les fotos interessants...');
+
+            obtenerTodasLasFotosRandom(apiKey, 'flickr-random');
+        }
+
+        async function obtenerTodasLasFotos(userId, apiKey, source) {
+            try {
+                let todasLasFotos = [];
+                let page = 1;
+                let hasMore = true;
+
+                while (hasMore) {
+                    const url = `https://www.flickr.com/services/rest/?method=flickr.people.getPublicPhotos&user_id=${userId}&api_key=${apiKey}&format=json&nojsoncallback=1&per_page=500&page=${page}`;
+                    
+                    const response = await fetch(url);
+                    const data = await response.json();
+
                     if (data.stat === 'fail') {
                         log('❌ Error: ' + data.message);
                         return;
                     }
 
                     if (!data.photos || data.photos.photo.length === 0) {
-                        log('❌ No hi ha fotos públiques');
+                        hasMore = false;
+                    } else {
+                        todasLasFotos = todasLasFotos.concat(data.photos.photo);
+                        page++;
+
+                        // Si ja tenim més de 1000, parem (per no sobrecarregar)
+                        if (todasLasFotos.length > 1000) {
+                            hasMore = false;
+                        }
+                    }
+                }
+
+                log(`✅ Trobades ${todasLasFotos.length} fotos`);
+
+                if (todasLasFotos.length === 0) {
+                    log('❌ Cap foto disponible');
+                    return;
+                }
+
+                // Random de TOTES
+                const fotoAleatoria = todasLasFotos[Math.floor(Math.random() * todasLasFotos.length)];
+                const imageUrl = `https://live.staticflickr.com/${fotoAleatoria.server}/${fotoAleatoria.id}_${fotoAleatoria.secret}_b.jpg`;
+
+                cargarImagenDesdeUrl(imageUrl, source);
+            } catch (err) {
+                log('❌ Error: ' + err.message);
+            }
+        }
+
+        async function obtenerTodasLasFotosRandom(apiKey, source) {
+            try {
+                let todasLasFotos = [];
+                let page = 1;
+                let hasMore = true;
+
+                while (hasMore) {
+                    const url = `https://www.flickr.com/services/rest/?method=flickr.interestingness.getList&api_key=${apiKey}&format=json&nojsoncallback=1&per_page=500&page=${page}`;
+                    
+                    const response = await fetch(url);
+                    const data = await response.json();
+
+                    if (data.stat === 'fail') {
+                        log('❌ Error: ' + data.message);
                         return;
                     }
 
-                    const fotos = data.photos.photo;
-                    const fotoAleatoria = fotos[Math.floor(Math.random() * fotos.length)];
-                    
-                    const imageUrl = `https://live.staticflickr.com/${fotoAleatoria.server}/${fotoAleatoria.id}_${fotoAleatoria.secret}_b.jpg`;
+                    if (!data.photos || data.photos.photo.length === 0) {
+                        hasMore = false;
+                    } else {
+                        todasLasFotos = todasLasFotos.concat(data.photos.photo);
+                        page++;
 
-                    const img = new Image();
-                    img.crossOrigin = 'anonymous';
-                    img.onload = () => {
-                        imagenActual = imageUrl;
-                        previewImg.src = imageUrl;
-                        finalImage.src = imageUrl;
-                        iniciarPuzzle();
-                        log('✅ Foto teva carregada');
-                    };
-                    img.onerror = () => {
-                        log('❌ Error al carregar la foto');
-                    };
-                    img.src = imageUrl;
-                })
-                .catch(error => {
-                    log('❌ Error de conexió');
-                });
+                        // Si ja tenim més de 1000, parem
+                        if (todasLasFotos.length > 1000) {
+                            hasMore = false;
+                        }
+                    }
+                }
+
+                log(`✅ Trobades ${todasLasFotos.length} fotos`);
+
+                if (todasLasFotos.length === 0) {
+                    log('❌ Cap foto disponible');
+                    return;
+                }
+
+                // Random de TOTES
+                const fotoAleatoria = todasLasFotos[Math.floor(Math.random() * todasLasFotos.length)];
+                const imageUrl = `https://live.staticflickr.com/${fotoAleatoria.server}/${fotoAleatoria.id}_${fotoAleatoria.secret}_b.jpg`;
+
+                cargarImagenDesdeUrl(imageUrl, source);
+            } catch (err) {
+                log('❌ Error: ' + err.message);
+            }
         }
+
+        function cargarImagenDesdeUrl(imageUrl, source) {
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = () => {
+                imagenActual = imageUrl;
+                previewImg.src = imageUrl;
+                finalImage.src = imageUrl;
+                iniciarPuzzle();
+                log('✅ Foto carregada (de ' + (source === 'flickr-my' ? 'les teves' : 'interessants') + ')');
+            };
+            img.onerror = () => {
+                log('❌ Error al carregar la foto');
+            };
+            img.src = imageUrl;
+        }
+
 
         function carregarFlickrRandom() {
             const apiKey = localStorage.getItem('flickrApiKey');
@@ -1027,7 +1115,9 @@
 
             log('🔄 Carregant foto aleatòria...');
 
-            const url = `https://www.flickr.com/services/rest/?method=flickr.interestingness.getList&api_key=${apiKey}&format=json&nojsoncallback=1&per_page=50&page=${Math.floor(Math.random() * 10) + 1}`;
+            // Carrega 100 fotos interesants de pàgina aleatòria
+            const randomPage = Math.floor(Math.random() * 5) + 1;
+            const url = `https://www.flickr.com/services/rest/?method=flickr.interestingness.getList&api_key=${apiKey}&format=json&nojsoncallback=1&per_page=100&page=${randomPage}`;
 
             fetch(url)
                 .then(response => response.json())
@@ -1043,6 +1133,7 @@
                     }
 
                     const fotos = data.photos.photo;
+                    // Random de les 100 fotos carregades
                     const fotoAleatoria = fotos[Math.floor(Math.random() * fotos.length)];
                     
                     const imageUrl = `https://live.staticflickr.com/${fotoAleatoria.server}/${fotoAleatoria.id}_${fotoAleatoria.secret}_b.jpg`;
@@ -1054,7 +1145,7 @@
                         previewImg.src = imageUrl;
                         finalImage.src = imageUrl;
                         iniciarPuzzle();
-                        log('✅ Foto aleatòria carregada');
+                        log('✅ Foto aleatòria carregada (random)');
                     };
                     img.onerror = () => {
                         log('❌ Error al carregar la foto');
@@ -1065,6 +1156,7 @@
                     log('❌ Error de conexió');
                 });
         }
+
 
         // PICSUM
         picsumBtn.addEventListener('click', () => {
