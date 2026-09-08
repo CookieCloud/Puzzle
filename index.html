@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
     PUZZLE ART PWA
-    Version: 2.08
+    Version: 2.09
     
     Features:
     - Flickr integration (personal + random)
@@ -564,7 +564,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🧩 Puzzle <span id="version">v2.08</span></h1>
+            <h1>🧩 Puzzle <span id="version">v2.09</span></h1>
         </div>
 
         <!-- CONTROLS BAR -->
@@ -1041,13 +1041,8 @@
                 }, 2500); // 2.5 segons per veure la foto completa
             };
 
-            // Si previewImg ja s'ha carregat, processar immediatament
-            if (previewImg.complete) {
-                processImage();
-            } else {
-                // Si no, esperar el onload
-                previewImg.onload = processImage;
-            }
+            // CRIDAR DIRECTAMENT, perquè previewImg ja s'ha carregat al onload de carregarImagenAleatoria()
+            processImage();
         }
 
         function renderitzarPuzzle(animate = false) {
