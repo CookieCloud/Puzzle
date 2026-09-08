@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no, maximum-scale=1">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Puzzle</title>
+    <title>Puzzle Art</title>
     <style>
         :root {
             --bg-primary: #ffffff;
@@ -359,6 +359,163 @@
                 opacity: 1;
             }
         }
+        @keyframes puzzleEntrance {
+            0% {
+                transform: scale(0) rotate(-180deg);
+                opacity: 0;
+            }
+            50% {
+                transform: scale(1.1) rotate(0deg);
+            }
+            100% {
+                transform: scale(1) rotate(0deg);
+                opacity: 1;
+            }
+        }
+        @keyframes puzzleFall {
+            0% {
+                transform: translateY(-80px) rotate(360deg);
+                opacity: 0;
+            }
+            100% {
+                transform: translateY(0) rotate(0deg);
+                opacity: 1;
+            }
+        }
+        @keyframes puzzleExplosion {
+            0% {
+                transform: scale(0.3) rotate(-180deg);
+                opacity: 0;
+                filter: blur(4px);
+            }
+            60% {
+                transform: scale(1.2);
+            }
+            100% {
+                transform: scale(1) rotate(0deg);
+                opacity: 1;
+                filter: blur(0px);
+            }
+        }
+        @keyframes puzzleFlip {
+            0% {
+                transform: rotateX(90deg) scale(0.5);
+                opacity: 0;
+            }
+            100% {
+                transform: rotateX(0deg) scale(1);
+                opacity: 1;
+            }
+        }
+        @keyframes puzzleSlideIn {
+            0% {
+                transform: translateX(-100px) rotate(-90deg);
+                opacity: 0;
+            }
+            100% {
+                transform: translateX(0) rotate(0deg);
+                opacity: 1;
+            }
+        }
+        @keyframes puzzleSlideInRight {
+            0% {
+                transform: translateX(100px) rotate(90deg);
+                opacity: 0;
+            }
+            100% {
+                transform: translateX(0) rotate(0deg);
+                opacity: 1;
+            }
+        }
+        @keyframes puzzleBounce {
+            0% {
+                transform: scale(0) translateY(-50px);
+                opacity: 0;
+            }
+            50% {
+                transform: scale(1.15);
+            }
+            70% {
+                transform: scale(0.95);
+            }
+            100% {
+                transform: scale(1) translateY(0);
+                opacity: 1;
+            }
+        }
+        @keyframes puzzleWave {
+            0% {
+                transform: translateY(40px) skewY(-5deg);
+                opacity: 0;
+            }
+            100% {
+                transform: translateY(0) skewY(0deg);
+                opacity: 1;
+            }
+        }
+        @keyframes puzzleZoomIn {
+            0% {
+                transform: scale(0) translateZ(0);
+                opacity: 0;
+            }
+            70% {
+                transform: scale(1.1);
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+        @keyframes puzzleGhost {
+            0% {
+                transform: translateY(-30px) rotate(180deg) scale(0.3);
+                opacity: 0;
+                filter: blur(8px) brightness(0.5);
+            }
+            50% {
+                filter: blur(4px) brightness(0.8);
+            }
+            100% {
+                transform: translateY(0) rotate(0deg) scale(1);
+                opacity: 1;
+                filter: blur(0px) brightness(1);
+            }
+        }
+        
+        .puzzle-piece.entrance-spin {
+            animation: puzzleEntrance 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+        }
+        .puzzle-piece.entrance-fall {
+            animation: puzzleFall 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+        .puzzle-piece.entrance-explosion {
+            animation: puzzleExplosion 0.8s cubic-bezier(0.36, 0, 0.66, -0.56) forwards;
+        }
+        .puzzle-piece.entrance-flip {
+            animation: puzzleFlip 0.6s ease-out forwards;
+        }
+        .puzzle-piece.entrance-slide {
+            animation: puzzleSlideIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+        }
+        .puzzle-piece.entrance-slide-right {
+            animation: puzzleSlideInRight 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+        }
+        .puzzle-piece.entrance-bounce {
+            animation: puzzleBounce 0.7s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+        }
+        .puzzle-piece.entrance-wave {
+            animation: puzzleWave 0.6s ease-out forwards;
+        }
+        .puzzle-piece.entrance-zoom {
+            animation: puzzleZoomIn 0.6s cubic-bezier(0.43, 0.13, 0.23, 0.96) forwards;
+        }
+        .puzzle-piece.entrance-ghost {
+            animation: puzzleGhost 0.8s ease-out forwards;
+        }
+        
+        .image-preview.hide-animation {
+            animation: imageHide 0.4s ease-out forwards;
+        }
         @media (max-width: 600px) {
             body {
                 padding: 8px;
@@ -387,7 +544,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🧩 Puzzle</h1> <h2></h2><h3>2.02 </h3>
+            <h1>🧩 Puzzle</h1> <h4>2.03</h4> 
             <div class="header-buttons">
                 <button class="difficulty-toggle" id="difficultyToggle" title="Mode fàcil/difícil">🔴</button>
                 <button class="theme-toggle" id="themeToggle" title="Canviar mode fosc">🌙</button>
@@ -406,6 +563,7 @@
             <button class="icon-btn" id="flickrMyBtn" title="Flickr (meu)">🖼️</button>
             <button class="icon-btn" id="flickrRandomBtn" title="Flickr (aleatori)">🌍</button>
             <button class="icon-btn" id="picsumBtn" title="Imatge aleatòria">🎨</button>
+            <button class="icon-btn" id="animationsToggle" title="Activar/desactivar animacions">✨</button>
             <button class="icon-btn" id="refreshBtn" title="Nova foto">🔄</button>
         </div>
 
@@ -452,6 +610,7 @@
         const flickrRandomBtn = document.getElementById('flickrRandomBtn');
         const picsumBtn = document.getElementById('picsumBtn');
         const refreshBtn = document.getElementById('refreshBtn');
+        const animationsToggle = document.getElementById('animationsToggle');
         const puzzleContainer = document.getElementById('puzzleContainer');
         const previewImg = document.getElementById('previewImg');
         const logDiv = document.getElementById('log');
@@ -474,7 +633,20 @@
         let pecesDataURL = [];
         let lastSource = 'picsum';
         let isDifficultyMode = false;
+        let isAnimationsEnabled = true;
         let isMobile = window.innerWidth <= 768;
+        const animationTypes = [
+            'entrance-spin',
+            'entrance-fall',
+            'entrance-explosion',
+            'entrance-flip',
+            'entrance-slide',
+            'entrance-slide-right',
+            'entrance-bounce',
+            'entrance-wave',
+            'entrance-zoom',
+            'entrance-ghost'
+        ];
 
         // DETECT MOBILE
         window.addEventListener('resize', () => {
@@ -508,6 +680,34 @@
                 imagePreview.classList.remove('hidden');
             }
         });
+
+        // ANIMATIONS TOGGLE
+        function initAnimations() {
+            const saved = localStorage.getItem('enableAnimations');
+            isAnimationsEnabled = saved !== 'false';
+            updateAnimationsButton();
+        }
+
+        function updateAnimationsButton() {
+            if (isAnimationsEnabled) {
+                animationsToggle.textContent = '✨';
+                animationsToggle.style.opacity = '1';
+            } else {
+                animationsToggle.textContent = '✨';
+                animationsToggle.style.opacity = '0.4';
+            }
+        }
+
+        animationsToggle.addEventListener('click', () => {
+            isAnimationsEnabled = !isAnimationsEnabled;
+            localStorage.setItem('enableAnimations', isAnimationsEnabled);
+            updateAnimationsButton();
+            log(isAnimationsEnabled ? '✨ Animacions activades' : '✨ Animacions desactivades');
+        });
+
+        function getRandomAnimation() {
+            return animationTypes[Math.floor(Math.random() * animationTypes.length)];
+        }
 
         // FLICKR MY
         flickrMyBtn.addEventListener('click', () => {
@@ -785,8 +985,19 @@
                 }
 
                 fixat = new Array(total).fill(false);
-                renderitzarPuzzle();
-                log('🧩 Arrossega les peces!');
+
+                // MOSTRAR IMATGE SENCERA DURANT 2.5 SEGONS, DESPRÉS ANIMAR ENTRADA DEL PUZZLE
+                imagePreview.classList.remove('hide-animation');
+                log('✨ Veient la foto sencera...');
+
+                setTimeout(() => {
+                    // Animar la desaparició de la imatge
+                    imagePreview.classList.add('hide-animation');
+                    
+                    // Renderitzar el puzzle amb animació d'entrada
+                    renderitzarPuzzle(true);
+                    log('🧩 Arrossega les peces!');
+                }, 2500); // 2.5 segons per veure la foto completa
             };
 
             img.onerror = () => {
@@ -796,7 +1007,7 @@
             img.src = imagenActual;
         }
 
-        function renderitzarPuzzle() {
+        function renderitzarPuzzle(animate = false) {
             const total = divisions * divisions;
 
             puzzleContainer.innerHTML = '';
@@ -817,6 +1028,13 @@
                 piece.style.backgroundSize = '100% 100%';
                 piece.style.backgroundPosition = 'center';
                 piece.dataset.posicio = i;
+
+                // AFEGIR ANIMACIÓ D'ENTRADA
+                if (animate && isAnimationsEnabled) {
+                    const randomAnimation = getRandomAnimation();
+                    piece.classList.add(randomAnimation);
+                    piece.style.animationDelay = (i * 0.05) + 's';
+                }
 
                 if (!fixat[i]) {
                     piece.draggable = true;
@@ -861,7 +1079,7 @@
                 fixat[i] = (ordre[i] === i);
             }
 
-            renderitzarPuzzle();
+            renderitzarPuzzle(false);
             comprovarVictoria();
             origenIndex = null;
         }
@@ -924,7 +1142,7 @@
                     fixat[i] = (ordre[i] === i);
                 }
 
-                renderitzarPuzzle();
+                renderitzarPuzzle(false);
                 comprovarVictoria();
             } else {
                 touchPiece.style.opacity = '1';
@@ -956,6 +1174,7 @@
         });
 
         initTheme();
+        initAnimations();
         carregarImagenAleatoria();
     </script>
 </body>
