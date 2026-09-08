@@ -1,4 +1,18 @@
 <!DOCTYPE html>
+<!--
+    PUZZLE ART PWA
+    Version: 2.07
+    
+    Features:
+    - Flickr integration (personal + random)
+    - Picsum random images
+    - Responsive design (desktop/mobile/tablet)
+    - Touch support with floating piece
+    - Dark/Light mode
+    - Difficulty mode (help/no help)
+    - Entrance animations (random or disabled)
+    - Victory popup
+-->
 <html lang="ca">
 <head>
     <meta charset="UTF-8">
@@ -71,6 +85,11 @@
             color: var(--btn-bg);
             font-size: clamp(1.2rem, 5vw, 1.8rem);
             flex: 1;
+        }
+        h1 #version {
+            font-size: 0.6em;
+            opacity: 0.7;
+            margin-left: 8px;
         }
         .header-buttons {
             display: flex;
@@ -544,12 +563,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🧩 Puzzle</h1>
-            <div class="header-buttons">
-                <button class="difficulty-toggle" id="difficultyToggle" title="Mode fàcil/difícil">🔴</button>
-                <button class="theme-toggle" id="themeToggle" title="Canviar mode fosc">🌙</button>
-            </div>
-            2.06
+            <h1>🧩 Puzzle <span id="version">v2.07</span></h1>
         </div>
 
         <!-- CONTROLS BAR -->
@@ -564,8 +578,13 @@
             <button class="icon-btn" id="flickrMyBtn" title="Flickr (meu)">🖼️</button>
             <button class="icon-btn" id="flickrRandomBtn" title="Flickr (aleatori)">🌍</button>
             <button class="icon-btn" id="picsumBtn" title="Imatge aleatòria">🎨</button>
-            <button class="icon-btn" id="animationsToggle" title="Activar/desactivar animacions">✨</button>
             <button class="icon-btn" id="refreshBtn" title="Nova foto">🔄</button>
+            
+            <!-- BOTONS DE CONFIGURACIÓ A LA DRETA -->
+            <div style="flex: 1;"></div>
+            <button class="icon-btn" id="animationsToggle" title="Activar/desactivar animacions">✨</button>
+            <button class="icon-btn" id="helpToggle" title="Amb ajuda o sense">🆘</button>
+            <button class="theme-toggle" id="themeToggle" title="Canviar mode fosc">🌙</button>
         </div>
 
         <!-- PUZZLE -->
@@ -612,6 +631,7 @@
         const picsumBtn = document.getElementById('picsumBtn');
         const refreshBtn = document.getElementById('refreshBtn');
         const animationsToggle = document.getElementById('animationsToggle');
+        const helpToggle = document.getElementById('helpToggle');
         const puzzleContainer = document.getElementById('puzzleContainer');
         const previewImg = document.getElementById('previewImg');
         const logDiv = document.getElementById('log');
@@ -619,7 +639,6 @@
         const victoryBtn = document.getElementById('victoryBtn');
         const finalImage = document.getElementById('finalImage');
         const themeToggle = document.getElementById('themeToggle');
-        const difficultyToggle = document.getElementById('difficultyToggle');
         const imagePreview = document.getElementById('imagePreview');
         const flickrModal = document.getElementById('flickrModal');
         const apiKeyInput = document.getElementById('apiKeyInput');
@@ -670,14 +689,14 @@
             themeToggle.textContent = isDark ? '☀️' : '🌙';
         });
 
-        // DIFFICULTY TOGGLE
-        difficultyToggle.addEventListener('click', () => {
+        // HELP TOGGLE (amb ajuda vs sense ajuda)
+        helpToggle.addEventListener('click', () => {
             isDifficultyMode = !isDifficultyMode;
             if (isDifficultyMode) {
-                difficultyToggle.textContent = '🟢';
+                helpToggle.textContent = '🚀';  // Sense ajuda - mode difícil
                 imagePreview.classList.add('hidden');
             } else {
-                difficultyToggle.textContent = '🔴';
+                helpToggle.textContent = '🆘';  // Amb ajuda - mode fàcil
                 imagePreview.classList.remove('hidden');
             }
         });
@@ -963,11 +982,14 @@
             canvas.height = 400;
             const ctx = canvas.getContext('2d');
 
-            const img = new Image();
-            img.crossOrigin = 'anonymous';
-
-            img.onload = function() {
-                ctx.drawImage(img, 0, 0, 400, 400);
+            // USAR previewImg DIRECTAMENT (ja està carregada!)
+            const processImage = () => {
+                try {
+                    ctx.drawImage(previewImg, 0, 0, 400, 400);
+                } catch (e) {
+                    log('❌ Error al dibuixar la imatge');
+                    return;
+                }
                 
                 pecesDataURL = [];
                 const pieceSize = 400 / divisions;
@@ -1018,11 +1040,13 @@
                 }, 2500); // 2.5 segons per veure la foto completa
             };
 
-            img.onerror = () => {
-                log('❌ Error procesant la imatge');
-            };
-
-            img.src = imagenActual;
+            // Si previewImg ja s'ha carregat, processar immediatament
+            if (previewImg.complete) {
+                processImage();
+            } else {
+                // Si no, esperar el onload
+                previewImg.onload = processImage;
+            }
         }
 
         function renderitzarPuzzle(animate = false) {
