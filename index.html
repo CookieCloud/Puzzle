@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
     PUZZLE ART PWA
-    Version: 2.24
+    Version: 2.25
     
     FIX: imagePreview (ajuda) roman sempre fixa
     Només s'amaga quan l'usuari activa mode 🚀
@@ -557,7 +557,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🧩 Puzzle <span id="version">v2.24</span></h1>
+            <h1>🧩 Puzzle <span id="version">v2.25</span></h1>
         </div>
         <div class="controls-bar">
             <select id="divisionsSelect" title="Nombre de peces">
@@ -572,7 +572,7 @@
             <button class="icon-btn" id="refreshBtn" title="Nova foto">🔄</button>
             <div style="flex: 1;"></div>
             <button class="icon-btn" id="animationsToggle" title="Activar/desactivar animacions">✨</button>
-            <button class="icon-btn" id="helpToggle" title="Amb ajuda o sense">🆘</button>
+            <button class="icon-btn" id="helpToggle" title="Amb ajuda o sense">🚀</button>
             <button class="theme-toggle" id="themeToggle" title="Canviar mode fosc">🌙</button>
         </div>
         <div id="puzzleContainer" class="puzzle-grid"></div>
@@ -595,7 +595,7 @@
     </div>
     <div id="victoryOverlay" class="victory-overlay">
         <div class="victory-popup">
-            <h2>🎉 VISCA!</h2>
+            <h2>🎉VISCA🎉</h2>
             <p>Has completat el puzzle!</p>
             <img id="finalImage" class="final-puzzle" src="" alt="Puzzle completat">
             <br>
@@ -662,10 +662,10 @@
         helpToggle.addEventListener('click', () => {
             isDifficultyMode = !isDifficultyMode;
             if (isDifficultyMode) {
-                helpToggle.textContent = '🚀';
+                helpToggle.textContent = '🆘';
                 imagePreview.classList.add('hidden');
             } else {
-                helpToggle.textContent = '🆘';
+                helpToggle.textContent = '🚀';
                 imagePreview.classList.remove('hidden');
             }
         });
@@ -1119,10 +1119,10 @@
         initAnimations();
         // Sincronitzar el mode difícil al carregar
         if (isDifficultyMode) {
-            helpToggle.textContent = '🚀';
+            helpToggle.textContent = '🆘';
             imagePreview.classList.add('hidden');
         } else {
-            helpToggle.textContent = '🆘';
+            helpToggle.textContent = '🚀';
             imagePreview.classList.remove('hidden');
         }
         carregarImagenAleatoria();
