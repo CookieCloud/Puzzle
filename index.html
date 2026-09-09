@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
     PUZZLE ART PWA
-    Version: 2.30
+    Version: 2.31
     
     FIX: imagePreview (ajuda) roman sempre fixa
     Només s'amaga quan l'usuari activa mode 🚀
@@ -554,12 +554,58 @@
                 min-height: 80px;
             }
         }
+        /* FOOTER */
+        footer.footer {
+            margin-top: 50px;
+            padding: 20px;
+            text-align: center;
+            border-top: 1px solid var(--border-color);
+            background: var(--bg-secondary);
+        }
+        .footer-content {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        footer.footer p {
+            color: var(--text-secondary);
+            font-size: clamp(11px, 2.5vw, 12px);
+            margin-bottom: 8px;
+        }
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .footer-links a {
+            color: var(--btn-bg);
+            font-size: clamp(11px, 2.5vw, 12px);
+            text-decoration: none;
+            border-bottom: 1px solid transparent;
+            transition: all 0.2s;
+        }
+        .footer-links a:hover {
+            border-bottom: 1px solid var(--btn-bg);
+            opacity: 0.8;
+        }
+        .divider {
+            color: var(--text-secondary);
+        }
+        @media (max-width: 600px) {
+            footer.footer {
+                padding: 15px;
+            }
+            .footer-links {
+                gap: 6px;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>🧩 Puzzle <span id="version">v2.30</span></h1>
+            <h1>🧩 Puzzle <span id="version">v2.31</span></h1>
         </div>
         <div class="controls-bar">
             <select id="divisionsSelect" title="Nombre de peces">
@@ -1210,5 +1256,15 @@
         initGoogleApi();
         carregarImagenAleatoria();
     </script>
+    <footer class="footer">
+        <div class="footer-content">
+            <p>&copy; 2026 Puzzle Art. Tots els drets reservats.</p>
+            <div class="footer-links">
+                <a href="privacy-policy.html" target="_blank">Política de Privacitat</a>
+                <span class="divider">•</span>
+                <a href="terms-of-service.html" target="_blank">Condicions del Servei</a>
+            </div>
+        </div>
+    </footer>
 </body>
 </html>
