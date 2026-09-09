@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <!--
     PUZZLE ART PWA
-    Version: 2.33
+    Version: 2.34
     
     CLEAN VERSION:
     - Només Picsum + Google Drive
     - Tauler adaptat a l'aspect ratio de la foto
+    - Sense Flickr ni Cloudinary
 -->
 <html lang="ca">
 <head>
@@ -426,10 +427,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🧩 Puzzle <span id="version">v2.33</span></h1>
-            <button class="icon-btn" id="animationsToggle" title="Activar/desactivar animacions">✨</button>
-            <button class="icon-btn" id="helpToggle" title="Amb ajuda o sense">🚀</button>
-            <button class="theme-toggle" id="themeToggle" title="Canviar mode fosc">🌙</button>
+            <h1>🧩 Puzzle <span id="version">v2.34</span></h1>
         </div>
         <div class="controls-bar">
             <select id="divisionsSelect" title="Nombre de peces">
@@ -439,9 +437,12 @@
                 <option value="5">5×5</option>
             </select>
             <button class="icon-btn" id="picsumBtn" title="Imatge aleatoria">🎨</button>
-            <button class="icon-btn" id="driveBtn" title="Google Drive">📁</button>
+            <button class="icon-btn" id="driveBtn" title="Google Drive">🌐</button>
             <button class="icon-btn" id="refreshBtn" title="Nova foto">🔄</button>
             <div style="flex: 1;"></div>
+            <button class="icon-btn" id="animationsToggle" title="Activar/desactivar animacions">✨</button>
+            <button class="icon-btn" id="helpToggle" title="Amb ajuda o sense">🚀</button>
+            <button class="theme-toggle" id="themeToggle" title="Canviar mode fosc">🌙</button>
         </div>
         <div class="puzzle-container-wrapper">
             <div id="puzzleContainer" class="puzzle-grid"></div>
@@ -486,6 +487,10 @@
         let isAnimationsEnabled = true;
         let photoWidth = 400;
         let photoHeight = 400;
+        let currentCanvasWidth = 400;
+        let currentCanvasHeight = 400;
+        let currentPieceWidth = 100;
+        let currentPieceHeight = 100;
         
         const animationTypes = [
             'entrance-spin', 'entrance-fall', 'entrance-explosion', 'entrance-flip',
@@ -794,6 +799,12 @@
                     log('✨ Veient la foto sencera (sense ajuda)...');
                 }
 
+                // Guardar els valors per a renders futurs
+                currentCanvasWidth = canvasWidth;
+                currentCanvasHeight = canvasHeight;
+                currentPieceWidth = pieceWidth;
+                currentPieceHeight = pieceHeight;
+
                 setTimeout(() => {
                     renderitzarPuzzle(true, canvasWidth, canvasHeight, pieceWidth, pieceHeight);
                     log('🧩 Arrossega les peces!');
@@ -803,7 +814,13 @@
             processImage();
         }
 
-        function renderitzarPuzzle(animate = false, canvasWidth = 400, canvasHeight = 400, pieceWidth = 100, pieceHeight = 100) {
+        function renderitzarPuzzle(animate = false, canvasWidth = null, canvasHeight = null, pieceWidth = null, pieceHeight = null) {
+            // Usar variables globals si no es passen paràmetres
+            if (canvasWidth === null) canvasWidth = currentCanvasWidth;
+            if (canvasHeight === null) canvasHeight = currentCanvasHeight;
+            if (pieceWidth === null) pieceWidth = currentPieceWidth;
+            if (pieceHeight === null) pieceHeight = currentPieceHeight;
+
             const total = divisions * divisions;
             puzzleContainer.innerHTML = '';
             puzzleContainer.style.gridTemplateColumns = `repeat(${divisions}, 1fr)`;
