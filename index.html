@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
     PUZZLE ART PWA
-    Version: 2.27
+    Version: 2.28
     
     FIX: imagePreview (ajuda) roman sempre fixa
     Només s'amaga quan l'usuari activa mode 🚀
@@ -559,7 +559,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🧩 Puzzle <span id="version">v2.27</span></h1>
+            <h1>🧩 Puzzle <span id="version">v2.28</span></h1>
         </div>
         <div class="controls-bar">
             <select id="divisionsSelect" title="Nombre de peces">
@@ -865,29 +865,40 @@
         function carregarCloudinary() {
             log('☁️ Obrint biblioteca de Cloudinary...');
             
+            // Esperar que la libreria de Cloudinary estigui disponible
+            if (typeof cloudinary === 'undefined') {
+                log('⏳ Carregant biblioteca de Cloudinary...');
+                setTimeout(() => carregarCloudinary(), 500);
+                return;
+            }
+            
             const cloudName = 'suqerlbw';
             const apiKey = '816693642467468';
             
-            const ml = cloudinary.mediaLibrary.open({
-                cloud_name: cloudName,
-                api_key: apiKey,
-                button_class: 'cloudinary-button',
-                insert_caption: 'Select Image for Puzzle',
-                max_files: 1,
-                multiple: false,
-                folder: '/',
-                show_download_button: false,
-                show_share_button: false,
-                resource_type: 'image'
-            }, {
-                insertHandler: function(data) {
-                    log('✅ Foto seleccionada');
-                    const imageUrl = data.assets[0].secure_url;
-                    puzzleContainer.innerHTML = ''; 
-                    cargarImagenDesdeUrl(imageUrl, 'cloudinary');
-                    ml.close();
-                }
-            });
+            try {
+                const ml = cloudinary.mediaLibrary.open({
+                    cloud_name: cloudName,
+                    api_key: apiKey,
+                    button_class: 'cloudinary-button',
+                    insert_caption: 'Select Image for Puzzle',
+                    max_files: 1,
+                    multiple: false,
+                    folder: '/',
+                    show_download_button: false,
+                    show_share_button: false,
+                    resource_type: 'image'
+                }, {
+                    insertHandler: function(data) {
+                        log('✅ Foto seleccionada');
+                        const imageUrl = data.assets[0].secure_url;
+                        puzzleContainer.innerHTML = ''; 
+                        cargarImagenDesdeUrl(imageUrl, 'cloudinary');
+                        ml.close();
+                    }
+                });
+            } catch(err) {
+                log('❌ Error al obrir Cloudinary: ' + err.message);
+            }
         }
         
         function carregarUltima() {
