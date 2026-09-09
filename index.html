@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
     PUZZLE ART PWA
-    Version: 2.31
+    Version: 2.32
     
     FIX: imagePreview (ajuda) roman sempre fixa
     Només s'amaga quan l'usuari activa mode 🚀
@@ -15,8 +15,10 @@
     <link rel="icon" type="image/png" sizes="32x32" href="puzzle32x32.png">
     <link rel="icon" type="image/png" sizes="192x192" href="puzzle192x192.png">
     <link rel="apple-touch-icon" sizes="180x180" href="puzzle180x180.png">
-    <!-- Google Drive API -->
+    <!-- Client per a l'API de Google Drive -->
     <script src="https://apis.google.com/js/api.js"></script>
+    <!-- Nou client d'autenticació (Google Identity Services) -->
+    <script src="https://accounts.google.com/gsi/client"></script>
     <title>Puzzle</title>
     <style>
         :root {
@@ -605,7 +607,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🧩 Puzzle <span id="version">v2.31</span></h1>
+            <h1>🧩 Puzzle <span id="version">v2.32</span></h1>
         </div>
         <div class="controls-bar">
             <select id="divisionsSelect" title="Nombre de peces">
@@ -909,45 +911,106 @@
             lastSource = 'drive';
             carregarGoogleDrive();
         });
+
+
+        async function cargarImagenDesdeDrive(fileId, fileName) {
+            try {
+                // Obtenim el token generat per Google Identity Services
+                const tokenInfo = gapi.client.getToken();
+                if (!tokenInfo || !tokenInfo.access_token) {
+                    log('❌ Error: No s\'ha trobat el token d\'autenticació.');
+                    return;
+                }
         
-        // Google Drive variables
-        let gdriveAccessToken = null;
+                // Fem la petició a l'API per descarregar el contingut binari
+                const response = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+                    headers: {
+                        'Authorization': `Bearer ${tokenInfo.access_token}`
+                    }
+                });
+        
+                if (!response.ok) {
+                    throw new Error(`Codi d'error: ${response.status}`);
+                }
+        
+                // Convertim la resposta a Blob (dades binàries)
+                const imageBlob = await response.blob();
+                
+                // Creem un URL local temporal per a aquest Blob
+                const localUrl = URL.createObjectURL(imageBlob);
+        
+                // Carreguem la imatge al DOM amb l'URL local
+                const img = new Image();
+                img.onload = () => {
+                    imagenActual = localUrl;
+                    previewImg.onload = () => {
+                        log(`✅ Imatge carregada: ${fileName}`);
+                        iniciarPuzzle();
+                    };
+                    previewImg.src = localUrl;
+                    finalImage.src = localUrl;
+                };
+                img.onerror = () => {
+                    log('❌ Error en processar el Blob de la imatge');
+                };
+                img.src = localUrl;
+        
+            } catch (err) {
+                log(`❌ Error al descarregar l'arxiu: ${err.message}`);
+            }
+        }
+        
+        // Variables globals de Google Drive
+        let tokenClient;
         const GOOGLE_CLIENT_ID = '926201791608-862s6b2rebjqjrpv59kt71u5v203ltb4.apps.googleusercontent.com';
         const GOOGLE_FOLDER_ID = '1us5-pJI8WVB1B4XNS82uyHjsXKETsG0m';
         
-        // Inicializar Google API
+        // Inicialitzar Google API client i Identity Services
         function initGoogleApi() {
-            gapi.load('client:auth2', () => {
+            // 1. Carregar el client GAPI pur (només per fer les peticions, sense auth2)
+            gapi.load('client', () => {
                 gapi.client.init({
-                    clientId: GOOGLE_CLIENT_ID,
-                    discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
-                    scope: 'https://www.googleapis.com/auth/drive.readonly'
+                    discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest']
                 }).then(() => {
-                    console.log('✅ Google API inicializada');
+                    console.log('✅ Google API client inicialitzat');
                 }).catch(err => {
-                    console.log('❌ Error inicializando Google API:', err);
+                    console.log('❌ Error inicialitzant Google API:', err);
                 });
             });
+        
+            // 2. Inicialitzar Google Identity Services per a l'autenticació
+            if (window.google && google.accounts) {
+                tokenClient = google.accounts.oauth2.initTokenClient({
+                    client_id: GOOGLE_CLIENT_ID,
+                    scope: 'https://www.googleapis.com/auth/drive.readonly',
+                    callback: (tokenResponse) => {
+                        if (tokenResponse && tokenResponse.access_token) {
+                            log('✅ Autenticació completada correctament');
+                            obtenirFotosDrive(); // Cridem la funció que llegeix la carpeta
+                        }
+                    }
+                });
+            }
         }
         
         async function carregarGoogleDrive() {
             log('📁 Connectant a Google Drive...');
             
+            // Comprovem si l'usuari ja té un token actiu
+            if (gapi.client.getToken() === null) {
+                log('🔐 Sol·licitant accés a Google...');
+                // Això obrirà la finestra emergent d'autenticació
+                tokenClient.requestAccessToken({prompt: 'consent'});
+            } else {
+                // Si ja estem autenticats prèviament en aquesta sessió
+                obtenirFotosDrive();
+            }
+        }
+        
+        async function obtenirFotosDrive() {
             try {
-                // Autenticar si no estàs autenticat
-                const auth2 = gapi.auth2.getAuthInstance();
-                if (!auth2.isSignedIn.get()) {
-                    log('🔐 Autenticant amb Google...');
-                    await auth2.signIn();
-                }
-                
-                // Obtenir access token
-                const currentUser = auth2.currentUser.get();
-                gdriveAccessToken = currentUser.getAuthResponse().id_token;
-                
                 log('🔄 Obtenint fotos de Google Drive...');
                 
-                // Llistar arxius de la carpeta
                 const response = await gapi.client.drive.files.list({
                     q: `'${GOOGLE_FOLDER_ID}' in parents and (mimeType='image/jpeg' or mimeType='image/png' or mimeType='image/gif' or mimeType='image/webp') and trashed=false`,
                     spaces: 'drive',
@@ -964,18 +1027,18 @@
                 
                 log(`✅ Trobades ${files.length} fotos`);
                 
-                // Agafar una aleatòria
+                // Agafar una foto aleatòria de l'array
                 const fileAleatori = files[Math.floor(Math.random() * files.length)];
-                const imageUrl = `https://drive.google.com/uc?export=view&id=${fileAleatori.id}`;
                 
-                log(`📸 Carregant: ${fileAleatori.name}`);
+                log(`📸 Descarregant: ${fileAleatori.name}`);
                 puzzleContainer.innerHTML = '';
-                cargarImagenDesdeUrl(imageUrl, 'drive');
                 
+                // Cridem a la nova funció passant l'ID i el nom
+                cargarImagenDesdeDrive(fileAleatori.id, fileAleatori.name);                
             } catch (err) {
-                log('❌ Error: ' + err.message);
+                log('❌ Error a Google Drive: ' + (err.message || 'Desconegut'));
             }
-        }    
+        }        
         
         function carregarUltima() {
             if (lastSource === 'picsum') {
