@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <!--
     PUZZLE ART PWA
-    Version: 2.32
+    Version: 2.33
     
-    FIX: imagePreview (ajuda) roman sempre fixa
-    Només s'amaga quan l'usuari activa mode 🚀
+    CLEAN VERSION:
+    - Només Picsum + Google Drive
+    - Tauler adaptat a l'aspect ratio de la foto
 -->
 <html lang="ca">
 <head>
@@ -15,9 +16,8 @@
     <link rel="icon" type="image/png" sizes="32x32" href="puzzle32x32.png">
     <link rel="icon" type="image/png" sizes="192x192" href="puzzle192x192.png">
     <link rel="apple-touch-icon" sizes="180x180" href="puzzle180x180.png">
-    <!-- Client per a l'API de Google Drive -->
+    <!-- Google APIs -->
     <script src="https://apis.google.com/js/api.js"></script>
-    <!-- Nou client d'autenticació (Google Identity Services) -->
     <script src="https://accounts.google.com/gsi/client"></script>
     <title>Puzzle</title>
     <style>
@@ -66,7 +66,7 @@
             user-select: none;
         }
         .container {
-            max-width: 600px;
+            max-width: 100%;
             margin: 50px auto 0 auto;
             background: var(--bg-primary);
             border-radius: 12px;
@@ -80,6 +80,9 @@
             align-items: center;
             margin-bottom: 20px;
             gap: 8px;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
         }
         h1 {
             color: var(--btn-bg);
@@ -91,34 +94,15 @@
             opacity: 0.7;
             margin-left: 8px;
         }
-        .header-buttons {
-            display: flex;
-            gap: 6px;
-        }
-        .theme-toggle, .difficulty-toggle {
-            background: var(--bg-secondary);
-            border: none;
-            border-radius: 50%;
-            width: clamp(36px, 10vw, 44px);
-            height: clamp(36px, 10vw, 44px);
-            cursor: pointer;
-            font-size: clamp(16px, 4vw, 18px);
-            transition: background 0.3s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            touch-action: manipulation;
-        }
-        .theme-toggle:active, .difficulty-toggle:active {
-            background: var(--bg-tertiary);
-        }
         .controls-bar {
             display: flex;
             gap: 6px;
             margin-bottom: 12px;
             align-items: center;
             flex-wrap: nowrap;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
         }
         select {
             padding: clamp(6px, 2vw, 8px) clamp(6px, 2vw, 10px);
@@ -157,16 +141,40 @@
             border-color: var(--btn-bg);
             transform: scale(0.95);
         }
+        .theme-toggle {
+            background: var(--bg-secondary);
+            border: none;
+            border-radius: 50%;
+            width: clamp(36px, 10vw, 44px);
+            height: clamp(36px, 10vw, 44px);
+            cursor: pointer;
+            font-size: clamp(16px, 4vw, 18px);
+            transition: background 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            touch-action: manipulation;
+        }
+        .theme-toggle:active {
+            background: var(--bg-tertiary);
+        }
+        .puzzle-container-wrapper {
+            max-width: 800px;
+            margin: 0 auto 12px auto;
+            display: flex;
+            justify-content: center;
+        }
         .puzzle-grid {
             display: grid;
             gap: 0;
-            margin-bottom: 12px;
             background: var(--bg-tertiary);
             padding: 2px;
             border-radius: 8px;
-            aspect-ratio: 1 / 1;
-            width: 100%;
             touch-action: none;
+            aspect-ratio: auto;
+            width: 100%;
+            max-width: 100%;
         }
         .puzzle-piece {
             background-size: cover;
@@ -204,6 +212,9 @@
             align-items: center;
             justify-content: center;
             transition: all 0.3s;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
         }
         .image-preview.hidden {
             display: none;
@@ -221,88 +232,9 @@
             color: var(--text-secondary);
             min-height: 1.5em;
             word-wrap: break-word;
-        }
-        .modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.6);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 2000;
-            backdrop-filter: blur(4px);
-        }
-        .modal.active {
-            display: flex;
-        }
-        .modal-content {
-            background: var(--bg-primary);
-            padding: clamp(20px, 5vw, 30px);
-            border-radius: 16px;
-            max-width: 90%;
-            width: clamp(280px, 90vw, 400px);
-            box-shadow: 0 20px 60px var(--shadow);
-            animation: popIn 0.3s ease-out;
-            max-height: 80vh;
-            overflow-y: auto;
-        }
-        .modal-content h2 {
-            color: var(--btn-bg);
-            margin-bottom: 12px;
-            font-size: clamp(1.3rem, 4vw, 1.5rem);
-        }
-        .modal-content p {
-            color: var(--text-secondary);
-            font-size: clamp(12px, 2.5vw, 13px);
-            margin-bottom: 12px;
-            line-height: 1.5;
-        }
-        .modal-input {
-            width: 100%;
-            padding: clamp(10px, 2vw, 12px);
-            margin-bottom: 10px;
-            border: 2px solid var(--border-color);
-            border-radius: 8px;
-            background: var(--bg-secondary);
-            color: var(--text-primary);
-            font-size: clamp(12px, 2.5vw, 14px);
-        }
-        .modal-input:focus {
-            outline: none;
-            border-color: var(--btn-bg);
-        }
-        .modal-buttons {
-            display: flex;
-            gap: 8px;
-            margin-top: 15px;
-        }
-        .modal-btn {
-            flex: 1;
-            padding: clamp(10px, 2vw, 12px);
-            border: none;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.2s;
-            font-size: clamp(12px, 2.5vw, 14px);
-            touch-action: manipulation;
-        }
-        .modal-btn.save {
-            background: var(--btn-bg);
-            color: white;
-        }
-        .modal-btn.save:active {
-            background: var(--btn-hover);
-        }
-        .modal-btn.cancel {
-            background: var(--bg-tertiary);
-            color: var(--text-primary);
-        }
-        .modal-btn.cancel:active {
-            background: var(--border-color);
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
         }
         .victory-overlay {
             position: fixed;
@@ -380,181 +312,72 @@
             }
         }
         @keyframes puzzleEntrance {
-            0% {
-                transform: scale(0) rotate(-180deg);
-                opacity: 0;
-            }
-            50% {
-                transform: scale(1.1) rotate(0deg);
-            }
-            100% {
-                transform: scale(1) rotate(0deg);
-                opacity: 1;
-            }
+            0% { transform: scale(0) rotate(-180deg); opacity: 0; }
+            50% { transform: scale(1.1) rotate(0deg); }
+            100% { transform: scale(1) rotate(0deg); opacity: 1; }
         }
         @keyframes puzzleFall {
-            0% {
-                transform: translateY(-80px) rotate(360deg);
-                opacity: 0;
-            }
-            100% {
-                transform: translateY(0) rotate(0deg);
-                opacity: 1;
-            }
+            0% { transform: translateY(-80px) rotate(360deg); opacity: 0; }
+            100% { transform: translateY(0) rotate(0deg); opacity: 1; }
         }
         @keyframes puzzleExplosion {
-            0% {
-                transform: scale(0.3) rotate(-180deg);
-                opacity: 0;
-                filter: blur(4px);
-            }
-            60% {
-                transform: scale(1.2);
-            }
-            100% {
-                transform: scale(1) rotate(0deg);
-                opacity: 1;
-                filter: blur(0px);
-            }
+            0% { transform: scale(0.3) rotate(-180deg); opacity: 0; filter: blur(4px); }
+            60% { transform: scale(1.2); }
+            100% { transform: scale(1) rotate(0deg); opacity: 1; filter: blur(0px); }
         }
         @keyframes puzzleFlip {
-            0% {
-                transform: rotateX(90deg) scale(0.5);
-                opacity: 0;
-            }
-            100% {
-                transform: rotateX(0deg) scale(1);
-                opacity: 1;
-            }
+            0% { transform: rotateX(90deg) scale(0.5); opacity: 0; }
+            100% { transform: rotateX(0deg) scale(1); opacity: 1; }
         }
         @keyframes puzzleSlideIn {
-            0% {
-                transform: translateX(-100px) rotate(-90deg);
-                opacity: 0;
-            }
-            100% {
-                transform: translateX(0) rotate(0deg);
-                opacity: 1;
-            }
+            0% { transform: translateX(-100px) rotate(-90deg); opacity: 0; }
+            100% { transform: translateX(0) rotate(0deg); opacity: 1; }
         }
         @keyframes puzzleSlideInRight {
-            0% {
-                transform: translateX(100px) rotate(90deg);
-                opacity: 0;
-            }
-            100% {
-                transform: translateX(0) rotate(0deg);
-                opacity: 1;
-            }
+            0% { transform: translateX(100px) rotate(90deg); opacity: 0; }
+            100% { transform: translateX(0) rotate(0deg); opacity: 1; }
         }
         @keyframes puzzleBounce {
-            0% {
-                transform: scale(0) translateY(-50px);
-                opacity: 0;
-            }
-            50% {
-                transform: scale(1.15);
-            }
-            70% {
-                transform: scale(0.95);
-            }
-            100% {
-                transform: scale(1) translateY(0);
-                opacity: 1;
-            }
+            0% { transform: scale(0) translateY(-50px); opacity: 0; }
+            50% { transform: scale(1.15); }
+            70% { transform: scale(0.95); }
+            100% { transform: scale(1) translateY(0); opacity: 1; }
         }
         @keyframes puzzleWave {
-            0% {
-                transform: translateY(40px) skewY(-5deg);
-                opacity: 0;
-            }
-            100% {
-                transform: translateY(0) skewY(0deg);
-                opacity: 1;
-            }
+            0% { transform: translateY(40px) skewY(-5deg); opacity: 0; }
+            100% { transform: translateY(0) skewY(0deg); opacity: 1; }
         }
         @keyframes puzzleZoomIn {
-            0% {
-                transform: scale(0) translateZ(0);
-                opacity: 0;
-            }
-            70% {
-                transform: scale(1.1);
-            }
-            100% {
-                transform: scale(1);
-                opacity: 1;
-            }
+            0% { transform: scale(0) translateZ(0); opacity: 0; }
+            70% { transform: scale(1.1); }
+            100% { transform: scale(1); opacity: 1; }
         }
         @keyframes puzzleGhost {
-            0% {
-                transform: translateY(-30px) rotate(180deg) scale(0.3);
-                opacity: 0;
-                filter: blur(8px) brightness(0.5);
-            }
-            50% {
-                filter: blur(4px) brightness(0.8);
-            }
-            100% {
-                transform: translateY(0) rotate(0deg) scale(1);
-                opacity: 1;
-                filter: blur(0px) brightness(1);
-            }
+            0% { transform: translateY(-30px) rotate(180deg) scale(0.3); opacity: 0; filter: blur(8px) brightness(0.5); }
+            50% { filter: blur(4px) brightness(0.8); }
+            100% { transform: translateY(0) rotate(0deg) scale(1); opacity: 1; filter: blur(0px) brightness(1); }
         }
         
-        .puzzle-piece.entrance-spin {
-            animation: puzzleEntrance 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
-        }
-        .puzzle-piece.entrance-fall {
-            animation: puzzleFall 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-        }
-        .puzzle-piece.entrance-explosion {
-            animation: puzzleExplosion 0.8s cubic-bezier(0.36, 0, 0.66, -0.56) forwards;
-        }
-        .puzzle-piece.entrance-flip {
-            animation: puzzleFlip 0.6s ease-out forwards;
-        }
-        .puzzle-piece.entrance-slide {
-            animation: puzzleSlideIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
-        }
-        .puzzle-piece.entrance-slide-right {
-            animation: puzzleSlideInRight 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
-        }
-        .puzzle-piece.entrance-bounce {
-            animation: puzzleBounce 0.7s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
-        }
-        .puzzle-piece.entrance-wave {
-            animation: puzzleWave 0.6s ease-out forwards;
-        }
-        .puzzle-piece.entrance-zoom {
-            animation: puzzleZoomIn 0.6s cubic-bezier(0.43, 0.13, 0.23, 0.96) forwards;
-        }
-        .puzzle-piece.entrance-ghost {
-            animation: puzzleGhost 0.8s ease-out forwards;
-        }
+        .puzzle-piece.entrance-spin { animation: puzzleEntrance 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards; }
+        .puzzle-piece.entrance-fall { animation: puzzleFall 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+        .puzzle-piece.entrance-explosion { animation: puzzleExplosion 0.8s cubic-bezier(0.36, 0, 0.66, -0.56) forwards; }
+        .puzzle-piece.entrance-flip { animation: puzzleFlip 0.6s ease-out forwards; }
+        .puzzle-piece.entrance-slide { animation: puzzleSlideIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards; }
+        .puzzle-piece.entrance-slide-right { animation: puzzleSlideInRight 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards; }
+        .puzzle-piece.entrance-bounce { animation: puzzleBounce 0.7s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards; }
+        .puzzle-piece.entrance-wave { animation: puzzleWave 0.6s ease-out forwards; }
+        .puzzle-piece.entrance-zoom { animation: puzzleZoomIn 0.6s cubic-bezier(0.43, 0.13, 0.23, 0.96) forwards; }
+        .puzzle-piece.entrance-ghost { animation: puzzleGhost 0.8s ease-out forwards; }
         
         @media (max-width: 600px) {
-            body {
-                padding: 8px;
-            }
-            .container {
-                padding: 10px;
-                border-radius: 10px;
-            }
-            .controls-bar {
-                gap: 4px;
-            }
-            .puzzle-grid {
-                padding: 2px;
-            }
-            .puzzle-piece.unfixed {
-                margin: 1px;
-            }
+            body { padding: 8px; }
+            .container { padding: 10px; border-radius: 10px; }
+            .controls-bar { gap: 4px; }
+            .puzzle-grid { padding: 2px; }
+            .puzzle-piece.unfixed { margin: 1px; }
         }
         @media (max-height: 700px) {
-            .image-preview {
-                min-height: 80px;
-            }
+            .image-preview { min-height: 80px; }
         }
         /* FOOTER */
         footer.footer {
@@ -595,19 +418,18 @@
             color: var(--text-secondary);
         }
         @media (max-width: 600px) {
-            footer.footer {
-                padding: 15px;
-            }
-            .footer-links {
-                gap: 6px;
-            }
+            footer.footer { padding: 15px; }
+            .footer-links { gap: 6px; }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>🧩 Puzzle <span id="version">v2.32</span></h1>
+            <h1>🧩 Puzzle <span id="version">v2.33</span></h1>
+            <button class="icon-btn" id="animationsToggle" title="Activar/desactivar animacions">✨</button>
+            <button class="icon-btn" id="helpToggle" title="Amb ajuda o sense">🚀</button>
+            <button class="theme-toggle" id="themeToggle" title="Canviar mode fosc">🌙</button>
         </div>
         <div class="controls-bar">
             <select id="divisionsSelect" title="Nombre de peces">
@@ -616,33 +438,18 @@
                 <option value="4" selected>4×4</option>
                 <option value="5">5×5</option>
             </select>
-            <button class="icon-btn" id="flickrMyBtn" title="Flickr (meu)">🖼️</button>
-            <button class="icon-btn" id="flickrRandomBtn" title="Flickr (aleatori)">🌍</button>
             <button class="icon-btn" id="picsumBtn" title="Imatge aleatoria">🎨</button>
-            <button class="icon-btn" id="cloudinaryBtn" title="Cloudinary">☁️</button>
+            <button class="icon-btn" id="driveBtn" title="Google Drive">📁</button>
             <button class="icon-btn" id="refreshBtn" title="Nova foto">🔄</button>
             <div style="flex: 1;"></div>
-            <button class="icon-btn" id="animationsToggle" title="Activar/desactivar animacions">✨</button>
-            <button class="icon-btn" id="helpToggle" title="Amb ajuda o sense">🚀</button>
-            <button class="theme-toggle" id="themeToggle" title="Canviar mode fosc">🌙</button>
         </div>
-        <div id="puzzleContainer" class="puzzle-grid"></div>
+        <div class="puzzle-container-wrapper">
+            <div id="puzzleContainer" class="puzzle-grid"></div>
+        </div>
         <div id="imagePreview" class="image-preview">
             <img id="previewImg" src="" alt="Original" crossOrigin="anonymous">
         </div>
         <div class="log" id="log">Carregant...</div>
-    </div>
-    <div id="flickrModal" class="modal">
-        <div class="modal-content">
-            <h2>🖼️ Flickr</h2>
-            <p>Enganxa les teves credencials de Flickr. Es guardaran només al teu dispositiu.</p>
-            <input type="text" class="modal-input" id="apiKeyInput" placeholder="API Key">
-            <input type="text" class="modal-input" id="userIdInput" placeholder="User ID">
-            <div class="modal-buttons">
-                <button class="modal-btn cancel" id="cancelFlickrBtn">Cancelar</button>
-                <button class="modal-btn save" id="saveFlickrBtn">Guardar</button>
-            </div>
-        </div>
     </div>
     <div id="victoryOverlay" class="victory-overlay">
         <div class="victory-popup">
@@ -655,9 +462,8 @@
     </div>
     <script>
         const divisionsSelect = document.getElementById('divisionsSelect');
-        const flickrMyBtn = document.getElementById('flickrMyBtn');
-        const flickrRandomBtn = document.getElementById('flickrRandomBtn');
         const picsumBtn = document.getElementById('picsumBtn');
+        const driveBtn = document.getElementById('driveBtn');
         const refreshBtn = document.getElementById('refreshBtn');
         const animationsToggle = document.getElementById('animationsToggle');
         const helpToggle = document.getElementById('helpToggle');
@@ -669,11 +475,6 @@
         const finalImage = document.getElementById('finalImage');
         const themeToggle = document.getElementById('themeToggle');
         const imagePreview = document.getElementById('imagePreview');
-        const flickrModal = document.getElementById('flickrModal');
-        const apiKeyInput = document.getElementById('apiKeyInput');
-        const userIdInput = document.getElementById('userIdInput');
-        const saveFlickrBtn = document.getElementById('saveFlickrBtn');
-        const cancelFlickrBtn = document.getElementById('cancelFlickrBtn');
 
         let imagenActual = null;
         let divisions = 4;
@@ -683,17 +484,14 @@
         let lastSource = 'picsum';
         let isDifficultyMode = true;
         let isAnimationsEnabled = true;
-        let isMobile = window.innerWidth <= 768;
-
+        let photoWidth = 400;
+        let photoHeight = 400;
+        
         const animationTypes = [
             'entrance-spin', 'entrance-fall', 'entrance-explosion', 'entrance-flip',
             'entrance-slide', 'entrance-slide-right', 'entrance-bounce', 'entrance-wave',
             'entrance-zoom', 'entrance-ghost'
         ];
-
-        window.addEventListener('resize', () => {
-            isMobile = window.innerWidth <= 768;
-        });
 
         function initTheme() {
             const isDark = localStorage.getItem('darkMode') === 'true';
@@ -728,7 +526,6 @@
         }
 
         function updateAnimationsButton() {
-            animationsToggle.textContent = '✨';
             animationsToggle.style.opacity = isAnimationsEnabled ? '1' : '0.4';
         }
 
@@ -743,147 +540,13 @@
             return animationTypes[Math.floor(Math.random() * animationTypes.length)];
         }
 
-        flickrMyBtn.addEventListener('click', () => {
-            const savedApiKey = localStorage.getItem('flickrApiKey');
-            const savedUserId = localStorage.getItem('flickrUserId');
-            if (savedApiKey && savedUserId) {
-                lastSource = 'flickr-my';
-                carregarFlickrMy();
-            } else {
-                flickrModal.classList.add('active');
-            }
-        });
-
-        flickrRandomBtn.addEventListener('click', () => {
-            const savedApiKey = localStorage.getItem('flickrApiKey');
-            if (savedApiKey) {
-                lastSource = 'flickr-random';
-                carregarFlickrRandom();
-            } else {
-                log('❌ Necessites API Key de Flickr');
-            }
-        });
-
-        saveFlickrBtn.addEventListener('click', () => {
-            const apiKey = apiKeyInput.value.trim();
-            const userId = userIdInput.value.trim();
-            if (!apiKey || !userId) {
-                log('❌ Omple tots els camps');
-                return;
-            }
-            localStorage.setItem('flickrApiKey', apiKey);
-            localStorage.setItem('flickrUserId', userId);
-            apiKeyInput.value = '';
-            userIdInput.value = '';
-            flickrModal.classList.remove('active');
-            lastSource = 'flickr-my';
-            carregarFlickrMy();
-        });
-
-        cancelFlickrBtn.addEventListener('click', () => {
-            apiKeyInput.value = '';
-            userIdInput.value = '';
-            flickrModal.classList.remove('active');
-        });
-
-        function carregarFlickrMy() {
-            const apiKey = localStorage.getItem('flickrApiKey');
-            const userId = localStorage.getItem('flickrUserId');
-            if (!apiKey || !userId) {
-                log('❌ Configura Flickr primer');
-                return;
-            }
-            log('🔄 Obtenint totes les fotos...');
-            obtenerTodasLasFotos(userId, apiKey, 'flickr-my');
-        }
-
-        function carregarFlickrRandom() {
-            const apiKey = localStorage.getItem('flickrApiKey');
-            if (!apiKey) {
-                log('❌ Necessites API Key');
-                return;
-            }
-            log('🔄 Obtenint fotos interessants...');
-            obtenerTodasLasFotosRandom(apiKey, 'flickr-random');
-        }
-
-        async function obtenerTodasLasFotos(userId, apiKey, source) {
-            try {
-                let todasLasFotos = [];
-                let page = 1;
-                let hasMore = true;
-                while (hasMore) {
-                    const url = `https://www.flickr.com/services/rest/?method=flickr.people.getPublicPhotos&user_id=${userId}&api_key=${apiKey}&format=json&nojsoncallback=1&per_page=500&page=${page}`;
-                    const response = await fetch(url);
-                    const data = await response.json();
-                    if (data.stat === 'fail') {
-                        log('❌ Error: ' + data.message);
-                        return;
-                    }
-                    if (!data.photos || data.photos.photo.length === 0) {
-                        hasMore = false;
-                    } else {
-                        todasLasFotos = todasLasFotos.concat(data.photos.photo);
-                        page++;
-                        if (todasLasFotos.length > 1000) {
-                            hasMore = false;
-                        }
-                    }
-                }
-                log(`✅ Trobades ${todasLasFotos.length} fotos`);
-                if (todasLasFotos.length === 0) {
-                    log('❌ Cap foto disponible');
-                    return;
-                }
-                const fotoAleatoria = todasLasFotos[Math.floor(Math.random() * todasLasFotos.length)];
-                const imageUrl = `https://live.staticflickr.com/${fotoAleatoria.server}/${fotoAleatoria.id}_${fotoAleatoria.secret}_b.jpg`;
-                cargarImagenDesdeUrl(imageUrl, source);
-            } catch (err) {
-                log('❌ Error: ' + err.message);
-            }
-        }
-
-        async function obtenerTodasLasFotosRandom(apiKey, source) {
-            try {
-                let todasLasFotos = [];
-                let page = 1;
-                let hasMore = true;
-                while (hasMore) {
-                    const url = `https://www.flickr.com/services/rest/?method=flickr.interestingness.getList&api_key=${apiKey}&format=json&nojsoncallback=1&per_page=500&page=${page}`;
-                    const response = await fetch(url);
-                    const data = await response.json();
-                    if (data.stat === 'fail') {
-                        log('❌ Error: ' + data.message);
-                        return;
-                    }
-                    if (!data.photos || data.photos.photo.length === 0) {
-                        hasMore = false;
-                    } else {
-                        todasLasFotos = todasLasFotos.concat(data.photos.photo);
-                        page++;
-                        if (todasLasFotos.length > 1000) {
-                            hasMore = false;
-                        }
-                    }
-                }
-                log(`✅ Trobades ${todasLasFotos.length} fotos`);
-                if (todasLasFotos.length === 0) {
-                    log('❌ Cap foto disponible');
-                    return;
-                }
-                const fotoAleatoria = todasLasFotos[Math.floor(Math.random() * todasLasFotos.length)];
-                const imageUrl = `https://live.staticflickr.com/${fotoAleatoria.server}/${fotoAleatoria.id}_${fotoAleatoria.secret}_b.jpg`;
-                cargarImagenDesdeUrl(imageUrl, source);
-            } catch (err) {
-                log('❌ Error: ' + err.message);
-            }
-        }
-
         function cargarImagenDesdeUrl(imageUrl, source) {
             const img = new Image();
             img.crossOrigin = 'anonymous';
             img.onload = () => {
                 imagenActual = imageUrl;
+                photoWidth = img.naturalWidth;
+                photoHeight = img.naturalHeight;
                 previewImg.onload = () => {
                     log('✅ Foto carregada');
                     iniciarPuzzle();
@@ -898,163 +561,9 @@
         }
 
         picsumBtn.addEventListener('click', () => {
-            puzzleContainer.innerHTML = ''; 
+            puzzleContainer.innerHTML = '';
             lastSource = 'picsum';
             carregarImagenAleatoria();
-        });
-
-        const driveBtn = document.getElementById('cloudinaryBtn'); // Reutilitzem el botó
-        driveBtn.title = 'Google Drive';
-        driveBtn.textContent = '📁';
-        
-        driveBtn.addEventListener('click', () => {
-            lastSource = 'drive';
-            carregarGoogleDrive();
-        });
-
-
-        async function cargarImagenDesdeDrive(fileId, fileName) {
-            try {
-                // Obtenim el token generat per Google Identity Services
-                const tokenInfo = gapi.client.getToken();
-                if (!tokenInfo || !tokenInfo.access_token) {
-                    log('❌ Error: No s\'ha trobat el token d\'autenticació.');
-                    return;
-                }
-        
-                // Fem la petició a l'API per descarregar el contingut binari
-                const response = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
-                    headers: {
-                        'Authorization': `Bearer ${tokenInfo.access_token}`
-                    }
-                });
-        
-                if (!response.ok) {
-                    throw new Error(`Codi d'error: ${response.status}`);
-                }
-        
-                // Convertim la resposta a Blob (dades binàries)
-                const imageBlob = await response.blob();
-                
-                // Creem un URL local temporal per a aquest Blob
-                const localUrl = URL.createObjectURL(imageBlob);
-        
-                // Carreguem la imatge al DOM amb l'URL local
-                const img = new Image();
-                img.onload = () => {
-                    imagenActual = localUrl;
-                    previewImg.onload = () => {
-                        log(`✅ Imatge carregada: ${fileName}`);
-                        iniciarPuzzle();
-                    };
-                    previewImg.src = localUrl;
-                    finalImage.src = localUrl;
-                };
-                img.onerror = () => {
-                    log('❌ Error en processar el Blob de la imatge');
-                };
-                img.src = localUrl;
-        
-            } catch (err) {
-                log(`❌ Error al descarregar l'arxiu: ${err.message}`);
-            }
-        }
-        
-        // Variables globals de Google Drive
-        let tokenClient;
-        const GOOGLE_CLIENT_ID = '926201791608-862s6b2rebjqjrpv59kt71u5v203ltb4.apps.googleusercontent.com';
-        const GOOGLE_FOLDER_ID = '1us5-pJI8WVB1B4XNS82uyHjsXKETsG0m';
-        
-        // Inicialitzar Google API client i Identity Services
-        function initGoogleApi() {
-            // 1. Carregar el client GAPI pur (només per fer les peticions, sense auth2)
-            gapi.load('client', () => {
-                gapi.client.init({
-                    discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest']
-                }).then(() => {
-                    console.log('✅ Google API client inicialitzat');
-                }).catch(err => {
-                    console.log('❌ Error inicialitzant Google API:', err);
-                });
-            });
-        
-            // 2. Inicialitzar Google Identity Services per a l'autenticació
-            if (window.google && google.accounts) {
-                tokenClient = google.accounts.oauth2.initTokenClient({
-                    client_id: GOOGLE_CLIENT_ID,
-                    scope: 'https://www.googleapis.com/auth/drive.readonly',
-                    callback: (tokenResponse) => {
-                        if (tokenResponse && tokenResponse.access_token) {
-                            log('✅ Autenticació completada correctament');
-                            obtenirFotosDrive(); // Cridem la funció que llegeix la carpeta
-                        }
-                    }
-                });
-            }
-        }
-        
-        async function carregarGoogleDrive() {
-            log('📁 Connectant a Google Drive...');
-            
-            // Comprovem si l'usuari ja té un token actiu
-            if (gapi.client.getToken() === null) {
-                log('🔐 Sol·licitant accés a Google...');
-                // Això obrirà la finestra emergent d'autenticació
-                tokenClient.requestAccessToken({prompt: 'consent'});
-            } else {
-                // Si ja estem autenticats prèviament en aquesta sessió
-                obtenirFotosDrive();
-            }
-        }
-        
-        async function obtenirFotosDrive() {
-            try {
-                log('🔄 Obtenint fotos de Google Drive...');
-                
-                const response = await gapi.client.drive.files.list({
-                    q: `'${GOOGLE_FOLDER_ID}' in parents and (mimeType='image/jpeg' or mimeType='image/png' or mimeType='image/gif' or mimeType='image/webp') and trashed=false`,
-                    spaces: 'drive',
-                    fields: 'files(id, name, mimeType)',
-                    pageSize: 1000
-                });
-                
-                const files = response.result.files;
-                
-                if (!files || files.length === 0) {
-                    log('❌ Cap foto a Google Drive');
-                    return;
-                }
-                
-                log(`✅ Trobades ${files.length} fotos`);
-                
-                // Agafar una foto aleatòria de l'array
-                const fileAleatori = files[Math.floor(Math.random() * files.length)];
-                
-                log(`📸 Descarregant: ${fileAleatori.name}`);
-                puzzleContainer.innerHTML = '';
-                
-                // Cridem a la nova funció passant l'ID i el nom
-                cargarImagenDesdeDrive(fileAleatori.id, fileAleatori.name);                
-            } catch (err) {
-                log('❌ Error a Google Drive: ' + (err.message || 'Desconegut'));
-            }
-        }        
-        
-        function carregarUltima() {
-            if (lastSource === 'picsum') {
-                carregarImagenAleatoria();
-            } else if (lastSource === 'flickr-my') {
-                carregarFlickrMy();
-            } else if (lastSource === 'flickr-random') {
-                carregarFlickrRandom();
-            } else if (lastSource === 'drive') {
-                carregarGoogleDrive();
-            }
-        }
-        
-        refreshBtn.addEventListener('click', () => {
-            puzzleContainer.innerHTML = ''; // Neteja la pantalla immediatament
-            carregarUltima();
         });
 
         function log(msg) {
@@ -1065,11 +574,13 @@
         function carregarImagenAleatoria() {
             log('🔄 Carregant imatge...');
             const seed = Math.floor(Math.random() * 1000000);
-            const imageUrl = `https://picsum.photos/seed/puzzle${seed}/400/400`;
+            const imageUrl = `https://picsum.photos/seed/puzzle${seed}/800/600`;
             const img = new Image();
             img.crossOrigin = 'anonymous';
             img.onload = () => {
                 imagenActual = imageUrl;
+                photoWidth = img.naturalWidth;
+                photoHeight = img.naturalHeight;
                 previewImg.onload = () => {
                     log('✅ Imatge carregada');
                     iniciarPuzzle();
@@ -1083,88 +594,220 @@
             img.src = imageUrl;
         }
 
-    function iniciarPuzzle() {
-        if (!imagenActual) {
-            log('⚠️ Carrega una imatge primer');
-            return;
+        /* GOOGLE DRIVE */
+        let tokenClient;
+        const GOOGLE_CLIENT_ID = '926201791608-862s6b2rebjqjrpv59kt71u5v203ltb4.apps.googleusercontent.com';
+        const GOOGLE_FOLDER_ID = '1us5-pJI8WVB1B4XNS82uyHjsXKETsG0m';
+
+        function initGoogleApi() {
+            gapi.load('client', () => {
+                gapi.client.init({
+                    discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest']
+                }).then(() => {
+                    console.log('✅ Google API client inicialitzat');
+                }).catch(err => {
+                    console.log('❌ Error inicialitzant Google API:', err);
+                });
+            });
+
+            if (window.google && google.accounts) {
+                tokenClient = google.accounts.oauth2.initTokenClient({
+                    client_id: GOOGLE_CLIENT_ID,
+                    scope: 'https://www.googleapis.com/auth/drive.readonly',
+                    callback: (tokenResponse) => {
+                        if (tokenResponse && tokenResponse.access_token) {
+                            log('✅ Autenticació completada');
+                            obtenirFotosDrive();
+                        }
+                    }
+                });
+            }
         }
-        
-        divisions = parseInt(divisionsSelect.value);
-        const total = divisions * divisions;
-        log(`📦 Creant puzzle ${divisions}×${divisions}...`);
-    
-        const canvas = document.createElement('canvas');
-        canvas.width = 400;
-        canvas.height = 400;
-        const ctx = canvas.getContext('2d');
-    
-        const processImage = () => {
+
+        driveBtn.addEventListener('click', () => {
+            lastSource = 'drive';
+            carregarGoogleDrive();
+        });
+
+        async function carregarGoogleDrive() {
+            log('📁 Connectant a Google Drive...');
+            if (gapi.client.getToken() === null) {
+                log('🔐 Sol·licitant accés a Google...');
+                tokenClient.requestAccessToken({prompt: 'consent'});
+            } else {
+                obtenirFotosDrive();
+            }
+        }
+
+        async function obtenirFotosDrive() {
             try {
-                ctx.drawImage(previewImg, 0, 0, 400, 400);
-            } catch (e) {
-                log('❌ Error al dibuixar la imatge');
+                log('🔄 Obtenint fotos de Google Drive...');
+                const response = await gapi.client.drive.files.list({
+                    q: `'${GOOGLE_FOLDER_ID}' in parents and (mimeType='image/jpeg' or mimeType='image/png' or mimeType='image/gif' or mimeType='image/webp') and trashed=false`,
+                    spaces: 'drive',
+                    fields: 'files(id, name, mimeType)',
+                    pageSize: 1000
+                });
+                const files = response.result.files;
+                if (!files || files.length === 0) {
+                    log('❌ Cap foto a Google Drive');
+                    return;
+                }
+                log(`✅ Trobades ${files.length} fotos`);
+                const fileAleatori = files[Math.floor(Math.random() * files.length)];
+                log(`📸 Descarregant: ${fileAleatori.name}`);
+                puzzleContainer.innerHTML = '';
+                cargarImagenDesdeDrive(fileAleatori.id, fileAleatori.name);
+            } catch (err) {
+                log('❌ Error a Google Drive: ' + (err.message || 'Desconegut'));
+            }
+        }
+
+        async function cargarImagenDesdeDrive(fileId, fileName) {
+            try {
+                const tokenInfo = gapi.client.getToken();
+                if (!tokenInfo || !tokenInfo.access_token) {
+                    log('❌ Error: No s\'ha trobat el token d\'autenticació.');
+                    return;
+                }
+                const response = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+                    headers: { 'Authorization': `Bearer ${tokenInfo.access_token}` }
+                });
+                if (!response.ok) throw new Error(`Codi d'error: ${response.status}`);
+                const imageBlob = await response.blob();
+                const localUrl = URL.createObjectURL(imageBlob);
+                const img = new Image();
+                img.onload = () => {
+                    imagenActual = localUrl;
+                    photoWidth = img.naturalWidth;
+                    photoHeight = img.naturalHeight;
+                    previewImg.onload = () => {
+                        log(`✅ Imatge carregada: ${fileName}`);
+                        iniciarPuzzle();
+                    };
+                    previewImg.src = localUrl;
+                    finalImage.src = localUrl;
+                };
+                img.onerror = () => {
+                    log('❌ Error en processar el Blob de la imatge');
+                };
+                img.src = localUrl;
+            } catch (err) {
+                log(`❌ Error al descarregar l'arxiu: ${err.message}`);
+            }
+        }
+
+        function carregarUltima() {
+            if (lastSource === 'picsum') {
+                carregarImagenAleatoria();
+            } else if (lastSource === 'drive') {
+                carregarGoogleDrive();
+            }
+        }
+
+        refreshBtn.addEventListener('click', () => {
+            puzzleContainer.innerHTML = '';
+            carregarUltima();
+        });
+
+        function iniciarPuzzle() {
+            if (!imagenActual) {
+                log('⚠️ Carrega una imatge primer');
                 return;
             }
-    
-            pecesDataURL = [];
-            const pieceSize = 400 / divisions;
-            for (let row = 0; row < divisions; row++) {
-                for (let col = 0; col < divisions; col++) {
-                    const pieceCanvas = document.createElement('canvas');
-                    pieceCanvas.width = pieceSize;
-                    pieceCanvas.height = pieceSize;
-                    const pctx = pieceCanvas.getContext('2d');
-                    pctx.drawImage(
-                        canvas,
-                        col * pieceSize, row * pieceSize, pieceSize, pieceSize,
-                        0, 0, pieceSize, pieceSize
-                    );
-                    pecesDataURL.push(pieceCanvas.toDataURL());
+
+            divisions = parseInt(divisionsSelect.value);
+            const total = divisions * divisions;
+            log(`📦 Creant puzzle ${divisions}×${divisions}...`);
+
+            // Calcular mida del canvas mantenint l'aspect ratio
+            const maxCanvasWidth = 800;
+            const maxCanvasHeight = 800;
+            let canvasWidth = photoWidth;
+            let canvasHeight = photoHeight;
+
+            if (canvasWidth > maxCanvasWidth || canvasHeight > maxCanvasHeight) {
+                const scaleW = maxCanvasWidth / canvasWidth;
+                const scaleH = maxCanvasHeight / canvasHeight;
+                const scale = Math.min(scaleW, scaleH);
+                canvasWidth = canvasWidth * scale;
+                canvasHeight = canvasHeight * scale;
+            }
+
+            const canvas = document.createElement('canvas');
+            canvas.width = canvasWidth;
+            canvas.height = canvasHeight;
+            const ctx = canvas.getContext('2d');
+
+            const processImage = () => {
+                try {
+                    ctx.drawImage(previewImg, 0, 0, canvasWidth, canvasHeight);
+                } catch (e) {
+                    log('❌ Error al dibuixar la imatge');
+                    return;
                 }
-            }
-    
-            ordre = Array.from({ length: total }, (_, i) => i);
-            for (let i = total - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [ordre[i], ordre[j]] = [ordre[j], ordre[i]];
-            }
-            fixat = new Array(total).fill(false);
-    
-            // NOU CODI: Mostrar la imatge sencera al tauler abans de dividir
-            puzzleContainer.innerHTML = ''; 
-            puzzleContainer.style.gridTemplateColumns = '1fr'; 
-            
-            const imatgeSenceraDiv = document.createElement('div');
-            imatgeSenceraDiv.style.width = '100%';
-            imatgeSenceraDiv.style.height = '100%';
-            imatgeSenceraDiv.style.backgroundImage = `url('${imagenActual}')`;
-            imatgeSenceraDiv.style.backgroundSize = '100% 100%';
-            imatgeSenceraDiv.style.backgroundPosition = 'center';
-            imatgeSenceraDiv.style.borderRadius = '6px';
-            
-            puzzleContainer.appendChild(imatgeSenceraDiv);
-    
-            if (!isDifficultyMode) {
-                imagePreview.classList.remove('hidden');
-                log('✨ Veient la foto sencera (ajuda visible)...');
-            } else {
-                log('✨ Veient la foto sencera (sense ajuda)...');
-            }
-    
-            // Esperem 2.5 segons amb la imatge sencera al tauler abans de trencar-la
-            setTimeout(() => {
-                renderitzarPuzzle(true); // renderitzarPuzzle ja s'encarrega de buidar el contenidor i aplicar el grid
-                log('🧩 Arrossega les peces!');
-            }, 2500);
-    };
 
-    processImage();
-}
+                pecesDataURL = [];
+                const pieceWidth = canvasWidth / divisions;
+                const pieceHeight = canvasHeight / divisions;
 
-        function renderitzarPuzzle(animate = false) {
+                for (let row = 0; row < divisions; row++) {
+                    for (let col = 0; col < divisions; col++) {
+                        const pieceCanvas = document.createElement('canvas');
+                        pieceCanvas.width = pieceWidth;
+                        pieceCanvas.height = pieceHeight;
+                        const pctx = pieceCanvas.getContext('2d');
+                        pctx.drawImage(
+                            canvas,
+                            col * pieceWidth, row * pieceHeight, pieceWidth, pieceHeight,
+                            0, 0, pieceWidth, pieceHeight
+                        );
+                        pecesDataURL.push(pieceCanvas.toDataURL());
+                    }
+                }
+
+                ordre = Array.from({ length: total }, (_, i) => i);
+                for (let i = total - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [ordre[i], ordre[j]] = [ordre[j], ordre[i]];
+                }
+                fixat = new Array(total).fill(false);
+
+                puzzleContainer.innerHTML = '';
+                puzzleContainer.style.gridTemplateColumns = '1fr';
+                puzzleContainer.style.aspectRatio = `${canvasWidth} / ${canvasHeight}`;
+
+                const imatgeSenceraDiv = document.createElement('div');
+                imatgeSenceraDiv.style.width = '100%';
+                imatgeSenceraDiv.style.height = '100%';
+                imatgeSenceraDiv.style.backgroundImage = `url('${imagenActual}')`;
+                imatgeSenceraDiv.style.backgroundSize = '100% 100%';
+                imatgeSenceraDiv.style.backgroundPosition = 'center';
+                imatgeSenceraDiv.style.borderRadius = '6px';
+
+                puzzleContainer.appendChild(imatgeSenceraDiv);
+
+                if (!isDifficultyMode) {
+                    imagePreview.classList.remove('hidden');
+                    log('✨ Veient la foto sencera (ajuda visible)...');
+                } else {
+                    log('✨ Veient la foto sencera (sense ajuda)...');
+                }
+
+                setTimeout(() => {
+                    renderitzarPuzzle(true, canvasWidth, canvasHeight, pieceWidth, pieceHeight);
+                    log('🧩 Arrossega les peces!');
+                }, 2500);
+            };
+
+            processImage();
+        }
+
+        function renderitzarPuzzle(animate = false, canvasWidth = 400, canvasHeight = 400, pieceWidth = 100, pieceHeight = 100) {
             const total = divisions * divisions;
             puzzleContainer.innerHTML = '';
             puzzleContainer.style.gridTemplateColumns = `repeat(${divisions}, 1fr)`;
+            puzzleContainer.style.aspectRatio = `${canvasWidth} / ${canvasHeight}`;
 
             for (let i = 0; i < total; i++) {
                 const pecaIndex = ordre[i];
@@ -1240,13 +883,11 @@
             floatingClone.style.pointerEvents = 'none';
             floatingClone.style.boxShadow = '0 8px 20px rgba(0,0,0,0.3)';
             floatingClone.classList.add('unfixed');
-
             const rect = touchPiece.getBoundingClientRect();
             floatingClone.style.left = rect.left + 'px';
             floatingClone.style.top = rect.top + 'px';
             floatingClone.style.width = rect.width + 'px';
             floatingClone.style.height = rect.height + 'px';
-
             document.body.appendChild(floatingClone);
             touchPiece.style.opacity = '0.3';
         }
@@ -1297,17 +938,17 @@
 
         victoryBtn.addEventListener('click', () => {
             victoryOverlay.classList.remove('active');
-            puzzleContainer.innerHTML = ''; // Amaga el puzzle completat antic
+            puzzleContainer.innerHTML = '';
             carregarUltima();
         });
-        
+
         divisionsSelect.addEventListener('change', () => {
             if (imagenActual) iniciarPuzzle();
         });
 
         initTheme();
         initAnimations();
-        // Sincronitzar el mode difícil al carregar
+
         if (isDifficultyMode) {
             helpToggle.textContent = '🆘';
             imagePreview.classList.add('hidden');
@@ -1315,7 +956,7 @@
             helpToggle.textContent = '🚀';
             imagePreview.classList.remove('hidden');
         }
-        // Inicializar Google API
+
         initGoogleApi();
         carregarImagenAleatoria();
     </script>
