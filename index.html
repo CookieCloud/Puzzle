@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
     PUZZLE ART PWA
-    Version: 2.28
+    Version: 2.29
     
     FIX: imagePreview (ajuda) roman sempre fixa
     Només s'amaga quan l'usuari activa mode 🚀
@@ -15,8 +15,8 @@
     <link rel="icon" type="image/png" sizes="32x32" href="puzzle32x32.png">
     <link rel="icon" type="image/png" sizes="192x192" href="puzzle192x192.png">
     <link rel="apple-touch-icon" sizes="180x180" href="puzzle180x180.png">
-        <!-- Cloudinary Media Library -->
-    <script src="https://media-library.cloudinary.com/global/all.js"></script>
+<!-- Cloudinary Upload Widget -->
+<script src="https://upload-widget.cloudinary.com/global/all.js"></script>
     <title>Puzzle</title>
     <style>
         :root {
@@ -559,7 +559,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🧩 Puzzle <span id="version">v2.28</span></h1>
+            <h1>🧩 Puzzle <span id="version">v2.29</span></h1>
         </div>
         <div class="controls-bar">
             <select id="divisionsSelect" title="Nombre de peces">
@@ -863,44 +863,54 @@
         });
         
         function carregarCloudinary() {
-            log('☁️ Obrint biblioteca de Cloudinary...');
+            log('☁️ Selecciona una foto de Cloudinary...');
             
-            // Esperar que la libreria de Cloudinary estigui disponible
             if (typeof cloudinary === 'undefined') {
-                log('⏳ Carregant biblioteca de Cloudinary...');
+                log('⏳ Carregant widget de Cloudinary...');
                 setTimeout(() => carregarCloudinary(), 500);
                 return;
             }
             
-            const cloudName = 'suqerlbw';
-            const apiKey = '816693642467468';
-            
             try {
-                const ml = cloudinary.mediaLibrary.open({
-                    cloud_name: cloudName,
-                    api_key: apiKey,
-                    button_class: 'cloudinary-button',
-                    insert_caption: 'Select Image for Puzzle',
-                    max_files: 1,
+                cloudinary.openUploadWidget({
+                    cloudName: 'suqerlbw',
+                    uploadPreset: 'puzzle_uploads',
+                    resourceType: 'image',
+                    folder: '',
                     multiple: false,
-                    folder: '/',
-                    show_download_button: false,
-                    show_share_button: false,
-                    resource_type: 'image'
-                }, {
-                    insertHandler: function(data) {
-                        log('✅ Foto seleccionada');
-                        const imageUrl = data.assets[0].secure_url;
+                    maxFiles: 1,
+                    sources: ['local', 'url', 'camera'],
+                    styles: {
+                        palette: {
+                            window: '#FFFFFF',
+                            windowBorder: '#90A0B0',
+                            tabIcon: '#667eea',
+                            menuIcons: '#5A6268',
+                            textDark: '#000000',
+                            textLight: '#FFFFFF',
+                            link: '#667eea',
+                            action: '#667eea',
+                            inactiveTabIcon: '#0E7C86',
+                            error: '#F44235',
+                            inProgress: '#667eea',
+                            complete: '#20B488',
+                            sourceBg: '#E8EFF5'
+                        }
+                    }
+                }, (error, result) => {
+                    if (!error && result && result.event === 'success') {
+                        log('✅ Foto pujada a Cloudinary');
+                        const imageUrl = result.info.secure_url;
                         puzzleContainer.innerHTML = ''; 
                         cargarImagenDesdeUrl(imageUrl, 'cloudinary');
-                        ml.close();
+                    } else if (error) {
+                        log('❌ Error: ' + error);
                     }
                 });
             } catch(err) {
-                log('❌ Error al obrir Cloudinary: ' + err.message);
+                log('❌ Error al obrir widget: ' + err.message);
             }
-        }
-        
+        }        
         function carregarUltima() {
             if (lastSource === 'picsum') {
                 carregarImagenAleatoria();
