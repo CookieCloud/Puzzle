@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
     PUZZLE ART PWA
-    Version: 2.25
+    Version: 2.26
     
     FIX: imagePreview (ajuda) roman sempre fixa
     Només s'amaga quan l'usuari activa mode 🚀
@@ -557,7 +557,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🧩 Puzzle <span id="version">v2.25</span></h1>
+            <h1>🧩 Puzzle <span id="version">v2.26</span></h1>
         </div>
         <div class="controls-bar">
             <select id="divisionsSelect" title="Nombre de peces">
@@ -569,6 +569,7 @@
             <button class="icon-btn" id="flickrMyBtn" title="Flickr (meu)">🖼️</button>
             <button class="icon-btn" id="flickrRandomBtn" title="Flickr (aleatori)">🌍</button>
             <button class="icon-btn" id="picsumBtn" title="Imatge aleatoria">🎨</button>
+            <button class="icon-btn" id="cloudinaryBtn" title="Cloudinary">☁️</button>
             <button class="icon-btn" id="refreshBtn" title="Nova foto">🔄</button>
             <div style="flex: 1;"></div>
             <button class="icon-btn" id="animationsToggle" title="Activar/desactivar animacions">✨</button>
@@ -851,6 +852,46 @@
             lastSource = 'picsum';
             carregarImagenAleatoria();
         });
+
+        const cloudinaryBtn = document.getElementById('cloudinaryBtn');
+        
+        cloudinaryBtn.addEventListener('click', () => {
+            puzzleContainer.innerHTML = ''; 
+            lastSource = 'cloudinary';
+            carregarCloudinary();
+        });
+        
+        async function carregarCloudinary() {
+            log('🔄 Obtenint fotos de Cloudinary...');
+            const cloudName = 'suqerlbw';
+            const apiKey = '816693642467468';
+            
+            try {
+                const auth = btoa(cloudName + ':' + apiKey);
+                const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/resources/search`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': 'Basic ' + auth,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (!data.resources || data.resources.length === 0) {
+                    log('❌ Cap foto a Cloudinary');
+                    return;
+                }
+                
+                log(`✅ Trobades ${data.resources.length} fotos`);
+                const fotoAleatoria = data.resources[Math.floor(Math.random() * data.resources.length)];
+                const imageUrl = fotoAleatoria.secure_url;
+                
+                cargarImagenDesdeUrl(imageUrl, 'cloudinary');
+            } catch (err) {
+                log('❌ Error: ' + err.message);
+            }
+        }
         
         function carregarUltima() {
             if (lastSource === 'picsum') {
@@ -859,9 +900,10 @@
                 carregarFlickrMy();
             } else if (lastSource === 'flickr-random') {
                 carregarFlickrRandom();
+            } else if (lastSource === 'cloudinary') {
+                carregarCloudinary();
             }
         }
-
         refreshBtn.addEventListener('click', () => {
             puzzleContainer.innerHTML = ''; // Neteja la pantalla immediatament
             carregarUltima();
