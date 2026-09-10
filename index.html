@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
     TRENCACLOSQUES ART PWA
-    Version: 2.37
+    Version: 2.36
     
     CLEAN VERSION:
     - Picsum + GitHub + Google Drive
@@ -86,7 +86,7 @@
             margin-right: auto;
         }
         h1 {
-            color: white;
+            color: var(--btn-bg);
             font-size: clamp(1.2rem, 5vw, 1.8rem);
             flex: 1;
         }
@@ -244,6 +244,40 @@
             margin-left: auto;
             margin-right: auto;
             border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .stats-container {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            align-items: center;
+            margin-top: 12px;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            padding: clamp(8px, 2vw, 10px);
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: clamp(11px, 2.5vw, 13px);
+            color: rgba(255, 255, 255, 0.8);
+        }
+        .stat-label {
+            font-weight: 600;
+            opacity: 0.9;
+        }
+        .stat-value {
+            background: rgba(102, 126, 234, 0.2);
+            padding: 4px 12px;
+            border-radius: 12px;
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            font-weight: bold;
+            color: rgba(255, 255, 255, 0.95);
         }
         .victory-overlay {
             position: fixed;
@@ -435,7 +469,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🧩 Trencaclosques <span id="version">v2.37</span></h1>
+            <h1>🧩 Trencaclosques <span id="version">v2.36</span></h1>
         </div>
         <div class="controls-bar">
             <select id="divisionsSelect" title="Nombre de peces">
@@ -460,6 +494,20 @@
             <img id="previewImg" src="" alt="Original" crossOrigin="anonymous">
         </div>
         <div class="log" id="log">Carregant...</div>
+        <div class="stats-container">
+            <div class="stat-item">
+                <span class="stat-label">📊 Fotos:</span>
+                <span class="stat-value"><span id="photosPlayed">0</span> / <span id="totalPhotos">∞</span></span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">🎮 Partides:</span>
+                <span class="stat-value" id="gamesPlayed">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">✨ Font:</span>
+                <span class="stat-value" id="currentSource">Picsum</span>
+            </div>
+        </div>
     </div>
     <div id="victoryOverlay" class="victory-overlay">
         <div class="victory-popup">
@@ -501,6 +549,13 @@
         let currentCanvasHeight = 400;
         let currentPieceWidth = 100;
         let currentPieceHeight = 100;
+        
+        // 📊 ESTADÍSTIQUES
+        let photosPlayed = 0;
+        let gamesPlayed = 0;
+        let totalPhotos = 0;
+        let gitHubPhotosCount = 0;
+        let drivePhotosCount = 0;
         
         const animationTypes = [
             'entrance-spin', 'entrance-fall', 'entrance-explosion', 'entrance-flip',
@@ -593,6 +648,40 @@
             logDiv.textContent = msg;
         }
 
+        // 📊 FUNCIONS D'ESTADÍSTIQUES
+        function updateStats() {
+            document.getElementById('photosPlayed').textContent = photosPlayed;
+            document.getElementById('totalPhotos').textContent = totalPhotos || '∞';
+            document.getElementById('gamesPlayed').textContent = gamesPlayed;
+            
+            // Actualitzar font actual
+            let sourceEmoji = '🎨';
+            let sourceName = 'Picsum';
+            if (lastSource === 'github') {
+                sourceEmoji = '📸';
+                sourceName = 'GitHub';
+                totalPhotos = gitHubPhotosCount;
+            } else if (lastSource === 'drive') {
+                sourceEmoji = '🌐';
+                sourceName = 'Google Drive';
+                totalPhotos = drivePhotosCount;
+            } else {
+                totalPhotos = '∞';
+            }
+            document.getElementById('currentSource').textContent = `${sourceEmoji} ${sourceName}`;
+            document.getElementById('totalPhotos').textContent = totalPhotos;
+        }
+
+        function incrementPhotosPlayed() {
+            photosPlayed++;
+            updateStats();
+        }
+
+        function incrementGamesPlayed() {
+            gamesPlayed++;
+            updateStats();
+        }
+
         function carregarImagenAleatoria() {
             log('🔄 Carregant imatge...');
             const seed = Math.floor(Math.random() * 1000000);
@@ -605,6 +694,7 @@
                 photoHeight = img.naturalHeight;
                 previewImg.onload = () => {
                     log('✅ Imatge carregada');
+                    incrementPhotosPlayed();
                     iniciarPuzzle();
                 };
                 previewImg.src = imageUrl;
@@ -634,11 +724,15 @@
                     return;
                 }
                 
+                // Guardar el compte de fotos GitHub
+                gitHubPhotosCount = fotos.length;
+                
                 // Seleccionar una aleatòria
                 const fotoAleatoria = fotos[Math.floor(Math.random() * fotos.length)];
                 const imageUrl = `Fotos/${fotoAleatoria}`;
                 
                 log(`✅ Carregant: ${fotoAleatoria}`);
+                incrementPhotosPlayed();
                 cargarImagenDesdeUrl(imageUrl, 'github');
                 
             } catch (err) {
@@ -705,10 +799,15 @@
                     log('❌ Cap foto a Google Drive');
                     return;
                 }
+                
+                // Guardar el compte de fotos Google Drive
+                drivePhotosCount = files.length;
+                
                 log(`✅ Trobades ${files.length} fotos`);
                 const fileAleatori = files[Math.floor(Math.random() * files.length)];
                 log(`📸 Descarregant: ${fileAleatori.name}`);
                 puzzleContainer.innerHTML = '';
+                incrementPhotosPlayed();
                 cargarImagenDesdeDrive(fileAleatori.id, fileAleatori.name);
             } catch (err) {
                 log('❌ Error a Google Drive: ' + (err.message || 'Desconegut'));
@@ -770,6 +869,7 @@
                 return;
             }
 
+            incrementGamesPlayed();
             divisions = parseInt(divisionsSelect.value);
             const total = divisions * divisions;
             log(`📦 Creant puzzle ${divisions}×${divisions}...`);
@@ -1014,6 +1114,7 @@
 
         initTheme();
         initAnimations();
+        updateStats();
 
         if (isDifficultyMode) {
             helpToggle.textContent = '🆘';
