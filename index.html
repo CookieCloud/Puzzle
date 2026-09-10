@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <!--
     PUZZLE ART PWA
-    Version: 2.34
+    Version: 2.36
     
     CLEAN VERSION:
-    - Només Picsum + Google Drive
+    - Picsum + GitHub + Google Drive
     - Tauler adaptat a l'aspect ratio de la foto
     - Sense Flickr ni Cloudinary
 -->
@@ -427,7 +427,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🧩 Puzzle <span id="version">v2.34</span></h1>
+            <h1>🧩 Puzzle <span id="version">v2.36</span></h1>
         </div>
         <div class="controls-bar">
             <select id="divisionsSelect" title="Nombre de peces">
@@ -437,6 +437,7 @@
                 <option value="5">5×5</option>
             </select>
             <button class="icon-btn" id="picsumBtn" title="Imatge aleatoria">🎨</button>
+            <button class="icon-btn" id="githubBtn" title="GitHub">📸</button>
             <button class="icon-btn" id="driveBtn" title="Google Drive">🌐</button>
             <button class="icon-btn" id="refreshBtn" title="Nova foto">🔄</button>
             <div style="flex: 1;"></div>
@@ -464,6 +465,7 @@
     <script>
         const divisionsSelect = document.getElementById('divisionsSelect');
         const picsumBtn = document.getElementById('picsumBtn');
+        const githubBtn = document.getElementById('githubBtn');
         const driveBtn = document.getElementById('driveBtn');
         const refreshBtn = document.getElementById('refreshBtn');
         const animationsToggle = document.getElementById('animationsToggle');
@@ -531,6 +533,7 @@
         }
 
         function updateAnimationsButton() {
+            animationsToggle.textContent = '✨';
             animationsToggle.style.opacity = isAnimationsEnabled ? '1' : '0.4';
         }
 
@@ -571,6 +574,12 @@
             carregarImagenAleatoria();
         });
 
+        githubBtn.addEventListener('click', () => {
+            puzzleContainer.innerHTML = '';
+            lastSource = 'github';
+            carregarFotosGitHub();
+        });
+
         function log(msg) {
             console.log(msg);
             logDiv.textContent = msg;
@@ -597,6 +606,36 @@
                 log('❌ Error al carregar. Proba de nou.');
             };
             img.src = imageUrl;
+        }
+
+        async function carregarFotosGitHub() {
+            log('📂 Carregant fotos de GitHub...');
+            
+            try {
+                const response = await fetch('fotos/fotos.json');
+                if (!response.ok) {
+                    log('❌ No s\'ha trobat fotos.json');
+                    return;
+                }
+                
+                const data = await response.json();
+                const fotos = data.fotos;
+                
+                if (!fotos || fotos.length === 0) {
+                    log('❌ Cap foto disponible');
+                    return;
+                }
+                
+                // Seleccionar una aleatòria
+                const fotoAleatoria = fotos[Math.floor(Math.random() * fotos.length)];
+                const imageUrl = `fotos/${fotoAleatoria}`;
+                
+                log(`✅ Carregant: ${fotoAleatoria}`);
+                cargarImagenDesdeUrl(imageUrl, 'github');
+                
+            } catch (err) {
+                log('❌ Error carregant fotos: ' + err.message);
+            }
         }
 
         /* GOOGLE DRIVE */
@@ -705,6 +744,8 @@
         function carregarUltima() {
             if (lastSource === 'picsum') {
                 carregarImagenAleatoria();
+            } else if (lastSource === 'github') {
+                carregarFotosGitHub();
             } else if (lastSource === 'drive') {
                 carregarGoogleDrive();
             }
