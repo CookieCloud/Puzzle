@@ -1,11 +1,14 @@
 <!DOCTYPE html>
 <!--
     TRENCACLOSQUES ART PWA
-    Version: 2.37
+    Version: 2.38
     
     CLEAN VERSION:
-    - GitHub prioritari + Picsum fallback
-    - Tauler adaptat a l'aspect ratio de la foto
+    - GitHub/fotos GG prioritari + Picsum fallback
+    - Sense Google Drive
+    - Sense repeticions de fotos
+    - Títol blanc
+    - Partides comptades només si resolts
 -->
 <html lang="ca">
 <head>
@@ -82,7 +85,7 @@
             margin-right: auto;
         }
         h1 {
-            color: var(--btn-bg);
+            color: #ffffff;
             font-size: clamp(1.2rem, 5vw, 1.8rem);
             flex: 1;
         }
@@ -465,7 +468,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🧩 Trencaclosques <span id="version">v2.37</span></h1>
+            <h1>🧩 Trencaclosques <span id="version">v2.38</span></h1>
         </div>
         <div class="controls-bar">
             <select id="divisionsSelect" title="Nombre de peces">
@@ -549,6 +552,11 @@
         let gamesPlayed = 0;
         let totalPhotos = 0;
         let gitHubPhotosCount = 0;
+        
+        // 📷 GESTIÓ DE FOTOS (evitar repeticions)
+        let allPhotos = [];              // Totes les fotos disponibles
+        let playedPhotos = [];           // Fotos ja jugades
+        let currentPhotoIndex = -1;      // Index de la foto actual
         
         const animationTypes = [
             'entrance-spin', 'entrance-fall', 'entrance-explosion', 'entrance-flip',
@@ -652,7 +660,7 @@
             let sourceName = 'Picsum';
             if (lastSource === 'github') {
                 sourceEmoji = '📸';
-                sourceName = 'GitHub';
+                sourceName = 'fotos GG';
                 totalPhotos = gitHubPhotosCount;
             } else {
                 totalPhotos = '∞';
@@ -669,6 +677,39 @@
         function incrementGamesPlayed() {
             gamesPlayed++;
             updateStats();
+        }
+
+        // 📷 FUNCIÓ PER SELECCIONAR FOTO SENSE REPETIR
+        function getNextPhoto(fotos) {
+            if (!allPhotos || allPhotos.length === 0) {
+                allPhotos = [...fotos];
+                playedPhotos = [];
+            }
+            
+            // Si ja s'han jugat totes, reiniciar la llista
+            if (playedPhotos.length >= allPhotos.length) {
+                log('🔄 Reiniciant llistat de fotos...');
+                playedPhotos = [];
+            }
+            
+            // Seleccionar una foto aleatòria que NO s'ha jugat
+            let randomPhoto = null;
+            let attempts = 0;
+            const maxAttempts = allPhotos.length * 2; // Evitar bucles infinits
+            
+            do {
+                const randomIndex = Math.floor(Math.random() * allPhotos.length);
+                randomPhoto = allPhotos[randomIndex];
+                attempts++;
+            } while (playedPhotos.includes(randomPhoto) && attempts < maxAttempts);
+            
+            // Afegir la foto a jugades
+            if (randomPhoto && !playedPhotos.includes(randomPhoto)) {
+                playedPhotos.push(randomPhoto);
+                currentPhotoIndex = allPhotos.indexOf(randomPhoto);
+            }
+            
+            return randomPhoto;
         }
 
         function carregarImagenAleatoria() {
@@ -696,7 +737,7 @@
         }
 
         async function carregarFotosGitHub() {
-            log('📂 Carregant fotos de GitHub...');
+            log('📂 Carregant fotos de fotos GG...');
             
             try {
                 const response = await fetch('Fotos/fotos.json');
@@ -713,14 +754,20 @@
                     return;
                 }
                 
-                // Guardar el compte de fotos GitHub
+                // Guardar el compte de fotos
                 gitHubPhotosCount = fotos.length;
                 
-                // Seleccionar una aleatòria
-                const fotoAleatoria = fotos[Math.floor(Math.random() * fotos.length)];
-                const imageUrl = `Fotos/${fotoAleatoria}`;
+                // Seleccionar una aleatòria SENSE REPETIR
+                const fotoAleatoria = getNextPhoto(fotos);
+                if (!fotoAleatoria) {
+                    log('❌ Error al seleccionar foto');
+                    return;
+                }
                 
-                log(`✅ Carregant: ${fotoAleatoria}`);
+                const imageUrl = `Fotos/${fotoAleatoria}`;
+                const fotesRestants = gitHubPhotosCount - playedPhotos.length;
+                
+                log(`✅ Carregant: ${fotoAleatoria} (${playedPhotos.length}/${gitHubPhotosCount})`);
                 incrementPhotosPlayed();
                 cargarImagenDesdeUrl(imageUrl, 'github');
                 
@@ -748,7 +795,6 @@
                 return;
             }
 
-            incrementGamesPlayed();
             divisions = parseInt(divisionsSelect.value);
             const total = divisions * divisions;
             log(`📦 Creant puzzle ${divisions}×${divisions}...`);
@@ -974,6 +1020,7 @@
             const totsFixats = fixat.every(v => v === true);
             if (totsFixats) {
                 log('🎉 VISCA!');
+                incrementGamesPlayed(); // ✅ Contar partida NOMÉS si es completa
                 victoryOverlay.classList.add('active');
             } else {
                 const correctes = fixat.filter(v => v).length;
