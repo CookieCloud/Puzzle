@@ -1,12 +1,11 @@
 <!DOCTYPE html>
 <!--
     TRENCACLOSQUES ART PWA
-    Version: 2.36
+    Version: 2.37
     
     CLEAN VERSION:
-    - Picsum + GitHub + Google Drive
+    - GitHub prioritari + Picsum fallback
     - Tauler adaptat a l'aspect ratio de la foto
-    - Sense Flickr ni Cloudinary
 -->
 <html lang="ca">
 <head>
@@ -17,9 +16,6 @@
     <link rel="icon" type="image/png" sizes="32x32" href="puzzle32x32.png">
     <link rel="icon" type="image/png" sizes="192x192" href="puzzle192x192.png">
     <link rel="apple-touch-icon" sizes="180x180" href="puzzle180x180.png">
-    <!-- Google APIs -->
-    <script src="https://apis.google.com/js/api.js"></script>
-    <script src="https://accounts.google.com/gsi/client"></script>
     <title>Trencaclosques</title>
     <style>
         :root {
@@ -469,7 +465,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🧩 Trencaclosques <span id="version">v2.36</span></h1>
+            <h1>🧩 Trencaclosques <span id="version">v2.37</span></h1>
         </div>
         <div class="controls-bar">
             <select id="divisionsSelect" title="Nombre de peces">
@@ -480,9 +476,8 @@
             </select>
             <button class="icon-btn" id="picsumBtn" title="Imatge aleatoria">🎨</button>
             <button class="icon-btn" id="githubBtn" title="GitHub">📸</button>
-            <button class="icon-btn" id="driveBtn" title="Google Drive">🌐</button>
-            <button class="icon-btn" id="refreshBtn" title="Nova foto">🔄</button>
             <div style="flex: 1;"></div>
+            <button class="icon-btn" id="refreshBtn" title="Nova foto">🔄</button>
             <button class="icon-btn" id="animationsToggle" title="Activar/desactivar animacions">✨</button>
             <button class="icon-btn" id="helpToggle" title="Amb ajuda o sense">🚀</button>
             <button class="theme-toggle" id="themeToggle" title="Canviar mode fosc">🌙</button>
@@ -522,7 +517,6 @@
         const divisionsSelect = document.getElementById('divisionsSelect');
         const picsumBtn = document.getElementById('picsumBtn');
         const githubBtn = document.getElementById('githubBtn');
-        const driveBtn = document.getElementById('driveBtn');
         const refreshBtn = document.getElementById('refreshBtn');
         const animationsToggle = document.getElementById('animationsToggle');
         const helpToggle = document.getElementById('helpToggle');
@@ -555,7 +549,6 @@
         let gamesPlayed = 0;
         let totalPhotos = 0;
         let gitHubPhotosCount = 0;
-        let drivePhotosCount = 0;
         
         const animationTypes = [
             'entrance-spin', 'entrance-fall', 'entrance-explosion', 'entrance-flip',
@@ -661,10 +654,6 @@
                 sourceEmoji = '📸';
                 sourceName = 'GitHub';
                 totalPhotos = gitHubPhotosCount;
-            } else if (lastSource === 'drive') {
-                sourceEmoji = '🌐';
-                sourceName = 'Google Drive';
-                totalPhotos = drivePhotosCount;
             } else {
                 totalPhotos = '∞';
             }
@@ -740,121 +729,11 @@
             }
         }
 
-        /* GOOGLE DRIVE */
-        let tokenClient;
-        const GOOGLE_CLIENT_ID = '926201791608-862s6b2rebjqjrpv59kt71u5v203ltb4.apps.googleusercontent.com';
-        const GOOGLE_FOLDER_ID = '1us5-pJI8WVB1B4XNS82uyHjsXKETsG0m';
-
-        function initGoogleApi() {
-            gapi.load('client', () => {
-                gapi.client.init({
-                    discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest']
-                }).then(() => {
-                    console.log('✅ Google API client inicialitzat');
-                }).catch(err => {
-                    console.log('❌ Error inicialitzant Google API:', err);
-                });
-            });
-
-            if (window.google && google.accounts) {
-                tokenClient = google.accounts.oauth2.initTokenClient({
-                    client_id: GOOGLE_CLIENT_ID,
-                    scope: 'https://www.googleapis.com/auth/drive.readonly',
-                    callback: (tokenResponse) => {
-                        if (tokenResponse && tokenResponse.access_token) {
-                            log('✅ Autenticació completada');
-                            obtenirFotosDrive();
-                        }
-                    }
-                });
-            }
-        }
-
-        driveBtn.addEventListener('click', () => {
-            lastSource = 'drive';
-            carregarGoogleDrive();
-        });
-
-        async function carregarGoogleDrive() {
-            log('📁 Connectant a Google Drive...');
-            if (gapi.client.getToken() === null) {
-                log('🔐 Sol·licitant accés a Google...');
-                tokenClient.requestAccessToken({prompt: 'consent'});
-            } else {
-                obtenirFotosDrive();
-            }
-        }
-
-        async function obtenirFotosDrive() {
-            try {
-                log('🔄 Obtenint fotos de Google Drive...');
-                const response = await gapi.client.drive.files.list({
-                    q: `'${GOOGLE_FOLDER_ID}' in parents and (mimeType='image/jpeg' or mimeType='image/png' or mimeType='image/gif' or mimeType='image/webp') and trashed=false`,
-                    spaces: 'drive',
-                    fields: 'files(id, name, mimeType)',
-                    pageSize: 1000
-                });
-                const files = response.result.files;
-                if (!files || files.length === 0) {
-                    log('❌ Cap foto a Google Drive');
-                    return;
-                }
-                
-                // Guardar el compte de fotos Google Drive
-                drivePhotosCount = files.length;
-                
-                log(`✅ Trobades ${files.length} fotos`);
-                const fileAleatori = files[Math.floor(Math.random() * files.length)];
-                log(`📸 Descarregant: ${fileAleatori.name}`);
-                puzzleContainer.innerHTML = '';
-                incrementPhotosPlayed();
-                cargarImagenDesdeDrive(fileAleatori.id, fileAleatori.name);
-            } catch (err) {
-                log('❌ Error a Google Drive: ' + (err.message || 'Desconegut'));
-            }
-        }
-
-        async function cargarImagenDesdeDrive(fileId, fileName) {
-            try {
-                const tokenInfo = gapi.client.getToken();
-                if (!tokenInfo || !tokenInfo.access_token) {
-                    log('❌ Error: No s\'ha trobat el token d\'autenticació.');
-                    return;
-                }
-                const response = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
-                    headers: { 'Authorization': `Bearer ${tokenInfo.access_token}` }
-                });
-                if (!response.ok) throw new Error(`Codi d'error: ${response.status}`);
-                const imageBlob = await response.blob();
-                const localUrl = URL.createObjectURL(imageBlob);
-                const img = new Image();
-                img.onload = () => {
-                    imagenActual = localUrl;
-                    photoWidth = img.naturalWidth;
-                    photoHeight = img.naturalHeight;
-                    previewImg.onload = () => {
-                        log(`✅ Imatge carregada: ${fileName}`);
-                        iniciarPuzzle();
-                    };
-                    previewImg.src = localUrl;
-                    finalImage.src = localUrl;
-                };
-                img.onerror = () => {
-                    log('❌ Error en processar el Blob de la imatge');
-                };
-                img.src = localUrl;
-            } catch (err) {
-                log(`❌ Error al descarregar l'arxiu: ${err.message}`);
-            }
-        }
-
         function carregarUltima() {
-            if (lastSource === 'picsum') {
-                carregarImagenAleatoria();
-            } else if (lastSource === 'github') {
+            if (lastSource === 'github') {
                 carregarFotosGitHub();
-            } else if (lastSource === 'drive') {
-                carregarGoogleDrive();
+            } else {
+                carregarImagenAleatoria();
             }
         }
 
@@ -1124,8 +1003,27 @@
             imagePreview.classList.remove('hidden');
         }
 
-        initGoogleApi();
-        carregarImagenAleatoria();
+        // Inicialització: intentar GitHub primeiro, si falla aleshores Picsum
+        async function inicialitzarJoc() {
+            try {
+                // Intentar carregar GitHub primer
+                const response = await fetch('Fotos/fotos.json');
+                if (response.ok) {
+                    lastSource = 'github';
+                    carregarFotosGitHub();
+                } else {
+                    // Si GitHub falla, carregar Picsum
+                    lastSource = 'picsum';
+                    carregarImagenAleatoria();
+                }
+            } catch {
+                // Si GitHub falla, carregar Picsum
+                lastSource = 'picsum';
+                carregarImagenAleatoria();
+            }
+        }
+
+        inicialitzarJoc();
     </script>
     <footer class="footer">
         <div class="footer-content">
