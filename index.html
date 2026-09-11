@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
     TRENCACLOSQUES — PWA
-    Version: 3.00  ·  Disseny "Barra de Joc" (Proposta C)
+    Version: 3.01  ·  Disseny "Barra de Joc" (Proposta C)
 
     NOVETATS DE DISSENY
     - Material Symbols Rounded en lloc d'emojis
@@ -121,13 +121,13 @@ body.day{
   font-family:'Baloo 2',sans-serif;font-weight:800;text-align:center;
   font-size:clamp(26px,7.5vw,46px);letter-spacing:-1px;margin-bottom:14px;
   color:#fff;line-height:1.05;
-  text-shadow:0 0 18px rgba(167,139,250,.9),0 0 46px rgba(56,189,248,.5),0 4px 0 rgba(0,0,0,.35);
+  text-shadow:0 0 10px rgba(167,139,250,.45), 0 2px 6px rgba(0,0,0,.3);
 }
 body.day .brand{
   background:linear-gradient(180deg,#fff 0%,#fff1b8 45%,#ffb020 100%);
   -webkit-background-clip:text;background-clip:text;color:transparent;
   text-shadow:none;
-  filter:drop-shadow(0 3px 0 #d2551f) drop-shadow(0 6px 0 rgba(150,50,10,.45)) drop-shadow(0 12px 16px rgba(120,40,0,.35));
+  filter:drop-shadow(0 1px 0 rgba(190,80,20,.55)) drop-shadow(0 3px 5px rgba(120,40,0,.25));
 }
 .brand .v{
   display:block;font-family:'Fredoka';font-weight:500;
@@ -135,8 +135,8 @@ body.day .brand{
   color:#a5b4fc;opacity:.8;margin-top:2px;-webkit-text-fill-color:#a5b4fc;
   filter:none;text-shadow:none;
 }
-body.day .brand .v{color:#fff;-webkit-text-fill-color:#fff;opacity:.9;
-  text-shadow:0 2px 0 rgba(180,70,10,.5)}
+body.day .brand .v{color:#fff;-webkit-text-fill-color:#fff;opacity:.85;
+  text-shadow:0 1px 2px rgba(150,60,10,.35)}
 
 /* ── barra de control ───────────────────────────────── */
 .bar{
@@ -205,6 +205,7 @@ body.day .select{
 
 .puzzle-grid{
   display:grid;gap:0;width:100%;max-width:100%;
+  margin:0 auto;
   background:var(--board-bg);
   padding:5px;border-radius:20px;touch-action:none;aspect-ratio:auto;
   border:3px solid var(--board-border);
@@ -250,6 +251,7 @@ body.day .select{
 
 /* ── xips d'estadístiques ───────────────────────────── */
 .stats{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;justify-content:center}
+.stats.hidden{display:none}
 .chip{
   display:flex;align-items:center;gap:7px;padding:8px 14px;border-radius:99px;
   background:var(--chip-bg);border:1px solid var(--chip-border);
@@ -360,7 +362,7 @@ body.landscape-mode .pill{width:36px;height:36px}
 body.landscape-mode .pill .material-symbols-rounded{font-size:20px}
 body.landscape-mode .select{height:36px;font-size:13px;padding:0 6px 0 12px}
 body.landscape-mode .board-wrap{margin-top:10px}
-body.landscape-mode .puzzle-grid{max-height:56vh;width:auto;max-width:100%}
+body.landscape-mode .puzzle-grid{height:56vh;width:auto;max-width:100%}
 body.landscape-mode .image-preview{margin-top:8px;padding:6px;min-height:0}
 body.landscape-mode .image-preview img{max-height:16vh}
 body.landscape-mode .log{margin-top:8px;padding:6px 14px;font-size:11px;min-height:0}
@@ -384,7 +386,7 @@ body.landscape-mode .footer-links a{font-size:10px}
 <div class="container">
   <div class="stage">
 
-    <h1 class="brand">Trencaclosques<span class="v" id="version">v3.00</span></h1>
+    <h1 class="brand">Trencaclosques<span class="v" id="version">v3.01</span></h1>
 
     <div class="bar">
       <select class="select" id="divisionsSelect" title="Nombre de peces">
@@ -399,9 +401,9 @@ body.landscape-mode .footer-links a{font-size:10px}
         <span class="material-symbols-rounded">photo_library</span>
       </button>
 
-      <button class="pill" id="picsumBtn" title="Foto aleatòria d'Internet"
+      <button class="pill" id="infoToggle" title="Mostrar informació"
               style="--glow:#38bdf8;--tint:#0ea5e9;--tint-deep:#0369a1">
-        <span class="material-symbols-rounded">travel_explore</span>
+        <span class="material-symbols-rounded">info</span>
       </button>
 
       <span class="spacer"></span>
@@ -442,7 +444,7 @@ body.landscape-mode .footer-links a{font-size:10px}
 
     <div class="log" id="log">Carregant…</div>
 
-    <div class="stats">
+    <div class="stats hidden" id="statsBar">
       <span class="chip">
         <span class="material-symbols-rounded" style="color:#22c55e">photo_library</span>
         Fotos <b><span id="photosPlayed">0</span>/<span id="totalPhotos">∞</span></b>
@@ -490,8 +492,9 @@ body.landscape-mode .footer-links a{font-size:10px}
    REFERÈNCIES
    ═══════════════════════════════════════════════════════ */
 const divisionsSelect     = document.getElementById('divisionsSelect');
-const picsumBtn           = document.getElementById('picsumBtn');
 const githubBtn           = document.getElementById('githubBtn');
+const infoToggle          = document.getElementById('infoToggle');
+const statsBar            = document.getElementById('statsBar');
 const orientationLockBtn  = document.getElementById('orientationLockBtn');
 const refreshBtn          = document.getElementById('refreshBtn');
 const animationsToggle    = document.getElementById('animationsToggle');
@@ -516,6 +519,7 @@ let pecesDataURL = [];
 let lastSource = 'picsum';
 let isDifficultyMode = true;
 let isAnimationsEnabled = true;
+let isInfoVisible = false;
 let photoWidth = 400, photoHeight = 400;
 let currentCanvasWidth = 400, currentCanvasHeight = 400;
 let currentPieceWidth = 100, currentPieceHeight = 100;
@@ -723,9 +727,9 @@ function getNextPhoto(fotos){
     const actual = currentOrientation === 'portrait' ? 'vertical' : 'horitzontal';
     const altra  = currentOrientation === 'portrait' ? 'horitzontal' : 'vertical';
     if (otherPhotos.length > 0){
-      log(`No hi ha fotos en ${actual}. En queden ${otherPhotos.length} en ${altra}: gira el dispositiu o desbloqueja l'orientació.`);
+      log(`No hi ha cap foto teva en ${actual} (només en ${altra}). Agafem una foto d'Internet.`);
     } else {
-      log('No hi ha cap foto disponible.');
+      log('No hi ha cap foto teva. Agafem una foto d\'Internet.');
     }
     return null;
   }
@@ -795,46 +799,65 @@ function carregarImagenAleatoria(){
 }
 
 async function carregarFotosGitHub(){
-  log('Carregant fotos GG…');
+  log('Carregant les teves fotos…');
   try{
     const response = await fetch('Fotos/fotos.json');
-    if (!response.ok){ log('No s\'ha trobat fotos.json'); return; }
+    if (!response.ok){
+      log('No hi ha fotos teves. Agafem una foto d\'Internet.');
+      return recorrerAInternet();
+    }
 
     const data  = await response.json();
     const fotos = data.fotos;
-    if (!fotos || fotos.length === 0){ log('Cap foto disponible'); return; }
+    if (!fotos || fotos.length === 0){
+      log('No hi ha fotos teves. Agafem una foto d\'Internet.');
+      return recorrerAInternet();
+    }
 
     gitHubPhotosCount = fotos.filter(f => f.startsWith(photoFilter)).length;
 
     const fotoAleatoria = getNextPhoto(fotos);
-    if (!fotoAleatoria) return;   // getNextPhoto ja ha explicat què passa
+    if (!fotoAleatoria) return recorrerAInternet();  // getNextPhoto ja ha avisat
 
+    lastSource = 'github';
+    updateStats();
     log(`${fotoAleatoria} · ${playedPhotos.length}/${gitHubPhotosCount}`);
     incrementPhotosPlayed();
     cargarImagenDesdeUrl(`Fotos/${fotoAleatoria}`, 'github');
 
   } catch(err){
-    log('Error carregant fotos: ' + err.message);
+    log('No s\'han pogut llegir les teves fotos. Agafem una d\'Internet.');
+    recorrerAInternet();
   }
 }
 
-function carregarUltima(){
-  if (lastSource === 'github') carregarFotosGitHub();
-  else carregarImagenAleatoria();
-}
-
-picsumBtn.addEventListener('click', () => {
-  puzzleContainer.innerHTML = '';
+/* Recanvi: només s'hi arriba quan no hi ha cap foto local utilitzable */
+function recorrerAInternet(){
   lastSource = 'picsum';
   updateStats();
   carregarImagenAleatoria();
-});
+}
+
+/* Sempre provem primer les fotos locals; el recanvi ja el decideix la funció */
+function carregarUltima(){
+  carregarFotosGitHub();
+}
 
 githubBtn.addEventListener('click', () => {
   puzzleContainer.innerHTML = '';
-  lastSource = 'github';
-  updateStats();
-  carregarFotosGitHub();
+  carregarUltima();
+});
+
+/* Informació: les estadístiques només es veuen si es demanen */
+function applyInfoState(){
+  statsBar.classList.toggle('hidden', !isInfoVisible);
+  infoToggle.classList.toggle('on', isInfoVisible);
+}
+
+infoToggle.addEventListener('click', () => {
+  isInfoVisible = !isInfoVisible;
+  localStorage.setItem('showInfo', isInfoVisible);
+  applyInfoState();
 });
 
 refreshBtn.addEventListener('click', () => {
@@ -1080,6 +1103,9 @@ initTheme();
 initAnimations();
 applyHelpState();
 
+isInfoVisible = localStorage.getItem('showInfo') === 'true';
+applyInfoState();
+
 detectAppContext();
 applyContextStyles();
 
@@ -1097,26 +1123,7 @@ applyLockState();
 applyOrientationStyles();
 updateStats();
 
-async function inicialitzarJoc(){
-  try{
-    const response = await fetch('Fotos/fotos.json');
-    if (response.ok){
-      lastSource = 'github';
-      updateStats();
-      carregarFotosGitHub();
-    } else {
-      lastSource = 'picsum';
-      updateStats();
-      carregarImagenAleatoria();
-    }
-  } catch {
-    lastSource = 'picsum';
-    updateStats();
-    carregarImagenAleatoria();
-  }
-}
-
-inicialitzarJoc();
+carregarFotosGitHub();
 </script>
 </body>
 </html>
