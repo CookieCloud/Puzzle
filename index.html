@@ -1,7 +1,15 @@
 <!DOCTYPE html>
 <!--
     TRENCACLOSQUES — PWA
-    Version: 3.05  ·  Disseny "Barra de Joc" (Proposta C)
+    Version: 3.06  ·  Disseny "Barra de Joc" (Proposta C)
+
+    CANVIS v3.06
+    - Ordre de botons: 4×4 · Següent foto · Ajuda  |  Animacions · Orientació · Tema · Informació
+    - Següent foto: icona skip_next.  Ajuda: icona help
+    - Ajuda: finestra emergent amb la foto sencera (s'ha de tancar per continuar);
+      ja no es mostra cap miniatura sota el tauler
+    - Informació: finestra emergent amb crèdits (fotos de Gerard M., sense IA),
+      com jugar, estadístiques i versió
 
     CANVIS v3.05
     - Versió al peu de pàgina (sota de tot)
@@ -162,7 +170,7 @@ body.day .brand{
 /* ── barra de control ───────────────────────────────── */
 .bar{
   /* Mida dels botons: s'adapta a l'amplada perquè tots hi càpiguen (màx. 44px) */
-  --pill:clamp(28px, calc((100vw - 90px) / 7.5), 44px);
+  --pill:clamp(28px, calc((100vw - 100px) / 7.5), 44px);
   display:flex;align-items:center;gap:4px;flex-wrap:nowrap;
   background:var(--bar-bg);border:1px solid var(--bar-border);
   border-radius:99px;padding:6px 7px 8px;box-shadow:var(--bar-shadow);
@@ -207,7 +215,7 @@ body.day .pill.on{
 /* estat apagat (animacions off) */
 .pill.off{opacity:.4}
 
-.spacer{flex:1 1 auto;min-width:4px}
+.spacer{flex:1 1 auto;min-width:10px}
 
 .select{
   flex:0 0 auto;position:relative;
@@ -266,18 +274,6 @@ body.day .select{
   box-shadow:inset 0 0 0 1px rgba(255,255,255,.1);
 }
 
-/* ── ajuda visual ───────────────────────────────────── */
-.image-preview{
-  flex:0 0 auto;
-  margin-top:6px;padding:6px;border-radius:18px;
-  background:var(--chip-bg);border:1px solid var(--chip-border);
-  box-shadow:var(--chip-shadow);
-  display:flex;align-items:center;justify-content:center;
-  min-height:90px;transition:background .35s;
-}
-.image-preview.hidden{display:none}
-.image-preview img{max-width:100%;max-height:26vh;border-radius:12px;display:block}
-
 /* ── missatges: flotants sobre la part baixa del tauler, sense calaix ── */
 .log{
   position:absolute;left:50%;bottom:18px;z-index:5;
@@ -294,8 +290,7 @@ body.day .select{
 @media (prefers-reduced-motion:reduce){ .log{transition:opacity .2s} }
 
 /* ── xips d'estadístiques ───────────────────────────── */
-.stats{flex:0 0 auto;display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;justify-content:center}
-.stats.hidden{display:none}
+.stats{display:flex;gap:6px;margin:4px 0 12px;flex-wrap:wrap;justify-content:center}
 .chip{
   display:flex;align-items:center;gap:7px;padding:8px 14px;border-radius:99px;
   background:var(--chip-bg);border:1px solid var(--chip-border);
@@ -346,6 +341,53 @@ body.day .select{
   transition:transform .13s cubic-bezier(.34,1.56,.64,1),box-shadow .13s;
 }
 .btn-big:active{transform:translateY(4px);box-shadow:inset 0 2px 0 rgba(255,255,255,.6),0 1px 0 rgba(0,0,0,.3),0 3px 8px rgba(0,0,0,.4)}
+
+/* ── finestres emergents (ajuda i informació) ──────── */
+.modal-overlay{
+  position:fixed;inset:0;z-index:1100;
+  display:none;align-items:center;justify-content:center;
+  padding:max(14px,env(safe-area-inset-top)) max(14px,env(safe-area-inset-right))
+          max(14px,env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left));
+  background:rgba(10,6,20,.72);
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+}
+.modal-overlay.active{display:flex}
+.modal{
+  position:relative;
+  background:var(--panel-bg);color:var(--ink);
+  padding:22px 18px 20px;border-radius:28px;text-align:center;
+  border:2px solid var(--board-border);
+  box-shadow:0 24px 60px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.25);
+  animation:popIn .4s cubic-bezier(.34,1.56,.64,1);
+  max-width:min(560px,100%);max-height:100%;overflow-y:auto;
+  display:flex;flex-direction:column;align-items:center;
+}
+.modal h2{
+  font-family:'Baloo 2',sans-serif;font-weight:800;letter-spacing:-.5px;
+  font-size:clamp(22px,6vw,32px);line-height:1.1;margin:0 34px 12px;color:var(--ink);
+}
+.modal-close{
+  position:absolute;top:10px;right:10px;width:36px;height:36px;border-radius:50%;
+  border:none;cursor:pointer;display:grid;place-items:center;
+  background:rgba(0,0,0,.08);color:var(--ink);
+}
+.modal-close:active{transform:scale(.9)}
+.modal-photo{
+  display:block;max-width:100%;max-height:calc(100dvh - 190px);width:auto;height:auto;
+  object-fit:contain;border-radius:16px;margin:0 auto 16px;
+  box-shadow:0 0 0 4px var(--board-border), 0 10px 26px rgba(0,0,0,.45);
+}
+.modal-info{max-width:min(440px,100%)}
+.modal-icon{
+  font-size:46px;color:var(--accent);margin-bottom:2px;
+  filter:drop-shadow(0 3px 0 var(--accent-deep)) drop-shadow(0 6px 12px rgba(0,0,0,.35));
+}
+.modal .credit{font-size:17px;line-height:1.4;margin-bottom:10px}
+.modal .credit b{font-family:'Baloo 2';font-weight:800;font-size:19px}
+.modal .source-note{font-size:13px;color:var(--ink-soft);margin:-4px 0 10px}
+.modal .how{font-size:14px;line-height:1.4;color:var(--ink-soft);margin-bottom:12px;max-width:34ch}
+.modal .modal-version{font-size:11px;letter-spacing:1px;color:var(--ink-soft);margin-bottom:14px}
+.btn-big:focus-visible,.modal-close:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
 
 @keyframes popIn{0%{transform:scale(.8);opacity:0}100%{transform:scale(1);opacity:1}}
 
@@ -407,7 +449,7 @@ body.landscape-mode .play{flex-direction:row;gap:12px;align-items:stretch}
 
 body.landscape-mode .bar{
   /* En columna, la mida depèn de l'alçada perquè tots hi càpiguen */
-  --pill:clamp(26px, calc((100dvh - 110px) / 7.2), 44px);
+  --pill:clamp(26px, calc((100dvh - 118px) / 7.2), 44px);
   flex-direction:column;
   width:auto;flex:0 0 auto;
   padding:6px 5px 8px;gap:4px;
@@ -418,7 +460,7 @@ body.landscape-mode .select{
   height:var(--pill);width:var(--pill);
   padding:0;font-size:calc(var(--pill) * .3);border-radius:99px;
 }
-body.landscape-mode .spacer{min-height:4px}
+body.landscape-mode .spacer{min-width:0;min-height:10px}
 
 /* ═══════════════════════════════════════════════════════
    PANTALLA PETITA — tot es comprimeix per deixar lloc a la foto
@@ -428,16 +470,23 @@ body.landscape-mode .spacer{min-height:4px}
   body.landscape-mode .brand{display:none}
   body.landscape-mode .stage{padding:6px;border-radius:18px}
   body.landscape-mode .play{gap:8px}
-  body.landscape-mode .image-preview{margin-top:6px;padding:5px}
-  body.landscape-mode .image-preview img{max-height:14vh}
   body.landscape-mode .log{font-size:13px;bottom:14px}
   body.landscape-mode .board-wrap{padding:5px 0}
   body.landscape-mode .puzzle-grid{padding:3px;border-width:2px;box-shadow:0 0 0 4px var(--board-halo), inset 0 0 30px rgba(0,0,0,.3), 0 10px 24px rgba(0,0,0,.3)}
-  body.landscape-mode .stats{margin-top:6px;gap:5px}
-  body.landscape-mode .chip{padding:4px 10px;font-size:10px}
-  body.landscape-mode .chip .material-symbols-rounded{font-size:15px}
-  body.landscape-mode .chip b{font-size:12px}
   body.landscape-mode footer.footer{display:none}
+}
+
+/* Finestres emergents en pantalles baixes (telèfon en horitzontal) */
+@media (max-height:560px){
+  .modal{padding:14px 16px 12px}
+  .modal h2{margin-bottom:6px}
+  .modal h2{font-size:20px}
+  .modal-photo{max-height:calc(100dvh - 150px);margin-bottom:10px;border-radius:12px}
+  .modal .btn-big{padding:9px 22px;font-size:15px}
+  .modal-icon{display:none}
+  .modal .credit{font-size:15px;margin-bottom:6px}
+  .modal .how{margin-bottom:8px}
+  .stats{margin-bottom:8px}
 }
 
 /* Telèfon en horitzontal: el títol s'amaga encara que el JS no hagi posat la classe */
@@ -453,7 +502,6 @@ body.landscape-mode .spacer{min-height:4px}
   body.portrait-mode .board-wrap{padding:5px 0}
   body.portrait-mode .puzzle-grid{padding:3px;border-width:2px;border-radius:16px;
     box-shadow:0 0 0 4px var(--board-halo), inset 0 0 30px rgba(0,0,0,.3), 0 10px 24px rgba(0,0,0,.3)}
-  .image-preview img{max-height:18vh}
   footer.footer{margin-top:4px}
   footer.footer p{font-size:10px;margin-bottom:2px}
   .footer-links a, footer.footer .version{font-size:10px}
@@ -485,36 +533,36 @@ body.landscape-mode .spacer{min-height:4px}
         <span class="material-symbols-rounded">photo_library</span>
       </button>
     -->
-      <button class="pill" id="infoToggle" title="Mostrar informació"
-              style="--glow:#38bdf8;--tint:#0ea5e9;--tint-deep:#0369a1">
-        <span class="material-symbols-rounded">info</span>
+      <button class="pill" id="refreshBtn" title="Següent foto" aria-label="Següent foto"
+              style="--glow:#f472b6;--tint:#ec4899;--tint-deep:#9d174d">
+        <span class="material-symbols-rounded">skip_next</span>
+      </button>
+
+      <button class="pill" id="helpBtn" title="Ajuda: veure la foto sencera" aria-label="Ajuda: veure la foto sencera"
+              style="--glow:#fbbf24;--tint:#f59e0b;--tint-deep:#b45309">
+        <span class="material-symbols-rounded">help</span>
       </button>
 
       <span class="spacer"></span>
 
-      <button class="pill" id="refreshBtn" title="Nova foto"
-              style="--glow:#f472b6;--tint:#ec4899;--tint-deep:#9d174d">
-        <span class="material-symbols-rounded">autorenew</span>
-      </button>
-
-      <button class="pill" id="helpToggle" title="Amb ajuda o sense"
-              style="--glow:#fbbf24;--tint:#f59e0b;--tint-deep:#b45309">
-        <span class="material-symbols-rounded">lightbulb</span>
-      </button>
-
-      <button class="pill" id="animationsToggle" title="Animacions"
+      <button class="pill" id="animationsToggle" title="Animacions" aria-label="Animacions"
               style="--glow:#a78bfa;--tint:#a855f7;--tint-deep:#7e22ce">
         <span class="material-symbols-rounded">auto_awesome</span>
       </button>
 
-      <button class="pill" id="orientationLockBtn" title="Bloquejar orientació"
+      <button class="pill" id="orientationLockBtn" title="Bloquejar orientació" aria-label="Bloquejar orientació"
               style="--glow:#22d3ee;--tint:#06b6d4;--tint-deep:#0e7490">
         <span class="material-symbols-rounded">lock_open</span>
       </button>
 
-      <button class="pill" id="themeToggle" title="Mode clar o fosc"
+      <button class="pill" id="themeToggle" title="Mode clar o fosc" aria-label="Mode clar o fosc"
               style="--glow:#fde047;--tint:#ef4444;--tint-deep:#b91c1c">
         <span class="material-symbols-rounded">dark_mode</span>
+      </button>
+
+      <button class="pill" id="infoBtn" title="Informació" aria-label="Informació"
+              style="--glow:#38bdf8;--tint:#0ea5e9;--tint-deep:#0369a1">
+        <span class="material-symbols-rounded">info</span>
       </button>
     </div>
 
@@ -525,12 +573,53 @@ body.landscape-mode .spacer{min-height:4px}
       <div class="log show" id="log" role="status" aria-live="polite">Carregant…</div>
     </div>
 
-    <div id="imagePreview" class="image-preview">
-      <img id="previewImg" src="" alt="Original" crossOrigin="anonymous">
+    </div><!-- /main -->
+    </div><!-- /play -->
+
+  </div>
+
+  <footer class="footer">
+    <p>&copy; 2026 Trencaclosques. Tots els drets reservats.</p>
+    <div class="footer-links">
+      <a href="privacy-policy.html" target="_blank">Política de Privacitat</a>
+      <span class="divider">·</span>
+      <a href="terms-of-service.html" target="_blank">Condicions del Servei</a>
+      <span class="divider">·</span>
+      <span class="version" id="version">v3.06</span>
     </div>
+  </footer>
+</div>
 
+<!-- Ajuda: foto sencera -->
+<div id="helpOverlay" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="helpTitle" aria-hidden="true">
+  <div class="modal">
+    <button class="modal-close" data-close title="Tancar" aria-label="Tancar">
+      <span class="material-symbols-rounded">close</span>
+    </button>
+    <h2 id="helpTitle">La foto sencera</h2>
+    <!-- previewImg també serveix de font per tallar les peces -->
+    <img id="previewImg" class="modal-photo" src="" alt="Foto sencera del trencaclosques" crossOrigin="anonymous">
+    <button class="btn-big" data-close>
+      <span class="material-symbols-rounded">play_arrow</span> Continuar
+    </button>
+  </div>
+</div>
 
-    <div class="stats hidden" id="statsBar">
+<!-- Informació -->
+<div id="infoOverlay" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="infoTitle" aria-hidden="true">
+  <div class="modal modal-info">
+    <button class="modal-close" data-close title="Tancar" aria-label="Tancar">
+      <span class="material-symbols-rounded">close</span>
+    </button>
+    <span class="material-symbols-rounded modal-icon">photo_camera</span>
+    <h2 id="infoTitle">Trencaclosques</h2>
+
+    <p class="credit">Totes les fotos les ha fet <b>Gerard M.</b><br>sense intel·ligència artificial.</p>
+    <p class="source-note" id="sourceNote" hidden>La foto actual és d'Internet (Picsum), perquè no n'hi havia cap de pròpia disponible.</p>
+
+    <p class="how">Arrossega una peça sobre una altra per intercanviar-les. Quan una peça és al seu lloc, queda fixada.</p>
+
+    <div class="stats" id="statsBar">
       <span class="chip">
         <span class="material-symbols-rounded" style="color:#22c55e">photo_library</span>
         Fotos <b><span id="photosPlayed">0</span>/<span id="totalPhotos">∞</span></b>
@@ -549,21 +638,12 @@ body.landscape-mode .spacer{min-height:4px}
       </span>
     </div>
 
-    </div><!-- /main -->
-    </div><!-- /play -->
+    <p class="modal-version" id="infoVersion"></p>
 
+    <button class="btn-big" data-close>
+      <span class="material-symbols-rounded">play_arrow</span> Continuar
+    </button>
   </div>
-
-  <footer class="footer">
-    <p>&copy; 2026 Trencaclosques. Tots els drets reservats.</p>
-    <div class="footer-links">
-      <a href="privacy-policy.html" target="_blank">Política de Privacitat</a>
-      <span class="divider">·</span>
-      <a href="terms-of-service.html" target="_blank">Condicions del Servei</a>
-      <span class="divider">·</span>
-      <span class="version" id="version">v3.05</span>
-    </div>
-  </footer>
 </div>
 
 <div id="victoryOverlay" class="victory-overlay">
@@ -584,12 +664,13 @@ body.landscape-mode .spacer{min-height:4px}
    ═══════════════════════════════════════════════════════ */
 const divisionsSelect     = document.getElementById('divisionsSelect');
 const githubBtn           = document.getElementById('githubBtn');
-const infoToggle          = document.getElementById('infoToggle');
-const statsBar            = document.getElementById('statsBar');
+const infoBtn             = document.getElementById('infoBtn');
+const infoOverlay         = document.getElementById('infoOverlay');
+const helpOverlay         = document.getElementById('helpOverlay');
 const orientationLockBtn  = document.getElementById('orientationLockBtn');
 const refreshBtn          = document.getElementById('refreshBtn');
 const animationsToggle    = document.getElementById('animationsToggle');
-const helpToggle          = document.getElementById('helpToggle');
+const helpBtn             = document.getElementById('helpBtn');
 const themeToggle         = document.getElementById('themeToggle');
 const puzzleContainer     = document.getElementById('puzzleContainer');
 const previewImg          = document.getElementById('previewImg');
@@ -597,7 +678,6 @@ const logDiv              = document.getElementById('log');
 const victoryOverlay      = document.getElementById('victoryOverlay');
 const victoryBtn          = document.getElementById('victoryBtn');
 const finalImage          = document.getElementById('finalImage');
-const imagePreview        = document.getElementById('imagePreview');
 
 /* ═══════════════════════════════════════════════════════
    ESTAT
@@ -608,9 +688,7 @@ let ordre = [];
 let fixat = [];
 let pecesDataURL = [];
 let lastSource = 'picsum';
-let isDifficultyMode = true;
 let isAnimationsEnabled = true;
-let isInfoVisible = false;
 let photoWidth = 400, photoHeight = 400;
 let currentCanvasWidth = 400, currentCanvasHeight = 400;
 let currentPieceWidth = 100, currentPieceHeight = 100;
@@ -723,25 +801,50 @@ themeToggle.addEventListener('click', () => {
 });
 
 /* ═══════════════════════════════════════════════════════
-   AJUDA VISUAL
+   FINESTRES EMERGENTS (ajuda i informació)
+   Bloquegen el joc fins que l'usuari les tanca.
    ═══════════════════════════════════════════════════════ */
-function applyHelpState(){
-  if (isDifficultyMode){
-    setIcon(helpToggle, 'lightbulb');
-    helpToggle.classList.remove('on');
-    imagePreview.classList.add('hidden');
-  } else {
-    setIcon(helpToggle, 'lightbulb');
-    helpToggle.classList.add('on');
-    imagePreview.classList.remove('hidden');
-  }
+let modalObert = null;
+let focusAnterior = null;
+
+function obrirModal(overlay){
+  if (modalObert) tancarModal(modalObert);
+  focusAnterior = document.activeElement;
+  overlay.classList.add('active');
+  overlay.setAttribute('aria-hidden', 'false');
+  modalObert = overlay;
+  const boto = overlay.querySelector('.btn-big');
+  if (boto) boto.focus({ preventScroll: true });
 }
 
-helpToggle.addEventListener('click', () => {
-  isDifficultyMode = !isDifficultyMode;
-  applyHelpState();
-  ajustarTauler();
-  log(isDifficultyMode ? 'Ajuda amagada' : 'Ajuda visible');
+function tancarModal(overlay){
+  overlay.classList.remove('active');
+  overlay.setAttribute('aria-hidden', 'true');
+  if (modalObert === overlay) modalObert = null;
+  if (focusAnterior && typeof focusAnterior.focus === 'function') focusAnterior.focus({ preventScroll: true });
+}
+
+document.querySelectorAll('.modal-overlay [data-close]').forEach(boto => {
+  boto.addEventListener('click', () => tancarModal(boto.closest('.modal-overlay')));
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && modalObert) tancarModal(modalObert);
+});
+
+helpBtn.addEventListener('click', () => {
+  if (!imagenActual || !previewImg.complete || !previewImg.naturalWidth){
+    log('Encara no hi ha cap foto carregada');
+    return;
+  }
+  obrirModal(helpOverlay);
+});
+
+infoBtn.addEventListener('click', () => {
+  updateStats();
+  document.getElementById('sourceNote').hidden = (lastSource === 'github');
+  document.getElementById('infoVersion').textContent = 'Versió ' + document.getElementById('version').textContent;
+  obrirModal(infoOverlay);
 });
 
 /* ═══════════════════════════════════════════════════════
@@ -1002,19 +1105,6 @@ if (githubBtn){
   });
 }
 
-/* Informació: les estadístiques només es veuen si es demanen */
-function applyInfoState(){
-  statsBar.classList.toggle('hidden', !isInfoVisible);
-  infoToggle.classList.toggle('on', isInfoVisible);
-}
-
-infoToggle.addEventListener('click', () => {
-  isInfoVisible = !isInfoVisible;
-  localStorage.setItem('showInfo', isInfoVisible);
-  applyInfoState();
-  ajustarTauler();
-});
-
 refreshBtn.addEventListener('click', () => {
   puzzleContainer.innerHTML = '';
   carregarUltima();
@@ -1095,7 +1185,6 @@ function iniciarPuzzle(){
   senceraDiv.style.borderRadius = '14px';
   puzzleContainer.appendChild(senceraDiv);
 
-  if (!isDifficultyMode) imagePreview.classList.remove('hidden');
   log('Memoritza la imatge…', 0);
 
   setTimeout(() => {
@@ -1266,11 +1355,8 @@ window.addEventListener('orientationchange', () => setTimeout(() => {
    ═══════════════════════════════════════════════════════ */
 initTheme();
 initAnimations();
-applyHelpState();
 actualitzarEtiquetaDivisions();
-
-isInfoVisible = localStorage.getItem('showInfo') === 'true';
-applyInfoState();
+localStorage.removeItem('showInfo');   // preferència antiga, ja no s'usa
 
 detectAppContext();
 applyContextStyles();
