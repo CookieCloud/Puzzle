@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
     TRENCACLOSQUES — PWA
-    Version: 3.06  ·  Disseny "Barra de Joc" (Proposta C)
+    Version: 3.07  ·  Disseny "Barra de Joc" (Proposta C)
 
     NOVETATS DE DISSENY
     - Material Symbols Rounded en lloc d'emojis
@@ -259,19 +259,50 @@ body.day .select:active{
 .image-preview.hidden{display:none}
 .image-preview img{max-width:100%;max-height:26vh;border-radius:12px;display:block}
 
-/* ── consola de missatges ───────────────────────────── */
-.log{
-  flex:0 0 auto;
-  margin-top:10px;padding:9px 16px;border-radius:99px;
-  background:var(--chip-bg);border:1px solid var(--chip-border);
-  box-shadow:var(--chip-shadow);
-  font-size:13px;font-weight:500;color:var(--ink);
-  min-height:2.6em;display:flex;align-items:center;justify-content:center;
-  text-align:center;word-wrap:break-word;transition:background .35s,color .35s;
+/* ── avís flotant (substitueix el calaix de missatges) ── */
+#toast{
+  position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(12px);
+  z-index:1500;pointer-events:none;
+  max-width:min(90vw,460px);
+  padding:11px 20px;border-radius:99px;
+  background:rgba(20,14,32,.88);color:#fff;
+  backdrop-filter:blur(12px);
+  border:1px solid rgba(255,255,255,.16);
+  box-shadow:0 8px 28px rgba(0,0,0,.45);
+  font-size:13px;font-weight:500;text-align:center;
+  opacity:0;transition:opacity .25s,transform .25s;
 }
+body.day #toast{
+  background:rgba(255,255,255,.96);color:#3c2a14;
+  border-color:transparent;
+  box-shadow:0 6px 22px rgba(150,60,10,.3);
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+body.landscape-mode #toast{bottom:14px;font-size:12px;padding:9px 16px}
 
-/* ── xips d'estadístiques ───────────────────────────── */
-.stats{flex:0 0 auto;display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;justify-content:center}
+/* ── finestra emergent d'informació ─────────────────── */
+.info-overlay{
+  position:fixed;inset:0;background:rgba(10,6,20,.72);
+  display:none;align-items:center;justify-content:center;z-index:1200;
+  backdrop-filter:blur(6px);padding:20px;
+}
+.info-overlay.active{display:flex}
+.info-popup{
+  background:var(--panel-bg);
+  padding:24px 22px;border-radius:26px;text-align:center;
+  box-shadow:0 24px 60px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.25);
+  animation:popIn .35s cubic-bezier(.34,1.56,.64,1);
+  max-width:min(94%,380px);max-height:88vh;overflow-y:auto;
+  border:2px solid var(--board-border);
+}
+.info-popup h2{
+  font-family:'Baloo 2',sans-serif;font-weight:800;
+  font-size:24px;margin-bottom:16px;color:var(--ink);
+}
+.stats{display:flex;flex-direction:column;gap:8px}
+.stats .chip{justify-content:flex-start}
+
+/* ── xips ───────────────────────────────────────────── */
 .stats.hidden{display:none}
 .chip{
   display:flex;align-items:center;gap:7px;padding:8px 14px;border-radius:99px;
@@ -388,6 +419,10 @@ footer.footer p{color:var(--ink-soft);font-size:11px;margin-bottom:6px}
   border-bottom:1px solid transparent;transition:all .2s;
 }
 .footer-links a:hover{opacity:1;border-bottom-color:currentColor}
+.footer-links .v{
+  color:var(--ink-soft);font-size:11px;opacity:.8;
+  font-family:'Fredoka';font-weight:500;letter-spacing:.5px;
+}
 .divider{color:var(--ink-soft)}
 
 /* ═══════════════════════════════════════════════════════
@@ -466,7 +501,7 @@ body.landscape-mode .spacer{min-height:4px}
 <div class="container">
   <div class="stage">
 
-    <h1 class="brand">Trencaclosques<span class="v" id="version">v3.06</span></h1>
+    <h1 class="brand">Trencaclosques</h1>
 
     <div class="play">
 
@@ -526,9 +561,27 @@ body.landscape-mode .spacer{min-height:4px}
       <img id="previewImg" src="" alt="Original" crossOrigin="anonymous">
     </div>
 
-    <div class="log" id="log">Carregant…</div>
+    </div><!-- /main -->
+    </div><!-- /play -->
 
-    <div class="stats hidden" id="statsBar">
+  </div>
+
+  <footer class="footer">
+    <p>&copy; 2026 Trencaclosques. Tots els drets reservats.</p>
+    <div class="footer-links">
+      <a href="privacy-policy.html" target="_blank">Política de Privacitat</a>
+      <span class="divider">·</span>
+      <a href="terms-of-service.html" target="_blank">Condicions del Servei</a>
+      <span class="divider">·</span>
+      <span class="v" id="version">v3.07</span>
+    </div>
+  </footer>
+</div>
+
+<div id="infoOverlay" class="info-overlay">
+  <div class="info-popup">
+    <h2>Informació</h2>
+    <div class="stats" id="statsBar">
       <span class="chip">
         <span class="material-symbols-rounded" style="color:#22c55e">photo_library</span>
         Fotos <b><span id="photosPlayed">0</span>/<span id="totalPhotos">∞</span></b>
@@ -550,21 +603,13 @@ body.landscape-mode .spacer{min-height:4px}
         <span id="orientLabel">Vertical</span>
       </span>
     </div>
-
-    </div><!-- /main -->
-    </div><!-- /play -->
-
+    <button class="btn-big" id="infoCloseBtn" style="margin-top:18px">
+      <span class="material-symbols-rounded">close</span> Tancar
+    </button>
   </div>
-
-  <footer class="footer">
-    <p>&copy; 2026 Trencaclosques. Tots els drets reservats.</p>
-    <div class="footer-links">
-      <a href="privacy-policy.html" target="_blank">Política de Privacitat</a>
-      <span class="divider">·</span>
-      <a href="terms-of-service.html" target="_blank">Condicions del Servei</a>
-    </div>
-  </footer>
 </div>
+
+<div id="toast"></div>
 
 <div id="victoryOverlay" class="victory-overlay">
   <div class="victory-popup">
@@ -600,7 +645,9 @@ const helpToggle          = document.getElementById('helpToggle');
 const themeToggle         = document.getElementById('themeToggle');
 const puzzleContainer     = document.getElementById('puzzleContainer');
 const previewImg          = document.getElementById('previewImg');
-const logDiv              = document.getElementById('log');
+const toastEl             = document.getElementById('toast');
+const infoOverlay         = document.getElementById('infoOverlay');
+const infoCloseBtn        = document.getElementById('infoCloseBtn');
 const victoryOverlay      = document.getElementById('victoryOverlay');
 const victoryBtn          = document.getElementById('victoryBtn');
 const finalImage          = document.getElementById('finalImage');
@@ -687,9 +734,14 @@ function ajustarTauler(){
   puzzleContainer.style.height = Math.floor(h) + 'px';
 }
 
+/* Avís flotant: apareix sobre el joc i s'esvaeix sol */
+let toastTimer = null;
 function log(msg){
   console.log(msg);
-  logDiv.textContent = msg;
+  toastEl.textContent = msg;
+  toastEl.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2600);
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -1091,17 +1143,32 @@ function carregarUltima(){
   carregarFotosGitHub();
 }
 
-/* Informació: les estadístiques només es veuen si es demanen */
+/* Informació: finestra emergent, com la de victòria */
 function applyInfoState(){
-  statsBar.classList.toggle('hidden', !isInfoVisible);
+  infoOverlay.classList.toggle('active', isInfoVisible);
   infoToggle.classList.toggle('on', isInfoVisible);
 }
 
-infoToggle.addEventListener('click', () => {
-  isInfoVisible = !isInfoVisible;
-  localStorage.setItem('showInfo', isInfoVisible);
+function obrirInfo(){
+  isInfoVisible = true;
+  updateStats();
   applyInfoState();
-  ajustarTauler();
+}
+
+function tancarInfo(){
+  isInfoVisible = false;
+  applyInfoState();
+}
+
+infoToggle.addEventListener('click', () => {
+  if (isInfoVisible) tancarInfo(); else obrirInfo();
+});
+
+infoCloseBtn.addEventListener('click', tancarInfo);
+
+// Tancar tocant fora de la finestra
+infoOverlay.addEventListener('click', (e) => {
+  if (e.target === infoOverlay) tancarInfo();
 });
 
 refreshBtn.addEventListener('click', () => {
@@ -1353,7 +1420,7 @@ initAnimations();
 applyHelpState();
 loadFavorites();
 
-isInfoVisible = localStorage.getItem('showInfo') === 'true';
+isInfoVisible = false;
 applyInfoState();
 
 detectAppContext();
