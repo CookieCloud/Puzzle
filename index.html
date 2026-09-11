@@ -1,1549 +1,1122 @@
 <!DOCTYPE html>
 <!--
-    TRENCACLOSQUES ART PWA
-    Version: 2.44
+    TRENCACLOSQUES — PWA
+    Version: 3.00  ·  Disseny "Barra de Joc" (Proposta C)
 
-    CANVIS v2.44:
-    - Estadístiques amagades per defecte; nou botó ℹ️ per mostrar-les a sota (es recorda)
-    - Log (peces correctes) sempre just a sota de la foto, amb la mateixa amplada
-    - Tauler + log com a bloc: la foto ocupa el màxim espai possible sense deformar-se
-    - Horitzontal: menú de botons a la dreta, tauler i log a l'esquerra
-    - Vertical: botons que s'encongeixen per cabre tots en una fila
+    NOVETATS DE DISSENY
+    - Material Symbols Rounded en lloc d'emojis
+    - Mode dia: colors vius i sòlids, botons amb base de relleu
+    - Mode nit: vidre translúcid amb llum de color
+    - Barra única rodona amb desplaçament lateral
+    - Tauler emmarcat i xips d'estadístiques
 
-    CANVIS v2.43:
-    - Pantalla completa real: el joc ocupa exactament el viewport (100dvh) respectant safe-areas
-    - Vertical: eliminat l'espai buit superior (només safe-area + 8px)
-    - Horitzontal: menú en columna a l'esquerra, tauler al centre, informació a la dreta
-    - Tauler ajustat per JS (ResizeObserver) a l'espai disponible: la foto sempre es veu sencera
-    - Peces ben col·locades: marge zero i sense cap línia (sprite únic + cel·les de píxels enters)
-    - Peces per col·locar: vora clara amb una llum que la recorre (respecta ✨ i reduced-motion)
-    - Avís persistent quan s'esgoten les fotos d'una orientació (control separat per orientació)
-    - Correcció: touchend fora de la pantalla ja no provoca error
-
-    VERSIONS ANTERIORS (2.42):
-    - Detecció app vs web-browser, orientació i bloqueig d'orientació
-    - Filtrat de fotos per orientació (thumbnail/hthumbnail)
-    - Fotos GG prioritari + Picsum fallback, sense repeticions
-    - Partides comptades només si resolts
+    FUNCIONALITAT (intacta respecte v2.42)
+    - Fotos GG prioritari + Picsum de reserva
+    - Filtrat per orientació (thumbnail / hthumbnail)
+    - Sense repeticions fins exhaurir el llistat
+    - Bloqueig d'orientació persistent
+    - Padding segons context (app / navegador)
+    - Partides comptades només en resoldre
 -->
 <html lang="ca">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no, maximum-scale=1">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="icon" type="image/png" sizes="32x32" href="puzzle32x32.png">
-    <link rel="icon" type="image/png" sizes="192x192" href="puzzle192x192.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="puzzle180x180.png">
-    <title>Trencaclosques</title>
-    <style>
-        :root {
-            --bg-primary: #ffffff;
-            --bg-secondary: #f5f5f5;
-            --bg-tertiary: #f0f0f0;
-            --text-primary: #333333;
-            --text-secondary: #666666;
-            --border-color: #e0e0e0;
-            --btn-bg: #667eea;
-            --btn-hover: #5568d3;
-            --gradient-1: #667eea;
-            --gradient-2: #764ba2;
-            --shadow: rgba(0, 0, 0, 0.2);
-        }
-        body.dark-mode {
-            --bg-primary: #1e1e1e;
-            --bg-secondary: #2d2d2d;
-            --bg-tertiary: #3a3a3a;
-            --text-primary: #e0e0e0;
-            --text-secondary: #b0b0b0;
-            --border-color: #444444;
-            --btn-bg: #7c7cff;
-            --btn-hover: #6b6bdd;
-            --gradient-1: #5a5a8a;
-            --gradient-2: #3a3a5a;
-            --shadow: rgba(0, 0, 0, 0.5);
-        }
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
-            -webkit-touch-callout: none;
-        }
-        @property --llum-angle {
-            syntax: '<angle>';
-            initial-value: 0deg;
-            inherits: false;
-        }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, var(--gradient-1) 0%, var(--gradient-2) 100%);
-            min-height: 100vh;
-            min-height: 100dvh;
-            padding: 0;
-            color: var(--text-primary);
-            transition: background 0.3s;
-            -webkit-user-select: none;
-            user-select: none;
-        }
-        /* 📐 CONTENIDOR DEL JOC: ocupa exactament la pantalla visible */
-        .container {
-            --pad-top: calc(env(safe-area-inset-top, 0px) + 8px);
-            --pad-right: calc(env(safe-area-inset-right, 0px) + 10px);
-            --pad-bottom: calc(env(safe-area-inset-bottom, 0px) + 8px);
-            --pad-left: calc(env(safe-area-inset-left, 0px) + 10px);
-            width: 100%;
-            max-width: 840px;
-            height: 100vh;
-            height: 100dvh;
-            margin: 0 auto;
-            padding: var(--pad-top) var(--pad-right) var(--pad-bottom) var(--pad-left);
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            background: transparent;
-        }
-        .header {
-            display: flex;
-            align-items: baseline;
-            flex: 0 0 auto;
-        }
-        h1 {
-            color: #ffffff;
-            font-size: clamp(1.2rem, 5vw, 1.8rem);
-            line-height: 1.15;
-        }
-        h1 #version {
-            font-size: 0.6em;
-            opacity: 0.7;
-            margin-left: 8px;
-        }
-        .controls-bar {
-            display: flex;
-            gap: 5px;
-            align-items: center;
-            flex: 0 0 auto;
-            flex-wrap: nowrap;
-        }
-        .controls-bar .spacer {
-            flex: 1 1 0;
-            min-width: 0;
-        }
-        /* Els botons s'encongeixen per igual si no caben (mantenint-se quadrats) */
-        .controls-bar > .icon-btn,
-        .controls-bar > .theme-toggle {
-            flex: 0 1 40px;
-            min-width: 28px;
-            width: auto;
-            height: auto;
-            aspect-ratio: 1 / 1;
-        }
-        .controls-bar > select {
-            flex: 0 0 auto;
-            padding: 4px 6px;
-        }
-        .icon-btn.active {
-            background: rgba(255, 255, 255, 0.28);
-            border-color: rgba(255, 255, 255, 0.65);
-        }
-        select {
-            padding: clamp(6px, 2vw, 8px) clamp(6px, 2vw, 10px);
-            border-radius: 6px;
-            border: 2px solid rgba(255, 255, 255, 0.2);
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            color: rgba(255, 255, 255, 0.9);
-            font-size: clamp(11px, 2.5vw, 12px);
-            flex-shrink: 0;
-            touch-action: manipulation;
-            height: clamp(36px, 10vw, 44px);
-        }
-        select:focus {
-            outline: none;
-            border-color: var(--btn-bg);
-        }
-        .icon-btn {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border: 2px solid rgba(255, 255, 255, 0.2);
-            border-radius: 6px;
-            width: clamp(36px, 10vw, 40px);
-            height: clamp(36px, 10vw, 40px);
-            cursor: pointer;
-            font-size: clamp(16px, 4vw, 18px);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s;
-            flex-shrink: 0;
-            color: rgba(255, 255, 255, 0.9);
-            touch-action: manipulation;
-        }
-        .icon-btn:active {
-            background: var(--btn-bg);
-            color: white;
-            border-color: var(--btn-bg);
-            transform: scale(0.95);
-        }
-        .theme-toggle {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border: 2px solid rgba(255, 255, 255, 0.2);
-            border-radius: 50%;
-            width: clamp(36px, 10vw, 44px);
-            height: clamp(36px, 10vw, 44px);
-            cursor: pointer;
-            font-size: clamp(16px, 4vw, 18px);
-            transition: background 0.3s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            touch-action: manipulation;
-        }
-        .theme-toggle:active {
-            background: var(--bg-tertiary);
-        }
-        /* 🎭 ESCENARI: agafa tot l'espai sobrant; el JS hi encaixa tauler + log */
-        .stage {
-            flex: 1 1 0;
-            min-height: 0;
-            min-width: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: flex-start;
-            gap: 6px;
-        }
-        .puzzle-container-wrapper {
-            flex: 0 0 auto;
-            display: flex;
-            justify-content: center;
-        }
-        .puzzle-grid {
-            display: grid;
-            box-sizing: content-box;   /* width/height = àrea exacta de les peces */
-            gap: 0;
-            padding: 4px;
-            border: 2px solid rgba(102, 126, 234, 0.4);
-            border-radius: 12px;
-            background: rgba(255, 255, 255, 0.08);
-            backdrop-filter: blur(15px);
-            -webkit-backdrop-filter: blur(15px);
-            box-shadow: 0 8px 32px rgba(102, 126, 234, 0.15);
-            touch-action: none;
-            width: 0;
-            height: 0;
-        }
-        .puzzle-piece {
-            background-image: var(--sprite);
-            background-repeat: no-repeat;
-            cursor: grab;
-            user-select: none;
-            -webkit-user-select: none;
-            touch-action: none;
-            position: relative;
-        }
-        /* Peça per col·locar: vora clara + llum que la recorre */
-        .puzzle-piece.unfixed {
-            margin: 3px;
-            border-radius: 5px;
-            box-shadow: 0 3px 10px rgba(20, 20, 60, 0.35);
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-        .puzzle-piece.unfixed::after {
-            content: '';
-            position: absolute;
-            inset: 0;
-            padding: 2px;                 /* gruix de la vora */
-            border-radius: inherit;
-            background:
-                conic-gradient(from var(--llum-angle),
-                    transparent 0deg 280deg,
-                    rgba(255, 255, 255, 0.9) 325deg,
-                    #ffffff 345deg,
-                    transparent 360deg),
-                linear-gradient(rgba(236, 239, 255, 0.72), rgba(236, 239, 255, 0.72));
-            -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-            -webkit-mask-composite: xor;
-            mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-            mask-composite: exclude;
-            pointer-events: none;
-            animation: llumVora 2.8s linear infinite;
-            animation-delay: var(--llum-delay, 0s);
-        }
-        @keyframes llumVora {
-            to { --llum-angle: 360deg; }
-        }
-        body.no-anim .puzzle-piece.unfixed::after {
-            animation: none;
-        }
-        @media (prefers-reduced-motion: reduce) {
-            .puzzle-piece.unfixed::after { animation: none; }
-        }
-        @media (hover: hover) {
-            .puzzle-piece.unfixed:hover {
-                box-shadow: 0 6px 16px rgba(20, 20, 60, 0.45);
-                transform: translateY(-2px);
-            }
-        }
-        /* Peça ben col·locada: marge zero, sense vora ni ombra */
-        .puzzle-piece.fixed {
-            margin: 0;
-            border: 0;
-            border-radius: 0;
-            box-shadow: none;
-            cursor: default;
-        }
-        .puzzle-piece:active:not(.fixed) {
-            cursor: grabbing;
-            opacity: 0.8;
-            z-index: 100;
-        }
-        /* ℹ️ PANELL SOTA LA FOTO (log, avís, ajuda, estadístiques) */
-        .side-panel {
-            flex: 0 0 auto;
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            width: 100%;
-            max-width: 100%;
-        }
-        .stats-container.hidden {
-            display: none !important;
-        }
-        .notice {
-            display: flex;
-            align-items: flex-start;
-            gap: 8px;
-            padding: 8px 10px;
-            border-radius: 6px;
-            background: rgba(255, 196, 0, 0.16);
-            border: 1px solid rgba(255, 214, 102, 0.6);
-            color: #ffffff;
-            font-size: clamp(11px, 2.8vw, 13px);
-            line-height: 1.35;
-        }
-        .notice.hidden {
-            display: none;
-        }
-        .notice-text {
-            flex: 1;
-        }
-        .notice-close {
-            background: none;
-            border: 0;
-            color: inherit;
-            font-size: 18px;
-            line-height: 1;
-            padding: 0 2px;
-            cursor: pointer;
-            opacity: 0.8;
-            touch-action: manipulation;
-        }
-        .image-preview {
-            background: rgba(255, 255, 255, 0.08);
-            backdrop-filter: blur(10px);
-            padding: 6px;
-            border-radius: 8px;
-            text-align: center;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        .image-preview.hidden {
-            display: none;
-        }
-        .image-preview img {
-            max-width: 100%;
-            max-height: 16vh;
-            object-fit: contain;
-            border-radius: 6px;
-        }
-        .log {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            padding: clamp(8px, 2vw, 10px);
-            border-radius: 6px;
-            font-size: clamp(11px, 2.5vw, 12px);
-            color: rgba(255, 255, 255, 0.8);
-            min-height: 1.5em;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        .stats-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px 14px;
-            justify-content: center;
-            align-items: center;
-            padding: clamp(8px, 2vw, 10px);
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            border-radius: 6px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        .stat-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: clamp(11px, 2.5vw, 13px);
-            color: rgba(255, 255, 255, 0.8);
-        }
-        .stat-label {
-            font-weight: 600;
-            opacity: 0.9;
-        }
-        .stat-value {
-            background: rgba(102, 126, 234, 0.2);
-            padding: 4px 12px;
-            border-radius: 12px;
-            border: 1px solid rgba(102, 126, 234, 0.3);
-            font-weight: bold;
-            color: rgba(255, 255, 255, 0.95);
-        }
-        .victory-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.6);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-            backdrop-filter: blur(4px);
-        }
-        .victory-overlay.active {
-            display: flex;
-        }
-        .victory-popup {
-            background: var(--bg-primary);
-            padding: clamp(20px, 5vw, 40px);
-            border-radius: 20px;
-            text-align: center;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
-            animation: popIn 0.4s ease-out;
-            max-width: 95%;
-            max-height: 95vh;
-            overflow-y: auto;
-        }
-        .victory-popup h2 {
-            font-size: clamp(1.8rem, 6vw, 2.5rem);
-            color: var(--btn-bg);
-            margin-bottom: 10px;
-        }
-        .victory-popup p {
-            font-size: clamp(0.9rem, 3vw, 1.1rem);
-            color: var(--text-primary);
-            margin-bottom: 15px;
-        }
-        .victory-popup .final-puzzle {
-            margin: 15px 0;
-            border-radius: 12px;
-            max-width: 100%;
-            width: clamp(250px, 80vw, 450px);
-            height: auto;
-            max-height: 50vh;
-            box-shadow: 0 4px 15px var(--shadow);
-        }
-        .victory-popup button {
-            display: inline-block;
-            width: auto;
-            padding: clamp(10px, 2vw, 12px) clamp(25px, 5vw, 40px);
-            background: var(--btn-bg);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: clamp(12px, 3vw, 1rem);
-            font-weight: bold;
-            cursor: pointer;
-            transition: background 0.2s;
-            margin-top: 15px;
-            touch-action: manipulation;
-        }
-        .victory-popup button:active {
-            background: var(--btn-hover);
-            transform: scale(0.98);
-        }
-        @keyframes popIn {
-            0% {
-                transform: scale(0.8);
-                opacity: 0;
-            }
-            100% {
-                transform: scale(1);
-                opacity: 1;
-            }
-        }
-        @keyframes puzzleEntrance {
-            0% { transform: scale(0) rotate(-180deg); opacity: 0; }
-            50% { transform: scale(1.1) rotate(0deg); }
-            100% { transform: scale(1) rotate(0deg); opacity: 1; }
-        }
-        @keyframes puzzleFall {
-            0% { transform: translateY(-80px) rotate(360deg); opacity: 0; }
-            100% { transform: translateY(0) rotate(0deg); opacity: 1; }
-        }
-        @keyframes puzzleExplosion {
-            0% { transform: scale(0.3) rotate(-180deg); opacity: 0; filter: blur(4px); }
-            60% { transform: scale(1.2); }
-            100% { transform: scale(1) rotate(0deg); opacity: 1; filter: blur(0px); }
-        }
-        @keyframes puzzleFlip {
-            0% { transform: rotateX(90deg) scale(0.5); opacity: 0; }
-            100% { transform: rotateX(0deg) scale(1); opacity: 1; }
-        }
-        @keyframes puzzleSlideIn {
-            0% { transform: translateX(-100px) rotate(-90deg); opacity: 0; }
-            100% { transform: translateX(0) rotate(0deg); opacity: 1; }
-        }
-        @keyframes puzzleSlideInRight {
-            0% { transform: translateX(100px) rotate(90deg); opacity: 0; }
-            100% { transform: translateX(0) rotate(0deg); opacity: 1; }
-        }
-        @keyframes puzzleBounce {
-            0% { transform: scale(0) translateY(-50px); opacity: 0; }
-            50% { transform: scale(1.15); }
-            70% { transform: scale(0.95); }
-            100% { transform: scale(1) translateY(0); opacity: 1; }
-        }
-        @keyframes puzzleWave {
-            0% { transform: translateY(40px) skewY(-5deg); opacity: 0; }
-            100% { transform: translateY(0) skewY(0deg); opacity: 1; }
-        }
-        @keyframes puzzleZoomIn {
-            0% { transform: scale(0) translateZ(0); opacity: 0; }
-            70% { transform: scale(1.1); }
-            100% { transform: scale(1); opacity: 1; }
-        }
-        @keyframes puzzleGhost {
-            0% { transform: translateY(-30px) rotate(180deg) scale(0.3); opacity: 0; filter: blur(8px) brightness(0.5); }
-            50% { filter: blur(4px) brightness(0.8); }
-            100% { transform: translateY(0) rotate(0deg) scale(1); opacity: 1; filter: blur(0px) brightness(1); }
-        }
-        
-        .puzzle-piece.entrance-spin { animation: puzzleEntrance 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards; }
-        .puzzle-piece.entrance-fall { animation: puzzleFall 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
-        .puzzle-piece.entrance-explosion { animation: puzzleExplosion 0.8s cubic-bezier(0.36, 0, 0.66, -0.56) forwards; }
-        .puzzle-piece.entrance-flip { animation: puzzleFlip 0.6s ease-out forwards; }
-        .puzzle-piece.entrance-slide { animation: puzzleSlideIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards; }
-        .puzzle-piece.entrance-slide-right { animation: puzzleSlideInRight 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards; }
-        .puzzle-piece.entrance-bounce { animation: puzzleBounce 0.7s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards; }
-        .puzzle-piece.entrance-wave { animation: puzzleWave 0.6s ease-out forwards; }
-        .puzzle-piece.entrance-zoom { animation: puzzleZoomIn 0.6s cubic-bezier(0.43, 0.13, 0.23, 0.96) forwards; }
-        .puzzle-piece.entrance-ghost { animation: puzzleGhost 0.8s ease-out forwards; }
-        
-        /* 📱 VERTICAL (PORTRAIT) */
-        body.portrait-mode.ios-app .container {
-            /* Barra d'estat translúcida: mínim de seguretat si env() retorna 0 */
-            --pad-top: max(44px, calc(env(safe-area-inset-top, 0px) + 6px));
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no, maximum-scale=1">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#ff9f45">
+<link rel="icon" type="image/png" sizes="32x32" href="puzzle32x32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="puzzle192x192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="puzzle180x180.png">
 
-        /* 📱 HORITZONTAL (LANDSCAPE): tauler + log | menú a la dreta */
-        body.landscape-mode .container {
-            --pad-top: calc(env(safe-area-inset-top, 0px) + 6px);
-            --pad-right: calc(env(safe-area-inset-right, 0px) + 6px);
-            --pad-bottom: calc(env(safe-area-inset-bottom, 0px) + 6px);
-            --pad-left: calc(env(safe-area-inset-left, 0px) + 6px);
-            max-width: none;
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) auto;
-            grid-template-rows: minmax(0, 1fr);
-            gap: 8px;
-        }
-        body.landscape-mode .header {
-            display: none;
-        }
-        body.landscape-mode .stage {
-            grid-column: 1;
-            grid-row: 1;
-            justify-content: center;
-        }
-        body.landscape-mode .controls-bar {
-            grid-column: 2;
-            grid-row: 1;
-            flex-direction: column;
-            align-items: center;
-            gap: 4px;
-            height: 100%;
-            overflow-y: auto;
-            scrollbar-width: none;
-        }
-        body.landscape-mode .controls-bar::-webkit-scrollbar {
-            display: none;
-        }
-        body.landscape-mode .controls-bar > select {
-            width: 52px;
-            padding: 2px 4px;
-            height: 32px;
-            font-size: 11px;
-        }
-        body.landscape-mode .controls-bar > .icon-btn,
-        body.landscape-mode .controls-bar > .theme-toggle {
-            flex: 0 0 auto;
-            width: 32px !important;
-            height: 32px !important;
-            font-size: 14px !important;
-            padding: 0;
-        }
-        @media (max-height: 400px) {
-            body.landscape-mode .controls-bar { gap: 3px; }
-            body.landscape-mode .controls-bar > select { height: 30px; }
-            body.landscape-mode .controls-bar > .icon-btn,
-            body.landscape-mode .controls-bar > .theme-toggle {
-                width: 30px !important;
-                height: 30px !important;
-            }
-        }
-        body.landscape-mode .image-preview img {
-            max-height: 22vh;
-        }
-        body.landscape-mode .log {
-            padding: 5px 8px;
-            font-size: 11px;
-        }
-        body.landscape-mode .notice {
-            font-size: 11px;
-            padding: 6px 8px;
-        }
-        body.landscape-mode .stats-container {
-            gap: 4px 14px;
-            padding: 5px;
-        }
-        body.landscape-mode .stat-item {
-            gap: 4px;
-            font-size: 11px;
-        }
-        body.landscape-mode .stat-value {
-            padding: 2px 8px;
-            font-size: 11px;
-        }
-        body.landscape-mode footer.footer {
-            padding: 8px;
-        }
-        body.landscape-mode footer.footer p {
-            margin-bottom: 4px;
-            font-size: 9px;
-        }
-        /* FOOTER */
-        footer.footer {
-            margin-top: 0;
-            padding: 20px;
-            text-align: center;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            background: transparent;
-        }
-        .footer-content {
-            max-width: 600px;
-            margin: 0 auto;
-        }
-        footer.footer p {
-            color: rgba(255, 255, 255, 0.7);
-            font-size: clamp(11px, 2.5vw, 12px);
-            margin-bottom: 8px;
-        }
-        .footer-links {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-        .footer-links a {
-            color: rgba(255, 255, 255, 0.9);
-            font-size: clamp(11px, 2.5vw, 12px);
-            text-decoration: none;
-            border-bottom: 1px solid transparent;
-            transition: all 0.2s;
-        }
-        .footer-links a:hover {
-            border-bottom: 1px solid rgba(255, 255, 255, 0.9);
-            opacity: 0.8;
-        }
-        .divider {
-            color: rgba(255, 255, 255, 0.5);
-        }
-        @media (max-width: 600px) {
-            footer.footer { padding: 15px; }
-            .footer-links { gap: 6px; }
-        }
-    </style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&family=Fredoka:wght@400;500;600;700&family=Baloo+2:wght@600;700;800&display=swap" rel="stylesheet">
+
+<title>Trencaclosques</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none}
+
+.material-symbols-rounded{
+  font-family:'Material Symbols Rounded';
+  font-variation-settings:'FILL' 1,'wght' 600,'GRAD' 0,'opsz' 40;
+  line-height:1;font-size:24px;
+  font-weight:normal;font-style:normal;letter-spacing:normal;
+  text-transform:none;display:inline-block;white-space:nowrap;
+  word-wrap:normal;direction:ltr;
+}
+
+/* ═══════════════════════════════════════════════════════
+   MODE NIT
+   ═══════════════════════════════════════════════════════ */
+body{
+  --stage:linear-gradient(170deg,#241a3d 0%,#120e21 100%);
+  --page:#14101c;
+  --bar-bg:linear-gradient(180deg,rgba(255,255,255,.13),rgba(255,255,255,.04));
+  --bar-border:rgba(255,255,255,.16);
+  --bar-shadow:inset 0 1px 0 rgba(255,255,255,.3), 0 8px 22px rgba(0,0,0,.45);
+  --pill-bg:linear-gradient(160deg,rgba(255,255,255,.2),rgba(255,255,255,.06));
+  --pill-shadow:inset 0 1px 0 rgba(255,255,255,.45), 0 4px 10px rgba(0,0,0,.4);
+  --ink:#fff;
+  --ink-soft:rgba(255,255,255,.6);
+  --accent:#ffd166;
+  --accent-deep:#f0a020;
+  --accent-ink:#3a1f00;
+  --board-border:rgba(255,209,102,.6);
+  --board-halo:rgba(255,209,102,.12);
+  --board-bg:rgba(255,255,255,.06);
+  --chip-bg:linear-gradient(160deg,rgba(255,255,255,.16),rgba(255,255,255,.05));
+  --chip-border:rgba(255,255,255,.18);
+  --chip-shadow:inset 0 1px 0 rgba(255,255,255,.35);
+  --panel-bg:linear-gradient(170deg,#2c2050,#161029);
+  --piece-ring:rgba(255,209,102,.45);
+
+  font-family:'Fredoka',system-ui,-apple-system,sans-serif;
+  background:var(--page);
+  color:var(--ink);
+  min-height:100vh;min-height:100dvh;
+  -webkit-user-select:none;user-select:none;
+  transition:background .35s;
+}
+
+/* ═══════════════════════════════════════════════════════
+   MODE DIA — colors vius i sòlids
+   ═══════════════════════════════════════════════════════ */
+body.day{
+  --stage:linear-gradient(165deg,#ffd86b 0%,#ff9f45 38%,#ff6b9d 100%);
+  --page:#fff4dc;
+  --bar-bg:#ffffff;
+  --bar-border:#ffffff;
+  --bar-shadow:inset 0 -4px 0 rgba(0,0,0,.07), 0 10px 26px rgba(214,96,30,.3);
+  --pill-bg:#ffffff;
+  --pill-shadow:none;
+  --ink:#3c2a14;
+  --ink-soft:rgba(60,42,20,.65);
+  --accent:#ffc83d;
+  --accent-deep:#ff8a00;
+  --accent-ink:#4a2600;
+  --board-border:#ffffff;
+  --board-halo:rgba(255,255,255,.45);
+  --board-bg:rgba(255,255,255,.35);
+  --chip-bg:#ffffff;
+  --chip-border:transparent;
+  --chip-shadow:0 3px 0 rgba(0,0,0,.1), 0 6px 12px rgba(150,60,10,.18);
+  --panel-bg:linear-gradient(170deg,#fff8ec,#ffe6c2);
+  --piece-ring:rgba(255,255,255,.8);
+}
+
+/* ── contenidor ─────────────────────────────────────── */
+.container{max-width:900px;margin:0 auto}
+
+.stage{
+  background:var(--stage);
+  border-radius:28px;
+  padding:20px 16px 24px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.14), 0 22px 50px rgba(0,0,0,.4);
+  transition:background .35s;
+}
+
+/* ── títol ──────────────────────────────────────────── */
+.brand{
+  font-family:'Baloo 2',sans-serif;font-weight:800;text-align:center;
+  font-size:clamp(26px,7.5vw,46px);letter-spacing:-1px;margin-bottom:14px;
+  color:#fff;line-height:1.05;
+  text-shadow:0 0 18px rgba(167,139,250,.9),0 0 46px rgba(56,189,248,.5),0 4px 0 rgba(0,0,0,.35);
+}
+body.day .brand{
+  background:linear-gradient(180deg,#fff 0%,#fff1b8 45%,#ffb020 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  text-shadow:none;
+  filter:drop-shadow(0 3px 0 #d2551f) drop-shadow(0 6px 0 rgba(150,50,10,.45)) drop-shadow(0 12px 16px rgba(120,40,0,.35));
+}
+.brand .v{
+  display:block;font-family:'Fredoka';font-weight:500;
+  font-size:11px;letter-spacing:3px;text-transform:uppercase;
+  color:#a5b4fc;opacity:.8;margin-top:2px;-webkit-text-fill-color:#a5b4fc;
+  filter:none;text-shadow:none;
+}
+body.day .brand .v{color:#fff;-webkit-text-fill-color:#fff;opacity:.9;
+  text-shadow:0 2px 0 rgba(180,70,10,.5)}
+
+/* ── barra de control ───────────────────────────────── */
+.bar{
+  display:flex;align-items:center;gap:8px;flex-wrap:nowrap;
+  background:var(--bar-bg);border:1px solid var(--bar-border);
+  border-radius:99px;padding:8px 10px;box-shadow:var(--bar-shadow);
+  overflow-x:auto;scrollbar-width:none;
+  transition:background .35s,box-shadow .35s;
+}
+.bar::-webkit-scrollbar{display:none}
+
+.pill{
+  flex:0 0 auto;width:44px;height:44px;border-radius:50%;border:none;cursor:pointer;
+  display:grid;place-items:center;color:var(--ink);position:relative;
+  background:var(--pill-bg);box-shadow:var(--pill-shadow);
+  transition:transform .13s cubic-bezier(.34,1.56,.64,1),background .35s,box-shadow .35s,opacity .2s;
+}
+.pill:active{transform:scale(.9)}
+.pill .material-symbols-rounded{font-size:24px;filter:drop-shadow(0 0 8px var(--glow))}
+
+/* dia: el botó sencer pren el color, amb base sòlida */
+body.day .pill{
+  background:var(--tint);color:#fff;
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.55), 0 4px 0 var(--tint-deep), 0 7px 12px rgba(0,0,0,.22);
+}
+body.day .pill .material-symbols-rounded{filter:drop-shadow(0 1px 1px rgba(0,0,0,.3))}
+body.day .pill:active{
+  transform:translateY(3px);
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.5), 0 1px 0 var(--tint-deep), 0 2px 5px rgba(0,0,0,.25);
+}
+
+/* estat encès */
+.pill.on{
+  background:linear-gradient(160deg,var(--accent),var(--accent-deep));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.7),0 0 18px rgba(240,160,32,.65),0 4px 10px rgba(0,0,0,.45);
+  color:var(--accent-ink);
+}
+.pill.on .material-symbols-rounded{filter:none}
+body.day .pill.on{
+  background:linear-gradient(160deg,#ffe066,#ff9f1a);
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.8), 0 4px 0 #d97706, 0 7px 12px rgba(0,0,0,.25);
+  color:var(--accent-ink);
+}
+
+/* estat apagat (animacions off) */
+.pill.off{opacity:.4}
+
+.spacer{flex:1 1 auto;min-width:6px}
+
+.select{
+  flex:0 0 auto;height:44px;border-radius:99px;padding:0 8px 0 16px;cursor:pointer;
+  font-family:'Fredoka';font-weight:600;font-size:14px;color:var(--ink);
+  border:none;background:var(--pill-bg);box-shadow:var(--pill-shadow);
+  appearance:none;-webkit-appearance:none;
+  transition:background .35s,box-shadow .35s;
+  text-align:center;
+}
+.select option{color:#3c2a14;background:#fff}
+body.day .select{
+  background:linear-gradient(160deg,#8b5cf6,#6d28d9);color:#fff;
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.45), 0 4px 0 #4c1d95, 0 7px 12px rgba(0,0,0,.22);
+}
+
+/* ── tauler ─────────────────────────────────────────── */
+.board-wrap{margin-top:16px;display:flex;justify-content:center}
+
+.puzzle-grid{
+  display:grid;gap:0;width:100%;max-width:100%;
+  background:var(--board-bg);
+  padding:5px;border-radius:20px;touch-action:none;aspect-ratio:auto;
+  border:3px solid var(--board-border);
+  box-shadow:0 0 0 6px var(--board-halo), inset 0 0 40px rgba(0,0,0,.3), 0 16px 36px rgba(0,0,0,.35);
+  transition:border-color .35s,background .35s;
+}
+
+.puzzle-piece{
+  background-size:100% 100%;background-position:center;
+  cursor:grab;user-select:none;-webkit-user-select:none;touch-action:none;position:relative;
+}
+.puzzle-piece.unfixed{
+  margin:3px;border-radius:6px;
+  box-shadow:0 0 0 2px var(--piece-ring), 0 5px 12px rgba(0,0,0,.45);
+  transition:box-shadow .18s,transform .18s;
+}
+.puzzle-piece.unfixed:active{cursor:grabbing;transform:scale(1.06);z-index:100}
+.puzzle-piece.fixed{
+  margin:0;border-radius:0;cursor:default;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.1);
+}
+
+/* ── ajuda visual ───────────────────────────────────── */
+.image-preview{
+  margin-top:14px;padding:10px;border-radius:18px;
+  background:var(--chip-bg);border:1px solid var(--chip-border);
+  box-shadow:var(--chip-shadow);
+  display:flex;align-items:center;justify-content:center;
+  min-height:90px;transition:background .35s;
+}
+.image-preview.hidden{display:none}
+.image-preview img{max-width:100%;max-height:26vh;border-radius:12px;display:block}
+
+/* ── consola de missatges ───────────────────────────── */
+.log{
+  margin-top:12px;padding:10px 16px;border-radius:99px;
+  background:var(--chip-bg);border:1px solid var(--chip-border);
+  box-shadow:var(--chip-shadow);
+  font-size:13px;font-weight:500;color:var(--ink);
+  min-height:2.6em;display:flex;align-items:center;justify-content:center;
+  text-align:center;word-wrap:break-word;transition:background .35s,color .35s;
+}
+
+/* ── xips d'estadístiques ───────────────────────────── */
+.stats{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;justify-content:center}
+.chip{
+  display:flex;align-items:center;gap:7px;padding:8px 14px;border-radius:99px;
+  background:var(--chip-bg);border:1px solid var(--chip-border);
+  box-shadow:var(--chip-shadow);
+  font-size:13px;font-weight:600;color:var(--ink);
+  transition:background .35s,color .35s;
+}
+.chip .material-symbols-rounded{font-size:19px}
+.chip b{font-family:'Baloo 2';font-size:15px;font-weight:700}
+
+/* ── victòria ───────────────────────────────────────── */
+.victory-overlay{
+  position:fixed;inset:0;background:rgba(10,6,20,.72);
+  display:none;align-items:center;justify-content:center;z-index:1000;
+  backdrop-filter:blur(6px);padding:20px;
+}
+.victory-overlay.active{display:flex}
+.victory-popup{
+  background:var(--panel-bg);
+  padding:26px 22px;border-radius:28px;text-align:center;
+  box-shadow:0 24px 60px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.25);
+  animation:popIn .45s cubic-bezier(.34,1.56,.64,1);
+  max-width:96%;max-height:92vh;overflow-y:auto;
+  border:2px solid var(--board-border);
+}
+.victory-popup .trophy{
+  font-size:56px;color:var(--accent);
+  filter:drop-shadow(0 4px 0 var(--accent-deep)) drop-shadow(0 8px 14px rgba(0,0,0,.45));
+  font-variation-settings:'FILL' 1,'wght' 700,'opsz' 48;
+}
+.victory-popup h2{
+  font-family:'Baloo 2',sans-serif;font-weight:800;
+  font-size:clamp(28px,7vw,40px);margin:6px 0 4px;color:var(--ink);
+  letter-spacing:-.5px;
+}
+.victory-popup p{font-size:14px;color:var(--ink-soft);margin-bottom:14px}
+.victory-popup .final-puzzle{
+  margin:0 auto 16px;border-radius:16px;display:block;
+  max-width:100%;width:clamp(220px,70vw,400px);height:auto;max-height:42vh;
+  box-shadow:0 0 0 4px var(--board-border), 0 10px 26px rgba(0,0,0,.5);
+}
+.btn-big{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:14px 30px;border:none;border-radius:99px;cursor:pointer;
+  font-family:'Fredoka';font-weight:600;font-size:16px;color:var(--accent-ink);
+  background:linear-gradient(160deg,var(--accent),var(--accent-deep));
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.7), 0 5px 0 rgba(0,0,0,.3), 0 10px 20px rgba(0,0,0,.4);
+  transition:transform .13s cubic-bezier(.34,1.56,.64,1),box-shadow .13s;
+}
+.btn-big:active{transform:translateY(4px);box-shadow:inset 0 2px 0 rgba(255,255,255,.6),0 1px 0 rgba(0,0,0,.3),0 3px 8px rgba(0,0,0,.4)}
+
+@keyframes popIn{0%{transform:scale(.8);opacity:0}100%{transform:scale(1);opacity:1}}
+
+/* ── animacions d'entrada de les peces ──────────────── */
+@keyframes puzzleEntrance{0%{transform:scale(0) rotate(-180deg);opacity:0}50%{transform:scale(1.1) rotate(0)}100%{transform:scale(1) rotate(0);opacity:1}}
+@keyframes puzzleFall{0%{transform:translateY(-80px) rotate(360deg);opacity:0}100%{transform:translateY(0) rotate(0);opacity:1}}
+@keyframes puzzleExplosion{0%{transform:scale(.3) rotate(-180deg);opacity:0;filter:blur(4px)}60%{transform:scale(1.2)}100%{transform:scale(1) rotate(0);opacity:1;filter:blur(0)}}
+@keyframes puzzleFlip{0%{transform:rotateX(90deg) scale(.5);opacity:0}100%{transform:rotateX(0) scale(1);opacity:1}}
+@keyframes puzzleSlideIn{0%{transform:translateX(-100px) rotate(-90deg);opacity:0}100%{transform:translateX(0) rotate(0);opacity:1}}
+@keyframes puzzleSlideInRight{0%{transform:translateX(100px) rotate(90deg);opacity:0}100%{transform:translateX(0) rotate(0);opacity:1}}
+@keyframes puzzleBounce{0%{transform:scale(0) translateY(-50px);opacity:0}50%{transform:scale(1.15)}70%{transform:scale(.95)}100%{transform:scale(1) translateY(0);opacity:1}}
+@keyframes puzzleWave{0%{transform:translateY(40px) skewY(-5deg);opacity:0}100%{transform:translateY(0) skewY(0);opacity:1}}
+@keyframes puzzleZoomIn{0%{transform:scale(0);opacity:0}70%{transform:scale(1.1)}100%{transform:scale(1);opacity:1}}
+@keyframes puzzleGhost{0%{transform:translateY(-30px) rotate(180deg) scale(.3);opacity:0;filter:blur(8px) brightness(.5)}50%{filter:blur(4px) brightness(.8)}100%{transform:translateY(0) rotate(0) scale(1);opacity:1;filter:blur(0) brightness(1)}}
+
+.puzzle-piece.entrance-spin{animation:puzzleEntrance .6s cubic-bezier(.68,-.55,.265,1.55) forwards}
+.puzzle-piece.entrance-fall{animation:puzzleFall .7s cubic-bezier(.34,1.56,.64,1) forwards}
+.puzzle-piece.entrance-explosion{animation:puzzleExplosion .8s cubic-bezier(.36,0,.66,-.56) forwards}
+.puzzle-piece.entrance-flip{animation:puzzleFlip .6s ease-out forwards}
+.puzzle-piece.entrance-slide{animation:puzzleSlideIn .5s cubic-bezier(.68,-.55,.265,1.55) forwards}
+.puzzle-piece.entrance-slide-right{animation:puzzleSlideInRight .5s cubic-bezier(.68,-.55,.265,1.55) forwards}
+.puzzle-piece.entrance-bounce{animation:puzzleBounce .7s cubic-bezier(.68,-.55,.265,1.55) forwards}
+.puzzle-piece.entrance-wave{animation:puzzleWave .6s ease-out forwards}
+.puzzle-piece.entrance-zoom{animation:puzzleZoomIn .6s cubic-bezier(.43,.13,.23,.96) forwards}
+.puzzle-piece.entrance-ghost{animation:puzzleGhost .8s ease-out forwards}
+
+/* ── peu ────────────────────────────────────────────── */
+footer.footer{margin-top:18px;padding:14px;text-align:center}
+footer.footer p{color:var(--ink-soft);font-size:11px;margin-bottom:6px}
+.footer-links{display:flex;justify-content:center;align-items:center;gap:10px;flex-wrap:wrap}
+.footer-links a{
+  color:var(--ink);font-size:11px;text-decoration:none;opacity:.75;
+  border-bottom:1px solid transparent;transition:all .2s;
+}
+.footer-links a:hover{opacity:1;border-bottom-color:currentColor}
+.divider{color:var(--ink-soft)}
+
+/* ═══════════════════════════════════════════════════════
+   VERTICAL
+   ═══════════════════════════════════════════════════════ */
+body.portrait-mode{padding:16px 12px 20px}
+body.portrait-mode.web-browser{padding:12px 12px 20px}
+body.portrait-mode.ios-app{padding:max(52px,env(safe-area-inset-top)) 12px 20px}
+body.portrait-mode.android-app{padding:max(34px,env(safe-area-inset-top)) 12px 20px}
+
+/* ═══════════════════════════════════════════════════════
+   HORITZONTAL — sense títol, tot compacte
+   ═══════════════════════════════════════════════════════ */
+body.landscape-mode{padding:10px 12px 14px}
+body.landscape-mode.web-browser{padding:8px 12px 14px}
+body.landscape-mode.ios-app{padding:max(14px,env(safe-area-inset-top)) max(14px,env(safe-area-inset-left)) 14px max(14px,env(safe-area-inset-right))}
+body.landscape-mode.android-app{padding:max(10px,env(safe-area-inset-top)) 14px 14px}
+
+body.landscape-mode .brand{display:none}
+body.landscape-mode .stage{padding:12px 12px 14px;border-radius:22px}
+body.landscape-mode .bar{padding:5px 7px;gap:5px}
+body.landscape-mode .pill{width:36px;height:36px}
+body.landscape-mode .pill .material-symbols-rounded{font-size:20px}
+body.landscape-mode .select{height:36px;font-size:13px;padding:0 6px 0 12px}
+body.landscape-mode .board-wrap{margin-top:10px}
+body.landscape-mode .puzzle-grid{max-height:56vh;width:auto;max-width:100%}
+body.landscape-mode .image-preview{margin-top:8px;padding:6px;min-height:0}
+body.landscape-mode .image-preview img{max-height:16vh}
+body.landscape-mode .log{margin-top:8px;padding:6px 14px;font-size:11px;min-height:0}
+body.landscape-mode .stats{margin-top:8px;gap:6px}
+body.landscape-mode .chip{padding:5px 11px;font-size:11px}
+body.landscape-mode .chip .material-symbols-rounded{font-size:16px}
+body.landscape-mode .chip b{font-size:13px}
+body.landscape-mode footer.footer{margin-top:10px;padding:8px}
+body.landscape-mode footer.footer p{font-size:10px;margin-bottom:3px}
+body.landscape-mode .footer-links a{font-size:10px}
+
+@media (max-width:400px){
+  .bar{gap:6px;padding:7px 8px}
+  .pill{width:40px;height:40px}
+  .pill .material-symbols-rounded{font-size:22px}
+}
+</style>
 </head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>🧩 Trencaclosques <span id="version">v2.44</span></h1>
-        </div>
-        <div class="controls-bar">
-            <select id="divisionsSelect" title="Nombre de peces">
-                <option value="2">2×2</option>
-                <option value="3">3×3</option>
-                <option value="4" selected>4×4</option>
-                <option value="5">5×5</option>
-            </select>
-            <button class="icon-btn" id="picsumBtn" title="Imatge aleatoria">🎨</button>
-            <button class="icon-btn" id="githubBtn" title="GitHub">📸</button>
-            <div class="spacer"></div>
-            <button class="icon-btn" id="infoBtn" title="Mostrar/amagar informació" aria-pressed="false">ℹ️</button>
-            <button class="icon-btn" id="orientationLockBtn" title="Bloquejar/desbloquejar orientació">🔓</button>
-            <button class="icon-btn" id="refreshBtn" title="Nova foto">🔄</button>
-            <button class="icon-btn" id="animationsToggle" title="Activar/desactivar animacions">✨</button>
-            <button class="icon-btn" id="helpToggle" title="Amb ajuda o sense">🚀</button>
-            <button class="theme-toggle" id="themeToggle" title="Canviar mode fosc">🌙</button>
-        </div>
-        <div class="stage" id="stage">
-            <div class="puzzle-container-wrapper" id="boardWrapper">
-                <div id="puzzleContainer" class="puzzle-grid"></div>
-            </div>
-            <div class="side-panel" id="sidePanel">
-                <div class="log" id="log">Carregant...</div>
-                <div id="notice" class="notice hidden" role="status" aria-live="polite">
-                    <span class="notice-text" id="noticeText"></span>
-                    <button class="notice-close" id="noticeClose" title="Tancar avís" aria-label="Tancar avís">×</button>
-                </div>
-                <div id="imagePreview" class="image-preview">
-                    <img id="previewImg" src="" alt="Original" crossOrigin="anonymous">
-                </div>
-                <div class="stats-container hidden" id="statsContainer">
-                    <div class="stat-item">
-                        <span class="stat-label">📊 Fotos:</span>
-                        <span class="stat-value"><span id="photosPlayed">0</span> / <span id="totalPhotos">∞</span></span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">🎮 Partides:</span>
-                        <span class="stat-value" id="gamesPlayed">0</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">✨ Font:</span>
-                        <span class="stat-value" id="currentSource">Picsum</span>
-                    </div>
-                </div>
-            </div>
-        </div>
+<body class="day portrait-mode">
+
+<div class="container">
+  <div class="stage">
+
+    <h1 class="brand">Trencaclosques<span class="v" id="version">v3.00</span></h1>
+
+    <div class="bar">
+      <select class="select" id="divisionsSelect" title="Nombre de peces">
+        <option value="2">2×2</option>
+        <option value="3">3×3</option>
+        <option value="4" selected>4×4</option>
+        <option value="5">5×5</option>
+      </select>
+
+      <button class="pill" id="githubBtn" title="Les meves fotos"
+              style="--glow:#4ade80;--tint:#22c55e;--tint-deep:#15803d">
+        <span class="material-symbols-rounded">photo_library</span>
+      </button>
+
+      <button class="pill" id="picsumBtn" title="Foto aleatòria d'Internet"
+              style="--glow:#38bdf8;--tint:#0ea5e9;--tint-deep:#0369a1">
+        <span class="material-symbols-rounded">travel_explore</span>
+      </button>
+
+      <span class="spacer"></span>
+
+      <button class="pill" id="refreshBtn" title="Nova foto"
+              style="--glow:#f472b6;--tint:#ec4899;--tint-deep:#9d174d">
+        <span class="material-symbols-rounded">autorenew</span>
+      </button>
+
+      <button class="pill" id="helpToggle" title="Amb ajuda o sense"
+              style="--glow:#fbbf24;--tint:#f59e0b;--tint-deep:#b45309">
+        <span class="material-symbols-rounded">lightbulb</span>
+      </button>
+
+      <button class="pill" id="animationsToggle" title="Animacions"
+              style="--glow:#a78bfa;--tint:#a855f7;--tint-deep:#7e22ce">
+        <span class="material-symbols-rounded">auto_awesome</span>
+      </button>
+
+      <button class="pill" id="orientationLockBtn" title="Bloquejar orientació"
+              style="--glow:#22d3ee;--tint:#06b6d4;--tint-deep:#0e7490">
+        <span class="material-symbols-rounded">lock_open</span>
+      </button>
+
+      <button class="pill" id="themeToggle" title="Mode clar o fosc"
+              style="--glow:#fde047;--tint:#ef4444;--tint-deep:#b91c1c">
+        <span class="material-symbols-rounded">dark_mode</span>
+      </button>
     </div>
-    <div id="victoryOverlay" class="victory-overlay">
-        <div class="victory-popup">
-            <h2>🎉VISCA🎉</h2>
-            <p>Has completat el puzzle!</p>
-            <img id="finalImage" class="final-puzzle" src="" alt="Puzzle completat">
-            <br>
-            <button id="victoryBtn">Jugar de Nou</button>
-        </div>
+
+    <div class="board-wrap">
+      <div id="puzzleContainer" class="puzzle-grid"></div>
     </div>
-    <script>
-        const divisionsSelect = document.getElementById('divisionsSelect');
-        const picsumBtn = document.getElementById('picsumBtn');
-        const githubBtn = document.getElementById('githubBtn');
-        const orientationLockBtn = document.getElementById('orientationLockBtn');
-        const refreshBtn = document.getElementById('refreshBtn');
-        const animationsToggle = document.getElementById('animationsToggle');
-        const helpToggle = document.getElementById('helpToggle');
-        const puzzleContainer = document.getElementById('puzzleContainer');
-        const previewImg = document.getElementById('previewImg');
-        const logDiv = document.getElementById('log');
-        const victoryOverlay = document.getElementById('victoryOverlay');
-        const victoryBtn = document.getElementById('victoryBtn');
-        const finalImage = document.getElementById('finalImage');
-        const themeToggle = document.getElementById('themeToggle');
-        const imagePreview = document.getElementById('imagePreview');
-        const boardWrapper = document.getElementById('boardWrapper');
-        const stage = document.getElementById('stage');
-        const sidePanel = document.getElementById('sidePanel');
-        const statsContainer = document.getElementById('statsContainer');
-        const infoBtn = document.getElementById('infoBtn');
-        const noticeDiv = document.getElementById('notice');
-        const noticeText = document.getElementById('noticeText');
-        const noticeClose = document.getElementById('noticeClose');
-        const DURADA_LLUM_MS = 2800;   // Ha de coincidir amb l'animació llumVora del CSS
-        let spriteURL = '';
-
-        let imagenActual = null;
-        let divisions = 4;
-        let ordre = [];
-        let fixat = [];
-        let lastSource = 'picsum';
-        let isDifficultyMode = true;
-        let isAnimationsEnabled = true;
-        let photoWidth = 400;
-        let photoHeight = 400;
-        let currentCanvasWidth = 400;
-        let currentCanvasHeight = 400;
-        let currentPieceWidth = 100;
-        let currentPieceHeight = 100;
-        
-        // 📊 ESTADÍSTIQUES
-        let photosPlayed = 0;
-        let gamesPlayed = 0;
-        let totalPhotos = 0;
-        let gitHubPhotosCount = 0;
-        
-        // 📱 ORIENTACIÓ I DISPOSITIU
-        let currentOrientation = 'portrait';  // 'portrait' o 'landscape'
-        let orientationLocked = false;        // Bloquejat o no
-        let preferredOrientation = 'portrait'; // Preferència guardada
-        let appContext = 'web-browser';       // 'ios-app', 'android-app', 'web-browser'
-        let photoFilter = 'thumbnail';         // 'thumbnail' o 'hthumbnail'
-        
-        // 📷 GESTIÓ DE FOTOS (evitar repeticions, control separat per orientació)
-        const playedByFilter = { thumbnail: [], hthumbnail: [] };   // Fotos ja jugades
-        const repetint = { thumbnail: false, hthumbnail: false };   // Cicle esgotat i reiniciat
-        let lastPhoto = null;
-        
-        const animationTypes = [
-            'entrance-spin', 'entrance-fall', 'entrance-explosion', 'entrance-flip',
-            'entrance-slide', 'entrance-slide-right', 'entrance-bounce', 'entrance-wave',
-            'entrance-zoom', 'entrance-ghost'
-        ];
-
-        function initTheme() {
-            const isDark = localStorage.getItem('darkMode') === 'true';
-            if (isDark) {
-                document.body.classList.add('dark-mode');
-                themeToggle.textContent = '☀️';
-            }
-        }
-
-        themeToggle.addEventListener('click', () => {
-            document.body.classList.toggle('dark-mode');
-            const isDark = document.body.classList.contains('dark-mode');
-            localStorage.setItem('darkMode', isDark);
-            themeToggle.textContent = isDark ? '☀️' : '🌙';
-        });
-
-        helpToggle.addEventListener('click', () => {
-            isDifficultyMode = !isDifficultyMode;
-            if (isDifficultyMode) {
-                helpToggle.textContent = '🆘';
-                imagePreview.classList.add('hidden');
-            } else {
-                helpToggle.textContent = '🚀';
-                imagePreview.classList.remove('hidden');
-            }
-            scheduleFit();
-        });
-
-        function initAnimations() {
-            const saved = localStorage.getItem('enableAnimations');
-            isAnimationsEnabled = saved !== 'false';
-            updateAnimationsButton();
-        }
-
-        function updateAnimationsButton() {
-            animationsToggle.textContent = '✨';
-            animationsToggle.style.opacity = isAnimationsEnabled ? '1' : '0.4';
-            document.body.classList.toggle('no-anim', !isAnimationsEnabled);
-        }
-
-        animationsToggle.addEventListener('click', () => {
-            isAnimationsEnabled = !isAnimationsEnabled;
-            localStorage.setItem('enableAnimations', isAnimationsEnabled);
-            updateAnimationsButton();
-            log(isAnimationsEnabled ? '✨ Animacions activades' : '✨ Animacions desactivades');
-        });
-
-        function getRandomAnimation() {
-            return animationTypes[Math.floor(Math.random() * animationTypes.length)];
-        }
-
-        function cargarImagenDesdeUrl(imageUrl, source) {
-            const img = new Image();
-            img.crossOrigin = 'anonymous';
-            img.onload = () => {
-                imagenActual = imageUrl;
-                photoWidth = img.naturalWidth;
-                photoHeight = img.naturalHeight;
-                previewImg.onload = () => {
-                    log('✅ Foto carregada');
-                    iniciarPuzzle();
-                };
-                previewImg.src = imageUrl;
-                finalImage.src = imageUrl;
-            };
-            img.onerror = () => {
-                log('❌ Error al carregar la foto');
-            };
-            img.src = imageUrl;
-        }
-
-        picsumBtn.addEventListener('click', () => {
-            puzzleContainer.innerHTML = '';
-            hideNotice();
-            lastSource = 'picsum';
-            carregarImagenAleatoria();
-        });
-
-        githubBtn.addEventListener('click', () => {
-            puzzleContainer.innerHTML = '';
-            lastSource = 'github';
-            carregarFotosGitHub();
-        });
-
-        orientationLockBtn.addEventListener('click', () => {
-            toggleOrientationLock();
-        });
-
-        function log(msg) {
-            console.log(msg);
-            logDiv.textContent = msg;
-        }
-
-        // ⚠️ AVÍS PERSISTENT (no el sobreescriuen els missatges del log)
-        function showNotice(msg) {
-            console.warn(msg);
-            noticeText.textContent = msg;
-            noticeDiv.classList.remove('hidden');
-            scheduleFit();
-        }
-
-        function hideNotice() {
-            noticeDiv.classList.add('hidden');
-            noticeText.textContent = '';
-            scheduleFit();
-        }
-
-        // ℹ️ ESTADÍSTIQUES: amagades per defecte, es mostren sota la foto amb el botó
-        function setStatsVisible(visible) {
-            statsContainer.classList.toggle('hidden', !visible);
-            infoBtn.classList.toggle('active', visible);
-            infoBtn.setAttribute('aria-pressed', visible ? 'true' : 'false');
-            localStorage.setItem('showStats', visible);
-            scheduleFit();
-        }
-
-        infoBtn.addEventListener('click', () => {
-            setStatsVisible(statsContainer.classList.contains('hidden'));
-        });
-
-        // La miniatura d'ajuda canvia d'alçada en carregar: reajustar
-        previewImg.addEventListener('load', () => scheduleFit());
-
-        noticeClose.addEventListener('click', hideNotice);
-
-        // 📐 AJUSTAR EL TAULER A L'ESPAI DISPONIBLE
-        // Tauler + panell inferior (log...) formen un bloc que omple l'escenari.
-        // Manté la proporció de la foto i fa que cada cel·la mesuri un nombre enter de píxels,
-        // així les peces ben col·locades s'uneixen sense cap línia.
-        const PANELL_AMPLADA_MIN = 300;
-        function fitBoard() {
-            if (!currentCanvasWidth || !currentCanvasHeight) return;
-            const cs = getComputedStyle(puzzleContainer);
-            const frameW = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight) +
-                           parseFloat(cs.borderLeftWidth) + parseFloat(cs.borderRightWidth);
-            const frameH = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom) +
-                           parseFloat(cs.borderTopWidth) + parseFloat(cs.borderBottomWidth);
-            const gap = parseFloat(getComputedStyle(stage).rowGap) || 0;
-            const ratio = currentCanvasWidth / currentCanvasHeight;
-            const stageW = stage.clientWidth;
-            const stageH = stage.clientHeight;
-
-            // L'amplada del panell depèn del tauler i l'alçada del panell (text que salta de línia)
-            // afecta el tauler: iterem fins que s'estabilitza (normalment 1-2 passades).
-            let anterior = -1;
-            for (let pas = 0; pas < 4; pas++) {
-                const panelH = sidePanel.offsetHeight;
-                const availW = stageW - frameW;
-                const availH = stageH - panelH - gap - frameH;
-                if (availW <= 0 || availH <= 0) return;
-
-                let w = availW;
-                let h = w / ratio;
-                if (h > availH) {
-                    h = availH;
-                    w = h * ratio;
-                }
-                const cellW = Math.max(1, Math.floor(w / divisions));
-                const cellH = Math.max(1, Math.floor(h / divisions));
-                const boardW = cellW * divisions;
-                puzzleContainer.style.width = boardW + 'px';
-                puzzleContainer.style.height = (cellH * divisions) + 'px';
-
-                // Panell amb la mateixa amplada que la foto (amb un mínim llegible)
-                const panelW = Math.min(stageW, Math.max(boardW + frameW, PANELL_AMPLADA_MIN));
-                sidePanel.style.width = panelW + 'px';
-
-                if (boardW === anterior) break;
-                anterior = boardW;
-            }
-        }
-
-        let fitPending = false;
-        function scheduleFit() {
-            if (fitPending) return;
-            fitPending = true;
-            requestAnimationFrame(() => {
-                fitPending = false;
-                fitBoard();
-            });
-        }
-
-        // 📱 FUNCIONS DE DETECCIÓ
-        function detectAppContext() {
-            // iOS app (Safari added to home screen)
-            if (navigator.standalone === true) {
-                appContext = 'ios-app';
-            }
-            // Android PWA
-            else if (window.matchMedia('(display-mode: standalone)').matches) {
-                appContext = 'android-app';
-            }
-            // Web browser
-            else {
-                appContext = 'web-browser';
-            }
-            console.log('📱 Context:', appContext);
-        }
-
-        function detectOrientation() {
-            const isPortrait = window.innerWidth < window.innerHeight;
-            const newOrientation = isPortrait ? 'portrait' : 'landscape';
-            
-            if (newOrientation !== currentOrientation && !orientationLocked) {
-                currentOrientation = newOrientation;
-                photoFilter = isPortrait ? 'thumbnail' : 'hthumbnail';
-                console.log('📐 Orientació:', currentOrientation, '→ Filter:', photoFilter);
-                applyOrientationStyles();
-                hideNotice();
-                scheduleFit();
-            }
-        }
-
-        function applyOrientationStyles() {
-            const body = document.body;
-            body.classList.remove('portrait-mode', 'landscape-mode');
-            
-            if (currentOrientation === 'portrait') {
-                body.classList.add('portrait-mode');
-            } else {
-                body.classList.add('landscape-mode');
-            }
-        }
-
-        function applyContextStyles() {
-            const body = document.body;
-            body.classList.remove('web-browser', 'ios-app', 'android-app');
-            body.classList.add(appContext);
-        }
-
-        function getDeviceInfo() {
-            return {
-                orientation: currentOrientation,
-                width: window.innerWidth,
-                height: window.innerHeight,
-                isPortrait: window.innerWidth < window.innerHeight,
-                isLandscape: window.innerWidth >= window.innerHeight,
-                isMobile: /iPhone|iPad|Android/.test(navigator.userAgent),
-                isTablet: window.innerWidth > 768,
-                pixelRatio: window.devicePixelRatio,
-                appContext: appContext
-            };
-        }
-
-        function toggleOrientationLock() {
-            orientationLocked = !orientationLocked;
-            localStorage.setItem('orientationLocked', orientationLocked);
-            localStorage.setItem('preferredOrientation', currentOrientation);
-            
-            const btn = document.getElementById('orientationLockBtn');
-            if (orientationLocked) {
-                btn.textContent = '🔒';
-                btn.style.opacity = '1';
-                log(`🔒 Orientació bloquejada: ${currentOrientation}`);
-            } else {
-                btn.textContent = '🔓';
-                btn.style.opacity = '0.5';
-                log('🔓 Orientació desbloqueada');
-            }
-        }
-
-        // 📊 FUNCIONS D'ESTADÍSTIQUES
-        function updateStats() {
-            document.getElementById('photosPlayed').textContent = photosPlayed;
-            document.getElementById('totalPhotos').textContent = totalPhotos || '∞';
-            document.getElementById('gamesPlayed').textContent = gamesPlayed;
-            
-            // Actualitzar font actual
-            let sourceEmoji = '🎨';
-            let sourceName = 'Picsum';
-            if (lastSource === 'github') {
-                sourceEmoji = '📸';
-                sourceName = 'fotos GG';
-                totalPhotos = gitHubPhotosCount;
-            } else {
-                totalPhotos = '∞';
-            }
-            document.getElementById('currentSource').textContent = `${sourceEmoji} ${sourceName}`;
-            document.getElementById('totalPhotos').textContent = totalPhotos;
-        }
-
-        function incrementPhotosPlayed() {
-            photosPlayed++;
-            updateStats();
-        }
-
-        function incrementGamesPlayed() {
-            gamesPlayed++;
-            updateStats();
-        }
-
-        // 📷 FUNCIÓ PER SELECCIONAR FOTO SENSE REPETIR (per orientació)
-        function nomOrientacio(filter, plural = true) {
-            if (filter === 'thumbnail') return plural ? 'verticals' : 'vertical';
-            return plural ? 'horitzontals' : 'horitzontal';
-        }
-
-        function getNextPhoto(fotos) {
-            const otherFilter = photoFilter === 'thumbnail' ? 'hthumbnail' : 'thumbnail';
-            const pool = fotos.filter(foto => foto.startsWith(photoFilter));
-            const otherPool = fotos.filter(foto => foto.startsWith(otherFilter));
-            const nom = nomOrientacio(photoFilter);
-            const nomAltre = nomOrientacio(otherFilter);
-
-            // Neteja: només comptem fotos que encara existeixen a fotos.json
-            playedByFilter[photoFilter] = playedByFilter[photoFilter].filter(f => pool.includes(f));
-            playedByFilter[otherFilter] = playedByFilter[otherFilter].filter(f => otherPool.includes(f));
-            const altresPendents = otherPool.length - playedByFilter[otherFilter].length;
-            const suggeriment = altresPendents > 0
-                ? ` Gira el dispositiu per jugar les ${altresPendents} fotos ${nomAltre} pendents.`
-                : '';
-
-            if (pool.length === 0) {
-                showNotice(`⚠️ No hi ha cap foto ${nom}.${suggeriment} També pots tocar 🎨 per a una imatge aleatòria.`);
-                return null;
-            }
-
-            let pendents = pool.filter(f => !playedByFilter[photoFilter].includes(f));
-
-            if (pendents.length === 0) {
-                // Cicle esgotat: es reinicia, evitant repetir just la darrera foto
-                repetint[photoFilter] = true;
-                playedByFilter[photoFilter] = [];
-                pendents = pool.length > 1 ? pool.filter(f => f !== lastPhoto) : [...pool];
-            }
-
-            const foto = pendents[Math.floor(Math.random() * pendents.length)];
-            playedByFilter[photoFilter].push(foto);
-            lastPhoto = foto;
-            const queden = pool.length - playedByFilter[photoFilter].length;
-
-            if (repetint[photoFilter]) {
-                showNotice(`⚠️ Ja no queden fotos ${nom} noves: les has jugat totes (${pool.length}) i es tornen a repetir.${suggeriment}`);
-            } else if (queden === 0) {
-                showNotice(`⚠️ Aquesta és l'última foto ${nomOrientacio(photoFilter, false)} nova (${pool.length} en total).${suggeriment}`);
-            } else {
-                hideNotice();
-            }
-
-            return { foto, jugades: pool.length - queden, total: pool.length };
-        }
-
-        function carregarImagenAleatoria() {
-            log('🔄 Carregant imatge...');
-            const seed = Math.floor(Math.random() * 1000000);
-            const imageUrl = `https://picsum.photos/seed/puzzle${seed}/800/600`;
-            const img = new Image();
-            img.crossOrigin = 'anonymous';
-            img.onload = () => {
-                imagenActual = imageUrl;
-                photoWidth = img.naturalWidth;
-                photoHeight = img.naturalHeight;
-                previewImg.onload = () => {
-                    log('✅ Imatge carregada');
-                    incrementPhotosPlayed();
-                    iniciarPuzzle();
-                };
-                previewImg.src = imageUrl;
-                finalImage.src = imageUrl;
-            };
-            img.onerror = () => {
-                log('❌ Error al carregar. Proba de nou.');
-            };
-            img.src = imageUrl;
-        }
-
-        async function carregarFotosGitHub() {
-            log('📂 Carregant fotos de fotos GG...');
-            
-            try {
-                const response = await fetch('Fotos/fotos.json');
-                if (!response.ok) {
-                    log('❌ No s\'ha trobat fotos.json');
-                    return;
-                }
-                
-                const data = await response.json();
-                const fotos = data.fotos;
-                
-                if (!fotos || fotos.length === 0) {
-                    log('❌ Cap foto disponible');
-                    return;
-                }
-                
-                // Guardar el compte de fotos
-                gitHubPhotosCount = fotos.length;
-                
-                // Seleccionar una aleatòria SENSE REPETIR
-                const seleccio = getNextPhoto(fotos);
-                if (!seleccio) {
-                    log('❌ No s\'ha pogut seleccionar cap foto');
-                    return;
-                }
-                
-                const imageUrl = `Fotos/${seleccio.foto}`;
-                log(`✅ Carregant: ${seleccio.foto} (${seleccio.jugades}/${seleccio.total} ${nomOrientacio(photoFilter)})`);
-                incrementPhotosPlayed();
-                cargarImagenDesdeUrl(imageUrl, 'github');
-                
-            } catch (err) {
-                log('❌ Error carregant fotos: ' + err.message);
-            }
-        }
-
-        function carregarUltima() {
-            if (lastSource === 'github') {
-                carregarFotosGitHub();
-            } else {
-                carregarImagenAleatoria();
-            }
-        }
-
-        refreshBtn.addEventListener('click', () => {
-            puzzleContainer.innerHTML = '';
-            carregarUltima();
-        });
-
-        function iniciarPuzzle() {
-            if (!imagenActual) {
-                log('⚠️ Carrega una imatge primer');
-                return;
-            }
-
-            divisions = parseInt(divisionsSelect.value);
-            const total = divisions * divisions;
-            log(`📦 Creant puzzle ${divisions}×${divisions}...`);
-
-            // Calcular mida del canvas mantenint l'aspect ratio
-            const maxCanvasWidth = 800;
-            const maxCanvasHeight = 800;
-            let canvasWidth = photoWidth;
-            let canvasHeight = photoHeight;
-
-            if (canvasWidth > maxCanvasWidth || canvasHeight > maxCanvasHeight) {
-                const scaleW = maxCanvasWidth / canvasWidth;
-                const scaleH = maxCanvasHeight / canvasHeight;
-                const scale = Math.min(scaleW, scaleH);
-                canvasWidth = canvasWidth * scale;
-                canvasHeight = canvasHeight * scale;
-            }
-
-            // Mides enteres i múltiples de 'divisions': talls exactes, sense vores antialiasing
-            canvasWidth = Math.max(divisions, Math.round(canvasWidth / divisions) * divisions);
-            canvasHeight = Math.max(divisions, Math.round(canvasHeight / divisions) * divisions);
-
-            const canvas = document.createElement('canvas');
-            canvas.width = canvasWidth;
-            canvas.height = canvasHeight;
-            const ctx = canvas.getContext('2d');
-
-            const processImage = () => {
-                try {
-                    ctx.drawImage(previewImg, 0, 0, canvasWidth, canvasHeight);
-                    spriteURL = canvas.toDataURL('image/jpeg', 0.92);
-                } catch (e) {
-                    // Si el canvas queda "tacat" per CORS, s'usa la imatge original directament
-                    console.warn('Canvas no disponible, s\'usa la URL original:', e);
-                    spriteURL = imagenActual;
-                }
-                // Al body perquè també l'hereti la peça flotant del drag tàctil
-                document.body.style.setProperty('--sprite', `url("${spriteURL}")`);
-
-                ordre = Array.from({ length: total }, (_, i) => i);
-                for (let i = total - 1; i > 0; i--) {
-                    const j = Math.floor(Math.random() * (i + 1));
-                    [ordre[i], ordre[j]] = [ordre[j], ordre[i]];
-                }
-                fixat = new Array(total).fill(false);
-
-                // Guardar els valors i encaixar el tauler a la pantalla
-                currentCanvasWidth = canvasWidth;
-                currentCanvasHeight = canvasHeight;
-                currentPieceWidth = canvasWidth / divisions;
-                currentPieceHeight = canvasHeight / divisions;
-                fitBoard();
-
-                puzzleContainer.innerHTML = '';
-                puzzleContainer.style.gridTemplateColumns = '1fr';
-                puzzleContainer.style.gridTemplateRows = '1fr';
-
-                const imatgeSenceraDiv = document.createElement('div');
-                imatgeSenceraDiv.style.width = '100%';
-                imatgeSenceraDiv.style.height = '100%';
-                imatgeSenceraDiv.style.backgroundImage = 'var(--sprite)';
-                imatgeSenceraDiv.style.backgroundSize = '100% 100%';
-                imatgeSenceraDiv.style.backgroundRepeat = 'no-repeat';
-
-                puzzleContainer.appendChild(imatgeSenceraDiv);
-
-                if (!isDifficultyMode) {
-                    imagePreview.classList.remove('hidden');
-                    scheduleFit();
-                    log('✨ Veient la foto sencera (ajuda visible)...');
-                } else {
-                    log('✨ Veient la foto sencera (sense ajuda)...');
-                }
-
-                setTimeout(() => {
-                    renderitzarPuzzle(true);
-                    log('🧩 Arrossega les peces!');
-                }, 2500);
-            };
-
-            processImage();
-        }
-
-        function renderitzarPuzzle(animate = false, canvasWidth = null, canvasHeight = null, pieceWidth = null, pieceHeight = null) {
-            // Usar variables globals si no es passen paràmetres
-            if (canvasWidth === null) canvasWidth = currentCanvasWidth;
-            if (canvasHeight === null) canvasHeight = currentCanvasHeight;
-            if (pieceWidth === null) pieceWidth = currentPieceWidth;
-            if (pieceHeight === null) pieceHeight = currentPieceHeight;
-
-            const total = divisions * divisions;
-            puzzleContainer.innerHTML = '';
-            puzzleContainer.style.gridTemplateColumns = `repeat(${divisions}, 1fr)`;
-            puzzleContainer.style.gridTemplateRows = `repeat(${divisions}, 1fr)`;
-
-            // Sprite únic: cada peça mostra la seva zona de la mateixa imatge
-            const midaSprite = `${divisions * 100}% ${divisions * 100}%`;
-            // Fase de la llum contínua entre renders (no es reinicia a cada moviment)
-            const faseLlum = -((performance.now() % DURADA_LLUM_MS) / 1000);
-
-            for (let i = 0; i < total; i++) {
-                const pecaIndex = ordre[i];
-                const col = pecaIndex % divisions;
-                const row = Math.floor(pecaIndex / divisions);
-                const posX = divisions > 1 ? (col / (divisions - 1)) * 100 : 0;
-                const posY = divisions > 1 ? (row / (divisions - 1)) * 100 : 0;
-
-                const piece = document.createElement('div');
-                piece.className = 'puzzle-piece';
-                piece.classList.add(fixat[i] ? 'fixed' : 'unfixed');
-                piece.style.backgroundSize = midaSprite;
-                piece.style.backgroundPosition = `${posX}% ${posY}%`;
-                piece.dataset.posicio = i;
-                if (!fixat[i]) {
-                    piece.style.setProperty('--llum-delay', `${(faseLlum - i * 0.12).toFixed(3)}s`);
-                }
-
-                if (animate && isAnimationsEnabled) {
-                    const randomAnimation = getRandomAnimation();
-                    piece.classList.add(randomAnimation);
-                    piece.style.animationDelay = (i * 0.05) + 's';
-                }
-
-                if (!fixat[i]) {
-                    piece.draggable = true;
-                    piece.addEventListener('dragstart', handleDragStart);
-                    piece.addEventListener('dragover', handleDragOver);
-                    piece.addEventListener('drop', handleDrop);
-                    piece.addEventListener('dragend', handleDragEnd);
-                    piece.addEventListener('touchstart', handleTouchStart);
-                    piece.addEventListener('touchmove', handleTouchMove);
-                    piece.addEventListener('touchend', handleTouchEnd);
-                }
-                puzzleContainer.appendChild(piece);
-            }
-        }
-
-        let origenIndex = null;
-
-        function handleDragStart(e) {
-            origenIndex = parseInt(e.target.dataset.posicio);
-            e.dataTransfer.effectAllowed = 'move';
-            e.target.style.opacity = '0.5';
-        }
-
-        function handleDragOver(e) {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = 'move';
-        }
-
-        function handleDrop(e) {
-            e.preventDefault();
-            const destiPiece = e.target.closest('.puzzle-piece');
-            if (!destiPiece || fixat[destiPiece.dataset.posicio]) return;
-            const destiIndex = parseInt(destiPiece.dataset.posicio);
-            if (origenIndex === null || origenIndex === destiIndex) return;
-            [ordre[origenIndex], ordre[destiIndex]] = [ordre[destiIndex], ordre[origenIndex]];
-            for (let i = 0; i < ordre.length; i++) {
-                fixat[i] = (ordre[i] === i);
-            }
-            renderitzarPuzzle(false);
-            comprovarVictoria();
-            origenIndex = null;
-        }
-
-        function handleDragEnd(e) {
-            e.target.style.opacity = '1';
-        }
-
-        let touchPiece = null;
-        let floatingClone = null;
-
-        function handleTouchStart(e) {
-            touchPiece = e.target.closest('.puzzle-piece');
-            if (!touchPiece || fixat[touchPiece.dataset.posicio]) return;
-            floatingClone = touchPiece.cloneNode(true);
-            floatingClone.style.position = 'fixed';
-            floatingClone.style.zIndex = '1001';
-            floatingClone.style.pointerEvents = 'none';
-            floatingClone.style.boxShadow = '0 8px 20px rgba(0,0,0,0.3)';
-            floatingClone.classList.add('unfixed');
-            const rect = touchPiece.getBoundingClientRect();
-            floatingClone.style.left = rect.left + 'px';
-            floatingClone.style.top = rect.top + 'px';
-            floatingClone.style.width = rect.width + 'px';
-            floatingClone.style.height = rect.height + 'px';
-            document.body.appendChild(floatingClone);
-            touchPiece.style.opacity = '0.3';
-        }
-
-        function handleTouchMove(e) {
-            if (!floatingClone) return;
-            e.preventDefault();
-            const touch = e.touches[0];
-            const rect = floatingClone.getBoundingClientRect();
-            const width = rect.width;
-            const height = rect.height;
-            floatingClone.style.left = (touch.clientX - width / 2) + 'px';
-            floatingClone.style.top = (touch.clientY - height / 2) + 'px';
-        }
-
-        function handleTouchEnd(e) {
-            if (!touchPiece || !floatingClone) return;
-            const touch = e.changedTouches[0];
-            const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
-            const destiPiece = targetElement ? targetElement.closest('.puzzle-piece') : null;
-            if (destiPiece && destiPiece !== touchPiece && !fixat[destiPiece.dataset.posicio]) {
-                const origenIndex = parseInt(touchPiece.dataset.posicio);
-                const destiIndex = parseInt(destiPiece.dataset.posicio);
-                [ordre[origenIndex], ordre[destiIndex]] = [ordre[destiIndex], ordre[origenIndex]];
-                for (let i = 0; i < ordre.length; i++) {
-                    fixat[i] = (ordre[i] === i);
-                }
-                renderitzarPuzzle(false);
-                comprovarVictoria();
-            } else {
-                touchPiece.style.opacity = '1';
-            }
-            document.body.removeChild(floatingClone);
-            floatingClone = null;
-            touchPiece = null;
-        }
-
-        function comprovarVictoria() {
-            const totsFixats = fixat.every(v => v === true);
-            if (totsFixats) {
-                log('🎉 VISCA!');
-                incrementGamesPlayed(); // ✅ Contar partida NOMÉS si es completa
-                victoryOverlay.classList.add('active');
-            } else {
-                const correctes = fixat.filter(v => v).length;
-                log(`🧩 ${correctes}/${ordre.length} peces correctes`);
-            }
-        }
-
-        victoryBtn.addEventListener('click', () => {
-            victoryOverlay.classList.remove('active');
-            puzzleContainer.innerHTML = '';
-            carregarUltima();
-        });
-
-        divisionsSelect.addEventListener('change', () => {
-            if (imagenActual) iniciarPuzzle();
-        });
-
-        initTheme();
-        initAnimations();
-        updateStats();
-
-        if (isDifficultyMode) {
-            helpToggle.textContent = '🆘';
-            imagePreview.classList.add('hidden');
-        } else {
-            helpToggle.textContent = '🚀';
-            imagePreview.classList.remove('hidden');
-        }
-
-        // 📱 EVENT LISTENERS PER ORIENTACIÓ
-        window.addEventListener('resize', () => {
-            detectOrientation();
-            scheduleFit();
-        });
-
-        window.addEventListener('orientationchange', () => {
-            setTimeout(() => {
-                detectOrientation();
-                scheduleFit();
-            }, 100); // Esperar a que es renderi la nova mida
-        });
-
-        // Qualsevol canvi d'espai (avís, ajuda, rotació, teclat...) reajusta el tauler
-        if ('ResizeObserver' in window) {
-            new ResizeObserver(scheduleFit).observe(stage);
-        }
-
-        // 📱 INICIALITZACIONS
-        detectAppContext();
-        applyContextStyles();
-        detectOrientation();
-        applyOrientationStyles();
-        setStatsVisible(localStorage.getItem('showStats') === 'true');
-        fitBoard();
-        
-        // Recuperar preferències guardades
-        const savedLocked = localStorage.getItem('orientationLocked') === 'true';
-        if (savedLocked) {
-            orientationLocked = true;
-            orientationLockBtn.textContent = '🔒';
-            orientationLockBtn.style.opacity = '1';
-        }
-
-        // Inicialització: intentar GitHub primeiro, si falla aleshores Picsum
-        async function inicialitzarJoc() {
-            try {
-                // Intentar carregar GitHub primer
-                const response = await fetch('Fotos/fotos.json');
-                if (response.ok) {
-                    lastSource = 'github';
-                    carregarFotosGitHub();
-                } else {
-                    // Si GitHub falla, carregar Picsum
-                    lastSource = 'picsum';
-                    carregarImagenAleatoria();
-                }
-            } catch {
-                // Si GitHub falla, carregar Picsum
-                lastSource = 'picsum';
-                carregarImagenAleatoria();
-            }
-        }
-
-        inicialitzarJoc();
-    </script>
-    <footer class="footer">
-        <div class="footer-content">
-            <p>&copy; 2026 Trencaclosques Art. Tots els drets reservats.</p>
-            <div class="footer-links">
-                <a href="privacy-policy.html" target="_blank">Política de Privacitat</a>
-                <span class="divider">•</span>
-                <a href="terms-of-service.html" target="_blank">Condicions del Servei</a>
-            </div>
-        </div>
-    </footer>
+
+    <div id="imagePreview" class="image-preview">
+      <img id="previewImg" src="" alt="Original" crossOrigin="anonymous">
+    </div>
+
+    <div class="log" id="log">Carregant…</div>
+
+    <div class="stats">
+      <span class="chip">
+        <span class="material-symbols-rounded" style="color:#22c55e">photo_library</span>
+        Fotos <b><span id="photosPlayed">0</span>/<span id="totalPhotos">∞</span></b>
+      </span>
+      <span class="chip">
+        <span class="material-symbols-rounded" style="color:#f59e0b">emoji_events</span>
+        Resolts <b id="gamesPlayed">0</b>
+      </span>
+      <span class="chip">
+        <span class="material-symbols-rounded" id="sourceIcon" style="color:#0ea5e9">travel_explore</span>
+        <span id="currentSource">Internet</span>
+      </span>
+      <span class="chip">
+        <span class="material-symbols-rounded" id="orientIcon" style="color:#a855f7">stay_current_portrait</span>
+        <span id="orientLabel">Vertical</span>
+      </span>
+    </div>
+
+  </div>
+
+  <footer class="footer">
+    <p>&copy; 2026 Trencaclosques. Tots els drets reservats.</p>
+    <div class="footer-links">
+      <a href="privacy-policy.html" target="_blank">Política de Privacitat</a>
+      <span class="divider">·</span>
+      <a href="terms-of-service.html" target="_blank">Condicions del Servei</a>
+    </div>
+  </footer>
+</div>
+
+<div id="victoryOverlay" class="victory-overlay">
+  <div class="victory-popup">
+    <span class="material-symbols-rounded trophy">emoji_events</span>
+    <h2>Visca!</h2>
+    <p>Has completat el trencaclosques</p>
+    <img id="finalImage" class="final-puzzle" src="" alt="Trencaclosques completat">
+    <button class="btn-big" id="victoryBtn">
+      <span class="material-symbols-rounded">replay</span> Jugar de nou
+    </button>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════
+   REFERÈNCIES
+   ═══════════════════════════════════════════════════════ */
+const divisionsSelect     = document.getElementById('divisionsSelect');
+const picsumBtn           = document.getElementById('picsumBtn');
+const githubBtn           = document.getElementById('githubBtn');
+const orientationLockBtn  = document.getElementById('orientationLockBtn');
+const refreshBtn          = document.getElementById('refreshBtn');
+const animationsToggle    = document.getElementById('animationsToggle');
+const helpToggle          = document.getElementById('helpToggle');
+const themeToggle         = document.getElementById('themeToggle');
+const puzzleContainer     = document.getElementById('puzzleContainer');
+const previewImg          = document.getElementById('previewImg');
+const logDiv              = document.getElementById('log');
+const victoryOverlay      = document.getElementById('victoryOverlay');
+const victoryBtn          = document.getElementById('victoryBtn');
+const finalImage          = document.getElementById('finalImage');
+const imagePreview        = document.getElementById('imagePreview');
+
+/* ═══════════════════════════════════════════════════════
+   ESTAT
+   ═══════════════════════════════════════════════════════ */
+let imagenActual = null;
+let divisions = 4;
+let ordre = [];
+let fixat = [];
+let pecesDataURL = [];
+let lastSource = 'picsum';
+let isDifficultyMode = true;
+let isAnimationsEnabled = true;
+let photoWidth = 400, photoHeight = 400;
+let currentCanvasWidth = 400, currentCanvasHeight = 400;
+let currentPieceWidth = 100, currentPieceHeight = 100;
+
+// Orientació i dispositiu
+let currentOrientation = 'portrait';
+let orientationLocked = false;
+let appContext = 'web-browser';
+let photoFilter = 'thumbnail';
+
+// Gestió de fotos sense repeticions
+let allPhotos = [];
+let playedPhotos = [];
+let currentPhotoIndex = -1;
+
+// Estadístiques
+let photosPlayed = 0;
+let gamesPlayed = 0;
+let totalPhotos = 0;
+let gitHubPhotosCount = 0;
+
+const animationTypes = [
+  'entrance-spin','entrance-fall','entrance-explosion','entrance-flip',
+  'entrance-slide','entrance-slide-right','entrance-bounce','entrance-wave',
+  'entrance-zoom','entrance-ghost'
+];
+
+/* Canvia la icona d'un botó */
+function setIcon(btn, name){
+  btn.querySelector('.material-symbols-rounded').textContent = name;
+}
+
+function log(msg){
+  console.log(msg);
+  logDiv.textContent = msg;
+}
+
+/* ═══════════════════════════════════════════════════════
+   TEMA
+   ═══════════════════════════════════════════════════════ */
+function initTheme(){
+  const isDark = localStorage.getItem('darkMode') === 'true';
+  document.body.classList.toggle('day', !isDark);
+  setIcon(themeToggle, isDark ? 'light_mode' : 'dark_mode');
+}
+
+themeToggle.addEventListener('click', () => {
+  const isDark = document.body.classList.toggle('day') === false;
+  localStorage.setItem('darkMode', isDark);
+  setIcon(themeToggle, isDark ? 'light_mode' : 'dark_mode');
+});
+
+/* ═══════════════════════════════════════════════════════
+   AJUDA VISUAL
+   ═══════════════════════════════════════════════════════ */
+function applyHelpState(){
+  if (isDifficultyMode){
+    setIcon(helpToggle, 'lightbulb');
+    helpToggle.classList.remove('on');
+    imagePreview.classList.add('hidden');
+  } else {
+    setIcon(helpToggle, 'lightbulb');
+    helpToggle.classList.add('on');
+    imagePreview.classList.remove('hidden');
+  }
+}
+
+helpToggle.addEventListener('click', () => {
+  isDifficultyMode = !isDifficultyMode;
+  applyHelpState();
+  log(isDifficultyMode ? 'Ajuda amagada' : 'Ajuda visible');
+});
+
+/* ═══════════════════════════════════════════════════════
+   ANIMACIONS
+   ═══════════════════════════════════════════════════════ */
+function initAnimations(){
+  isAnimationsEnabled = localStorage.getItem('enableAnimations') !== 'false';
+  updateAnimationsButton();
+}
+function updateAnimationsButton(){
+  animationsToggle.classList.toggle('off', !isAnimationsEnabled);
+}
+animationsToggle.addEventListener('click', () => {
+  isAnimationsEnabled = !isAnimationsEnabled;
+  localStorage.setItem('enableAnimations', isAnimationsEnabled);
+  updateAnimationsButton();
+  log(isAnimationsEnabled ? 'Animacions activades' : 'Animacions desactivades');
+});
+function getRandomAnimation(){
+  return animationTypes[Math.floor(Math.random() * animationTypes.length)];
+}
+
+/* ═══════════════════════════════════════════════════════
+   DETECCIÓ DE CONTEXT I ORIENTACIÓ
+   ═══════════════════════════════════════════════════════ */
+function detectAppContext(){
+  if (navigator.standalone === true) appContext = 'ios-app';
+  else if (window.matchMedia('(display-mode: standalone)').matches) appContext = 'android-app';
+  else appContext = 'web-browser';
+  console.log('Context:', appContext);
+}
+
+function applyContextStyles(){
+  document.body.classList.remove('web-browser','ios-app','android-app');
+  document.body.classList.add(appContext);
+}
+
+function detectOrientation(){
+  if (orientationLocked) return;
+  const isPortrait = window.innerWidth < window.innerHeight;
+  const newOrientation = isPortrait ? 'portrait' : 'landscape';
+  if (newOrientation !== currentOrientation){
+    currentOrientation = newOrientation;
+    photoFilter = isPortrait ? 'thumbnail' : 'hthumbnail';
+    // El llistat de fotos jugades depèn del filtre: cal reiniciar-lo
+    allPhotos = [];
+    playedPhotos = [];
+    console.log('Orientació:', currentOrientation, '→ filtre:', photoFilter);
+    applyOrientationStyles();
+    updateStats();
+  }
+}
+
+function applyOrientationStyles(){
+  document.body.classList.remove('portrait-mode','landscape-mode');
+  document.body.classList.add(currentOrientation === 'portrait' ? 'portrait-mode' : 'landscape-mode');
+}
+
+function toggleOrientationLock(){
+  orientationLocked = !orientationLocked;
+  localStorage.setItem('orientationLocked', orientationLocked);
+  localStorage.setItem('preferredOrientation', currentOrientation);
+  applyLockState();
+  log(orientationLocked
+    ? `Orientació fixada en ${currentOrientation === 'portrait' ? 'vertical' : 'horitzontal'}`
+    : 'Orientació automàtica');
+}
+
+function applyLockState(){
+  setIcon(orientationLockBtn, orientationLocked ? 'lock' : 'lock_open');
+  orientationLockBtn.classList.toggle('on', orientationLocked);
+}
+
+orientationLockBtn.addEventListener('click', toggleOrientationLock);
+
+function getDeviceInfo(){
+  return {
+    orientation: currentOrientation,
+    width: window.innerWidth,
+    height: window.innerHeight,
+    isMobile: /iPhone|iPad|Android/.test(navigator.userAgent),
+    isTablet: window.innerWidth > 768,
+    pixelRatio: window.devicePixelRatio,
+    appContext
+  };
+}
+
+/* ═══════════════════════════════════════════════════════
+   ESTADÍSTIQUES
+   ═══════════════════════════════════════════════════════ */
+function updateStats(){
+  document.getElementById('photosPlayed').textContent = photosPlayed;
+  document.getElementById('gamesPlayed').textContent  = gamesPlayed;
+
+  const srcIcon  = document.getElementById('sourceIcon');
+  const srcLabel = document.getElementById('currentSource');
+
+  if (lastSource === 'github'){
+    totalPhotos = gitHubPhotosCount || '∞';
+    srcIcon.textContent = 'photo_library';
+    srcIcon.style.color = '#22c55e';
+    srcLabel.textContent = 'fotos GG';
+  } else {
+    totalPhotos = '∞';
+    srcIcon.textContent = 'travel_explore';
+    srcIcon.style.color = '#0ea5e9';
+    srcLabel.textContent = 'Internet';
+  }
+  document.getElementById('totalPhotos').textContent = totalPhotos;
+
+  const orIcon  = document.getElementById('orientIcon');
+  const orLabel = document.getElementById('orientLabel');
+  if (currentOrientation === 'portrait'){
+    orIcon.textContent = 'stay_current_portrait';
+    orLabel.textContent = 'Vertical';
+  } else {
+    orIcon.textContent = 'stay_current_landscape';
+    orLabel.textContent = 'Horitzontal';
+  }
+}
+
+function incrementPhotosPlayed(){ photosPlayed++; updateStats(); }
+function incrementGamesPlayed(){ gamesPlayed++; updateStats(); }
+
+/* ═══════════════════════════════════════════════════════
+   SELECCIÓ DE FOTO SENSE REPETICIONS
+   ═══════════════════════════════════════════════════════ */
+function getNextPhoto(fotos){
+  const filteredPhotos = fotos.filter(f => f.startsWith(photoFilter));
+  const otherFilter    = photoFilter === 'thumbnail' ? 'hthumbnail' : 'thumbnail';
+  const otherPhotos    = fotos.filter(f => f.startsWith(otherFilter));
+
+  if (filteredPhotos.length === 0){
+    const actual = currentOrientation === 'portrait' ? 'vertical' : 'horitzontal';
+    const altra  = currentOrientation === 'portrait' ? 'horitzontal' : 'vertical';
+    if (otherPhotos.length > 0){
+      log(`No hi ha fotos en ${actual}. En queden ${otherPhotos.length} en ${altra}: gira el dispositiu o desbloqueja l'orientació.`);
+    } else {
+      log('No hi ha cap foto disponible.');
+    }
+    return null;
+  }
+
+  if (!allPhotos || allPhotos.length === 0){
+    allPhotos = [...filteredPhotos];
+    playedPhotos = [];
+  }
+
+  // Totes jugades → tornem a començar
+  if (playedPhotos.length >= filteredPhotos.length){
+    log('Ja les has vist totes. Tornem a començar.');
+    allPhotos = [...filteredPhotos];
+    playedPhotos = [];
+  }
+
+  // Candidates = les que encara no han sortit. Tria directa, sense sortejos repetits.
+  const candidates = filteredPhotos.filter(f => !playedPhotos.includes(f));
+  if (candidates.length === 0) return null;
+
+  const randomPhoto = candidates[Math.floor(Math.random() * candidates.length)];
+  playedPhotos.push(randomPhoto);
+  currentPhotoIndex = filteredPhotos.indexOf(randomPhoto);
+  return randomPhoto;
+}
+
+/* ═══════════════════════════════════════════════════════
+   CÀRREGA D'IMATGES
+   ═══════════════════════════════════════════════════════ */
+function cargarImagenDesdeUrl(imageUrl, source){
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = () => {
+    imagenActual = imageUrl;
+    photoWidth  = img.naturalWidth;
+    photoHeight = img.naturalHeight;
+    previewImg.onload = () => { log('Foto carregada'); iniciarPuzzle(); };
+    previewImg.src = imageUrl;
+    finalImage.src = imageUrl;
+  };
+  img.onerror = () => log('No s\'ha pogut carregar la foto');
+  img.src = imageUrl;
+}
+
+function carregarImagenAleatoria(){
+  log('Carregant imatge…');
+  const seed = Math.floor(Math.random() * 1000000);
+  // Demanem la imatge amb la proporció que toca segons l'orientació
+  const mides = currentOrientation === 'portrait' ? '600/800' : '800/600';
+  const imageUrl = `https://picsum.photos/seed/puzzle${seed}/${mides}`;
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = () => {
+    imagenActual = imageUrl;
+    photoWidth  = img.naturalWidth;
+    photoHeight = img.naturalHeight;
+    previewImg.onload = () => {
+      log('Imatge carregada');
+      incrementPhotosPlayed();
+      iniciarPuzzle();
+    };
+    previewImg.src = imageUrl;
+    finalImage.src = imageUrl;
+  };
+  img.onerror = () => log('No s\'ha pogut carregar. Torna-ho a provar.');
+  img.src = imageUrl;
+}
+
+async function carregarFotosGitHub(){
+  log('Carregant fotos GG…');
+  try{
+    const response = await fetch('Fotos/fotos.json');
+    if (!response.ok){ log('No s\'ha trobat fotos.json'); return; }
+
+    const data  = await response.json();
+    const fotos = data.fotos;
+    if (!fotos || fotos.length === 0){ log('Cap foto disponible'); return; }
+
+    gitHubPhotosCount = fotos.filter(f => f.startsWith(photoFilter)).length;
+
+    const fotoAleatoria = getNextPhoto(fotos);
+    if (!fotoAleatoria) return;   // getNextPhoto ja ha explicat què passa
+
+    log(`${fotoAleatoria} · ${playedPhotos.length}/${gitHubPhotosCount}`);
+    incrementPhotosPlayed();
+    cargarImagenDesdeUrl(`Fotos/${fotoAleatoria}`, 'github');
+
+  } catch(err){
+    log('Error carregant fotos: ' + err.message);
+  }
+}
+
+function carregarUltima(){
+  if (lastSource === 'github') carregarFotosGitHub();
+  else carregarImagenAleatoria();
+}
+
+picsumBtn.addEventListener('click', () => {
+  puzzleContainer.innerHTML = '';
+  lastSource = 'picsum';
+  updateStats();
+  carregarImagenAleatoria();
+});
+
+githubBtn.addEventListener('click', () => {
+  puzzleContainer.innerHTML = '';
+  lastSource = 'github';
+  updateStats();
+  carregarFotosGitHub();
+});
+
+refreshBtn.addEventListener('click', () => {
+  puzzleContainer.innerHTML = '';
+  carregarUltima();
+});
+
+/* ═══════════════════════════════════════════════════════
+   CONSTRUCCIÓ DEL TRENCACLOSQUES
+   ═══════════════════════════════════════════════════════ */
+function iniciarPuzzle(){
+  if (!imagenActual){ log('Carrega una imatge primer'); return; }
+
+  divisions = parseInt(divisionsSelect.value);
+  const total = divisions * divisions;
+  log(`Creant trencaclosques ${divisions}×${divisions}…`);
+
+  const maxCanvasWidth = 800, maxCanvasHeight = 800;
+  let canvasWidth = photoWidth, canvasHeight = photoHeight;
+
+  if (canvasWidth > maxCanvasWidth || canvasHeight > maxCanvasHeight){
+    const scale = Math.min(maxCanvasWidth / canvasWidth, maxCanvasHeight / canvasHeight);
+    canvasWidth  *= scale;
+    canvasHeight *= scale;
+  }
+
+  const canvas = document.createElement('canvas');
+  canvas.width = canvasWidth;
+  canvas.height = canvasHeight;
+  const ctx = canvas.getContext('2d');
+
+  try{
+    ctx.drawImage(previewImg, 0, 0, canvasWidth, canvasHeight);
+  } catch(e){
+    log('No s\'ha pogut dibuixar la imatge');
+    return;
+  }
+
+  pecesDataURL = [];
+  const pieceWidth  = canvasWidth / divisions;
+  const pieceHeight = canvasHeight / divisions;
+
+  for (let row = 0; row < divisions; row++){
+    for (let col = 0; col < divisions; col++){
+      const pieceCanvas = document.createElement('canvas');
+      pieceCanvas.width  = pieceWidth;
+      pieceCanvas.height = pieceHeight;
+      pieceCanvas.getContext('2d').drawImage(
+        canvas,
+        col * pieceWidth, row * pieceHeight, pieceWidth, pieceHeight,
+        0, 0, pieceWidth, pieceHeight
+      );
+      pecesDataURL.push(pieceCanvas.toDataURL());
+    }
+  }
+
+  ordre = Array.from({length: total}, (_, i) => i);
+  for (let i = total - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [ordre[i], ordre[j]] = [ordre[j], ordre[i]];
+  }
+  fixat = new Array(total).fill(false);
+
+  currentCanvasWidth  = canvasWidth;
+  currentCanvasHeight = canvasHeight;
+  currentPieceWidth   = pieceWidth;
+  currentPieceHeight  = pieceHeight;
+
+  // Mostrem la foto sencera abans de trencar-la
+  puzzleContainer.innerHTML = '';
+  puzzleContainer.style.gridTemplateColumns = '1fr';
+  puzzleContainer.style.aspectRatio = `${canvasWidth} / ${canvasHeight}`;
+
+  const senceraDiv = document.createElement('div');
+  senceraDiv.style.width = '100%';
+  senceraDiv.style.height = '100%';
+  senceraDiv.style.backgroundImage = `url('${imagenActual}')`;
+  senceraDiv.style.backgroundSize = '100% 100%';
+  senceraDiv.style.borderRadius = '14px';
+  puzzleContainer.appendChild(senceraDiv);
+
+  if (!isDifficultyMode) imagePreview.classList.remove('hidden');
+  log('Memoritza la imatge…');
+
+  setTimeout(() => {
+    renderitzarPuzzle(true, canvasWidth, canvasHeight, pieceWidth, pieceHeight);
+    log('Arrossega les peces!');
+  }, 2500);
+}
+
+function renderitzarPuzzle(animate = false, canvasWidth = null, canvasHeight = null, pieceWidth = null, pieceHeight = null){
+  if (canvasWidth  === null) canvasWidth  = currentCanvasWidth;
+  if (canvasHeight === null) canvasHeight = currentCanvasHeight;
+  if (pieceWidth   === null) pieceWidth   = currentPieceWidth;
+  if (pieceHeight  === null) pieceHeight  = currentPieceHeight;
+
+  const total = divisions * divisions;
+  puzzleContainer.innerHTML = '';
+  puzzleContainer.style.gridTemplateColumns = `repeat(${divisions}, 1fr)`;
+  puzzleContainer.style.aspectRatio = `${canvasWidth} / ${canvasHeight}`;
+
+  for (let i = 0; i < total; i++){
+    const pecaIndex = ordre[i];
+    const piece = document.createElement('div');
+    piece.className = 'puzzle-piece';
+    piece.classList.add(fixat[i] ? 'fixed' : 'unfixed');
+    piece.style.backgroundImage = `url('${pecesDataURL[pecaIndex]}')`;
+    piece.style.backgroundSize = '100% 100%';
+    piece.dataset.posicio = i;
+
+    if (animate && isAnimationsEnabled){
+      piece.classList.add(getRandomAnimation());
+      piece.style.animationDelay = (i * 0.05) + 's';
+    }
+
+    if (!fixat[i]){
+      piece.draggable = true;
+      piece.addEventListener('dragstart', handleDragStart);
+      piece.addEventListener('dragover',  handleDragOver);
+      piece.addEventListener('drop',      handleDrop);
+      piece.addEventListener('dragend',   handleDragEnd);
+      piece.addEventListener('touchstart',handleTouchStart);
+      piece.addEventListener('touchmove', handleTouchMove);
+      piece.addEventListener('touchend',  handleTouchEnd);
+    }
+    puzzleContainer.appendChild(piece);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   ARROSSEGAR — ratolí
+   ═══════════════════════════════════════════════════════ */
+let origenIndex = null;
+
+function handleDragStart(e){
+  origenIndex = parseInt(e.target.dataset.posicio);
+  e.dataTransfer.effectAllowed = 'move';
+  e.target.style.opacity = '0.5';
+}
+function handleDragOver(e){ e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }
+function handleDrop(e){
+  e.preventDefault();
+  const destiPiece = e.target.closest('.puzzle-piece');
+  if (!destiPiece || fixat[destiPiece.dataset.posicio]) return;
+  const destiIndex = parseInt(destiPiece.dataset.posicio);
+  if (origenIndex === null || origenIndex === destiIndex) return;
+  [ordre[origenIndex], ordre[destiIndex]] = [ordre[destiIndex], ordre[origenIndex]];
+  for (let i = 0; i < ordre.length; i++) fixat[i] = (ordre[i] === i);
+  renderitzarPuzzle(false);
+  comprovarVictoria();
+  origenIndex = null;
+}
+function handleDragEnd(e){ e.target.style.opacity = '1'; }
+
+/* ═══════════════════════════════════════════════════════
+   ARROSSEGAR — tàctil
+   ═══════════════════════════════════════════════════════ */
+let touchPiece = null;
+let floatingClone = null;
+
+function handleTouchStart(e){
+  touchPiece = e.target.closest('.puzzle-piece');
+  if (!touchPiece || fixat[touchPiece.dataset.posicio]) return;
+  floatingClone = touchPiece.cloneNode(true);
+  floatingClone.style.position = 'fixed';
+  floatingClone.style.zIndex = '1001';
+  floatingClone.style.pointerEvents = 'none';
+  floatingClone.style.boxShadow = '0 0 0 3px rgba(255,209,102,.9), 0 12px 26px rgba(0,0,0,.5)';
+  floatingClone.classList.add('unfixed');
+  const rect = touchPiece.getBoundingClientRect();
+  floatingClone.style.left = rect.left + 'px';
+  floatingClone.style.top = rect.top + 'px';
+  floatingClone.style.width = rect.width + 'px';
+  floatingClone.style.height = rect.height + 'px';
+  document.body.appendChild(floatingClone);
+  touchPiece.style.opacity = '0.3';
+}
+
+function handleTouchMove(e){
+  if (!floatingClone) return;
+  e.preventDefault();
+  const touch = e.touches[0];
+  const rect = floatingClone.getBoundingClientRect();
+  floatingClone.style.left = (touch.clientX - rect.width / 2) + 'px';
+  floatingClone.style.top  = (touch.clientY - rect.height / 2) + 'px';
+}
+
+function handleTouchEnd(e){
+  if (!touchPiece || !floatingClone) return;
+  const touch = e.changedTouches[0];
+  const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
+  const destiPiece = targetElement ? targetElement.closest('.puzzle-piece') : null;
+
+  if (destiPiece && destiPiece !== touchPiece && !fixat[destiPiece.dataset.posicio]){
+    const origen = parseInt(touchPiece.dataset.posicio);
+    const desti  = parseInt(destiPiece.dataset.posicio);
+    [ordre[origen], ordre[desti]] = [ordre[desti], ordre[origen]];
+    for (let i = 0; i < ordre.length; i++) fixat[i] = (ordre[i] === i);
+    renderitzarPuzzle(false);
+    comprovarVictoria();
+  } else {
+    touchPiece.style.opacity = '1';
+  }
+  document.body.removeChild(floatingClone);
+  floatingClone = null;
+  touchPiece = null;
+}
+
+/* ═══════════════════════════════════════════════════════
+   VICTÒRIA
+   ═══════════════════════════════════════════════════════ */
+function comprovarVictoria(){
+  if (fixat.every(v => v === true)){
+    log('Visca!');
+    incrementGamesPlayed();          // només compta si s'ha resolt
+    victoryOverlay.classList.add('active');
+  } else {
+    const correctes = fixat.filter(v => v).length;
+    log(`${correctes}/${ordre.length} peces al seu lloc`);
+  }
+}
+
+victoryBtn.addEventListener('click', () => {
+  victoryOverlay.classList.remove('active');
+  puzzleContainer.innerHTML = '';
+  carregarUltima();
+});
+
+divisionsSelect.addEventListener('change', () => {
+  if (imagenActual) iniciarPuzzle();
+});
+
+/* ═══════════════════════════════════════════════════════
+   ORIENTACIÓ EN VIU
+   ═══════════════════════════════════════════════════════ */
+window.addEventListener('resize', detectOrientation);
+window.addEventListener('orientationchange', () => setTimeout(detectOrientation, 120));
+
+/* ═══════════════════════════════════════════════════════
+   ARRENCADA
+   ═══════════════════════════════════════════════════════ */
+initTheme();
+initAnimations();
+applyHelpState();
+
+detectAppContext();
+applyContextStyles();
+
+// Recuperem el bloqueig abans de detectar, perquè mani la preferència desada
+orientationLocked = localStorage.getItem('orientationLocked') === 'true';
+if (orientationLocked){
+  const saved = localStorage.getItem('preferredOrientation') || 'portrait';
+  currentOrientation = saved;
+  photoFilter = saved === 'portrait' ? 'thumbnail' : 'hthumbnail';
+} else {
+  currentOrientation = window.innerWidth < window.innerHeight ? 'portrait' : 'landscape';
+  photoFilter = currentOrientation === 'portrait' ? 'thumbnail' : 'hthumbnail';
+}
+applyLockState();
+applyOrientationStyles();
+updateStats();
+
+async function inicialitzarJoc(){
+  try{
+    const response = await fetch('Fotos/fotos.json');
+    if (response.ok){
+      lastSource = 'github';
+      updateStats();
+      carregarFotosGitHub();
+    } else {
+      lastSource = 'picsum';
+      updateStats();
+      carregarImagenAleatoria();
+    }
+  } catch {
+    lastSource = 'picsum';
+    updateStats();
+    carregarImagenAleatoria();
+  }
+}
+
+inicialitzarJoc();
+</script>
 </body>
 </html>
