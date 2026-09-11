@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
     TRENCACLOSQUES — PWA
-    Version: 3.02  ·  Disseny "Barra de Joc" (Proposta C)
+    Version: 3.07  ·  Disseny "Barra de Joc" (Proposta C)
 
     NOVETATS DE DISSENY
     - Material Symbols Rounded en lloc d'emojis
@@ -197,17 +197,22 @@ body.day .pill.on{
 .spacer{flex:1 1 auto;min-width:6px}
 
 .select{
-  flex:0 0 auto;height:44px;border-radius:99px;padding:0 8px 0 16px;cursor:pointer;
-  font-family:'Fredoka';font-weight:600;font-size:14px;color:var(--ink);
-  border:none;background:var(--pill-bg);box-shadow:var(--pill-shadow);
+  flex:0 0 auto;width:44px;height:44px;border-radius:50%;
+  padding:0;cursor:pointer;text-align:center;text-align-last:center;
+  font-family:'Fredoka';font-weight:600;font-size:13px;letter-spacing:-.3px;
+  color:var(--ink);border:none;background:var(--pill-bg);box-shadow:var(--pill-shadow);
   appearance:none;-webkit-appearance:none;
-  transition:background .35s,box-shadow .35s;
-  text-align:center;
+  transition:transform .13s cubic-bezier(.34,1.56,.64,1),background .35s,box-shadow .35s;
 }
+.select:active{transform:scale(.9)}
 .select option{color:#3c2a14;background:#fff}
 body.day .select{
   background:linear-gradient(160deg,#8b5cf6,#6d28d9);color:#fff;
   box-shadow:inset 0 2px 0 rgba(255,255,255,.45), 0 4px 0 #4c1d95, 0 7px 12px rgba(0,0,0,.22);
+}
+body.day .select:active{
+  transform:translateY(3px);
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.4), 0 1px 0 #4c1d95, 0 2px 5px rgba(0,0,0,.25);
 }
 
 /* ── tauler ─────────────────────────────────────────── */
@@ -254,19 +259,50 @@ body.day .select{
 .image-preview.hidden{display:none}
 .image-preview img{max-width:100%;max-height:26vh;border-radius:12px;display:block}
 
-/* ── consola de missatges ───────────────────────────── */
-.log{
-  flex:0 0 auto;
-  margin-top:10px;padding:9px 16px;border-radius:99px;
-  background:var(--chip-bg);border:1px solid var(--chip-border);
-  box-shadow:var(--chip-shadow);
-  font-size:13px;font-weight:500;color:var(--ink);
-  min-height:2.6em;display:flex;align-items:center;justify-content:center;
-  text-align:center;word-wrap:break-word;transition:background .35s,color .35s;
+/* ── avís flotant (substitueix el calaix de missatges) ── */
+#toast{
+  position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(12px);
+  z-index:1500;pointer-events:none;
+  max-width:min(90vw,460px);
+  padding:11px 20px;border-radius:99px;
+  background:rgba(20,14,32,.88);color:#fff;
+  backdrop-filter:blur(12px);
+  border:1px solid rgba(255,255,255,.16);
+  box-shadow:0 8px 28px rgba(0,0,0,.45);
+  font-size:13px;font-weight:500;text-align:center;
+  opacity:0;transition:opacity .25s,transform .25s;
 }
+body.day #toast{
+  background:rgba(255,255,255,.96);color:#3c2a14;
+  border-color:transparent;
+  box-shadow:0 6px 22px rgba(150,60,10,.3);
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+body.landscape-mode #toast{bottom:14px;font-size:12px;padding:9px 16px}
 
-/* ── xips d'estadístiques ───────────────────────────── */
-.stats{flex:0 0 auto;display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;justify-content:center}
+/* ── finestra emergent d'informació ─────────────────── */
+.info-overlay{
+  position:fixed;inset:0;background:rgba(10,6,20,.72);
+  display:none;align-items:center;justify-content:center;z-index:1200;
+  backdrop-filter:blur(6px);padding:20px;
+}
+.info-overlay.active{display:flex}
+.info-popup{
+  background:var(--panel-bg);
+  padding:24px 22px;border-radius:26px;text-align:center;
+  box-shadow:0 24px 60px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.25);
+  animation:popIn .35s cubic-bezier(.34,1.56,.64,1);
+  max-width:min(94%,380px);max-height:88vh;overflow-y:auto;
+  border:2px solid var(--board-border);
+}
+.info-popup h2{
+  font-family:'Baloo 2',sans-serif;font-weight:800;
+  font-size:24px;margin-bottom:16px;color:var(--ink);
+}
+.stats{display:flex;flex-direction:column;gap:8px}
+.stats .chip{justify-content:flex-start}
+
+/* ── xips ───────────────────────────────────────────── */
 .stats.hidden{display:none}
 .chip{
   display:flex;align-items:center;gap:7px;padding:8px 14px;border-radius:99px;
@@ -309,6 +345,36 @@ body.day .select{
   max-width:100%;width:clamp(220px,70vw,400px);height:auto;max-height:42vh;
   box-shadow:0 0 0 4px var(--board-border), 0 10px 26px rgba(0,0,0,.5);
 }
+.victory-actions{
+  display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap;
+}
+
+.btn-heart{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:14px 22px;border-radius:99px;cursor:pointer;
+  font-family:'Fredoka';font-weight:600;font-size:15px;
+  color:#f43f5e;background:transparent;
+  border:2px solid #f43f5e;
+  transition:transform .13s cubic-bezier(.34,1.56,.64,1),background .2s,color .2s,box-shadow .2s;
+}
+.btn-heart .material-symbols-rounded{
+  font-size:24px;
+  font-variation-settings:'FILL' 0,'wght' 600;
+  transition:font-variation-settings .2s;
+}
+.btn-heart:active{transform:scale(.94)}
+.btn-heart.marked{
+  background:linear-gradient(160deg,#fb7185,#e11d48);
+  color:#fff;border-color:transparent;
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.4), 0 4px 0 #9f1239, 0 8px 16px rgba(0,0,0,.3);
+}
+.btn-heart.marked .material-symbols-rounded{animation:heartPop .4s cubic-bezier(.34,1.56,.64,1)}
+
+@keyframes heartPop{0%{transform:scale(1)}45%{transform:scale(1.45)}100%{transform:scale(1)}}
+
+/* cor del menú quan encara no hi ha preferides */
+.pill:disabled{cursor:default}
+
 .btn-big{
   display:inline-flex;align-items:center;gap:8px;
   padding:14px 30px;border:none;border-radius:99px;cursor:pointer;
@@ -353,6 +419,10 @@ footer.footer p{color:var(--ink-soft);font-size:11px;margin-bottom:6px}
   border-bottom:1px solid transparent;transition:all .2s;
 }
 .footer-links a:hover{opacity:1;border-bottom-color:currentColor}
+.footer-links .v{
+  color:var(--ink-soft);font-size:11px;opacity:.8;
+  font-family:'Fredoka';font-weight:500;letter-spacing:.5px;
+}
 .divider{color:var(--ink-soft)}
 
 /* ═══════════════════════════════════════════════════════
@@ -384,9 +454,8 @@ body.landscape-mode .bar{
   overflow-x:hidden;overflow-y:auto;
 }
 body.landscape-mode .select{
-  height:auto;min-height:44px;width:44px;
-  padding:0;font-size:13px;border-radius:99px;
-  writing-mode:horizontal-tb;
+  width:44px;height:44px;min-height:44px;
+  padding:0;font-size:13px;border-radius:50%;
 }
 body.landscape-mode .spacer{min-height:4px}
 
@@ -401,7 +470,7 @@ body.landscape-mode .spacer{min-height:4px}
   body.landscape-mode .bar{padding:5px 4px;gap:5px}
   body.landscape-mode .pill{width:36px;height:36px}
   body.landscape-mode .pill .material-symbols-rounded{font-size:20px}
-  body.landscape-mode .select{width:36px;min-height:36px;font-size:12px}
+  body.landscape-mode .select{width:36px;height:36px;min-height:36px;font-size:11px}
   body.landscape-mode .image-preview{margin-top:6px;padding:5px}
   body.landscape-mode .image-preview img{max-height:14vh}
   body.landscape-mode .log{margin-top:6px;padding:5px 12px;font-size:11px;min-height:0}
@@ -418,6 +487,7 @@ body.landscape-mode .spacer{min-height:4px}
   body.portrait-mode .brand{font-size:clamp(22px,6.5vw,30px);margin-bottom:10px}
   .bar{gap:6px;padding:7px 8px}
   .pill{width:40px;height:40px}
+  .select{width:40px;height:40px;font-size:12px}
   .pill .material-symbols-rounded{font-size:22px}
   .image-preview img{max-height:18vh}
   footer.footer{margin-top:6px;padding:5px}
@@ -431,7 +501,7 @@ body.landscape-mode .spacer{min-height:4px}
 <div class="container">
   <div class="stage">
 
-    <h1 class="brand">Trencaclosques<span class="v" id="version">v3.02</span></h1>
+    <h1 class="brand">Trencaclosques</h1>
 
     <div class="play">
 
@@ -443,27 +513,22 @@ body.landscape-mode .spacer{min-height:4px}
         <option value="5">5×5</option>
       </select>
 
-      <button class="pill" id="githubBtn" title="Les meves fotos"
-              style="--glow:#4ade80;--tint:#22c55e;--tint-deep:#15803d">
-        <span class="material-symbols-rounded">photo_library</span>
-      </button>
-
-      <button class="pill" id="infoToggle" title="Mostrar informació"
-              style="--glow:#38bdf8;--tint:#0ea5e9;--tint-deep:#0369a1">
-        <span class="material-symbols-rounded">info</span>
-      </button>
-
-      <span class="spacer"></span>
-
       <button class="pill" id="refreshBtn" title="Nova foto"
               style="--glow:#f472b6;--tint:#ec4899;--tint-deep:#9d174d">
-        <span class="material-symbols-rounded">autorenew</span>
+        <span class="material-symbols-rounded">skip_next</span>
       </button>
 
       <button class="pill" id="helpToggle" title="Amb ajuda o sense"
               style="--glow:#fbbf24;--tint:#f59e0b;--tint-deep:#b45309">
-        <span class="material-symbols-rounded">lightbulb</span>
+        <span class="material-symbols-rounded">question_mark</span>
       </button>
+
+      <button class="pill" id="favModeBtn" title="Jugar només amb les preferides"
+              style="--glow:#fb7185;--tint:#f43f5e;--tint-deep:#9f1239">
+        <span class="material-symbols-rounded">favorite</span>
+      </button>
+
+      <span class="spacer"></span>
 
       <button class="pill" id="animationsToggle" title="Animacions"
               style="--glow:#a78bfa;--tint:#a855f7;--tint-deep:#7e22ce">
@@ -479,6 +544,11 @@ body.landscape-mode .spacer{min-height:4px}
               style="--glow:#fde047;--tint:#ef4444;--tint-deep:#b91c1c">
         <span class="material-symbols-rounded">dark_mode</span>
       </button>
+
+      <button class="pill" id="infoToggle" title="Mostrar informació"
+              style="--glow:#38bdf8;--tint:#0ea5e9;--tint-deep:#0369a1">
+        <span class="material-symbols-rounded">info</span>
+      </button>
     </div>
 
     <div class="main">
@@ -489,27 +559,6 @@ body.landscape-mode .spacer{min-height:4px}
 
     <div id="imagePreview" class="image-preview">
       <img id="previewImg" src="" alt="Original" crossOrigin="anonymous">
-    </div>
-
-    <div class="log" id="log">Carregant…</div>
-
-    <div class="stats hidden" id="statsBar">
-      <span class="chip">
-        <span class="material-symbols-rounded" style="color:#22c55e">photo_library</span>
-        Fotos <b><span id="photosPlayed">0</span>/<span id="totalPhotos">∞</span></b>
-      </span>
-      <span class="chip">
-        <span class="material-symbols-rounded" style="color:#f59e0b">emoji_events</span>
-        Resolts <b id="gamesPlayed">0</b>
-      </span>
-      <span class="chip">
-        <span class="material-symbols-rounded" id="sourceIcon" style="color:#0ea5e9">travel_explore</span>
-        <span id="currentSource">Internet</span>
-      </span>
-      <span class="chip">
-        <span class="material-symbols-rounded" id="orientIcon" style="color:#a855f7">stay_current_portrait</span>
-        <span id="orientLabel">Vertical</span>
-      </span>
     </div>
 
     </div><!-- /main -->
@@ -523,9 +572,44 @@ body.landscape-mode .spacer{min-height:4px}
       <a href="privacy-policy.html" target="_blank">Política de Privacitat</a>
       <span class="divider">·</span>
       <a href="terms-of-service.html" target="_blank">Condicions del Servei</a>
+      <span class="divider">·</span>
+      <span class="v" id="version">v3.07</span>
     </div>
   </footer>
 </div>
+
+<div id="infoOverlay" class="info-overlay">
+  <div class="info-popup">
+    <h2>Informació</h2>
+    <div class="stats" id="statsBar">
+      <span class="chip">
+        <span class="material-symbols-rounded" style="color:#22c55e">photo_library</span>
+        Fotos <b><span id="photosPlayed">0</span>/<span id="totalPhotos">∞</span></b>
+      </span>
+      <span class="chip">
+        <span class="material-symbols-rounded" style="color:#f59e0b">emoji_events</span>
+        Resolts <b id="gamesPlayed">0</b>
+      </span>
+      <span class="chip">
+        <span class="material-symbols-rounded" id="sourceIcon" style="color:#0ea5e9">travel_explore</span>
+        <span id="currentSource">Internet</span>
+      </span>
+      <span class="chip">
+        <span class="material-symbols-rounded" style="color:#f43f5e">favorite</span>
+        Preferides <b id="favCount">0</b>
+      </span>
+      <span class="chip">
+        <span class="material-symbols-rounded" id="orientIcon" style="color:#a855f7">stay_current_portrait</span>
+        <span id="orientLabel">Vertical</span>
+      </span>
+    </div>
+    <button class="btn-big" id="infoCloseBtn" style="margin-top:18px">
+      <span class="material-symbols-rounded">close</span> Tancar
+    </button>
+  </div>
+</div>
+
+<div id="toast"></div>
 
 <div id="victoryOverlay" class="victory-overlay">
   <div class="victory-popup">
@@ -533,9 +617,15 @@ body.landscape-mode .spacer{min-height:4px}
     <h2>Visca!</h2>
     <p>Has completat el trencaclosques</p>
     <img id="finalImage" class="final-puzzle" src="" alt="Trencaclosques completat">
-    <button class="btn-big" id="victoryBtn">
-      <span class="material-symbols-rounded">replay</span> Jugar de nou
-    </button>
+    <div class="victory-actions">
+      <button class="btn-heart" id="favToggle">
+        <span class="material-symbols-rounded">favorite</span>
+        <span class="lbl">M'agrada</span>
+      </button>
+      <button class="btn-big" id="victoryBtn">
+        <span class="material-symbols-rounded">replay</span> Jugar de nou
+      </button>
+    </div>
   </div>
 </div>
 
@@ -544,8 +634,9 @@ body.landscape-mode .spacer{min-height:4px}
    REFERÈNCIES
    ═══════════════════════════════════════════════════════ */
 const divisionsSelect     = document.getElementById('divisionsSelect');
-const githubBtn           = document.getElementById('githubBtn');
 const infoToggle          = document.getElementById('infoToggle');
+const favModeBtn          = document.getElementById('favModeBtn');
+const favToggle           = document.getElementById('favToggle');
 const statsBar            = document.getElementById('statsBar');
 const orientationLockBtn  = document.getElementById('orientationLockBtn');
 const refreshBtn          = document.getElementById('refreshBtn');
@@ -554,7 +645,9 @@ const helpToggle          = document.getElementById('helpToggle');
 const themeToggle         = document.getElementById('themeToggle');
 const puzzleContainer     = document.getElementById('puzzleContainer');
 const previewImg          = document.getElementById('previewImg');
-const logDiv              = document.getElementById('log');
+const toastEl             = document.getElementById('toast');
+const infoOverlay         = document.getElementById('infoOverlay');
+const infoCloseBtn        = document.getElementById('infoCloseBtn');
 const victoryOverlay      = document.getElementById('victoryOverlay');
 const victoryBtn          = document.getElementById('victoryBtn');
 const finalImage          = document.getElementById('finalImage');
@@ -586,6 +679,15 @@ let photoFilter = 'thumbnail';
 let allPhotos = [];
 let playedPhotos = [];
 let currentPhotoIndex = -1;
+
+/* Preferides
+   Cada foto s'identifica per la seva ruta, que és estable entre sessions:
+   'Fotos/thumbnail007.jpg' per a les teves, o l'URL sencer per a les d'Internet
+   (porta la llavor incrustada, així que sempre torna la mateixa imatge). */
+let favorites = [];
+let favouritesMode = false;
+let playedFavorites = [];
+let currentPhotoId = null;
 
 // Estadístiques
 let photosPlayed = 0;
@@ -632,9 +734,14 @@ function ajustarTauler(){
   puzzleContainer.style.height = Math.floor(h) + 'px';
 }
 
+/* Avís flotant: apareix sobre el joc i s'esvaeix sol */
+let toastTimer = null;
 function log(msg){
   console.log(msg);
-  logDiv.textContent = msg;
+  toastEl.textContent = msg;
+  toastEl.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2600);
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -721,6 +828,7 @@ function detectOrientation(){
     playedPhotos = [];
     console.log('Orientació:', currentOrientation, '→ filtre:', photoFilter);
     applyOrientationStyles();
+    updateFavButtons();
     updateStats();
   }
 }
@@ -765,11 +873,17 @@ function getDeviceInfo(){
 function updateStats(){
   document.getElementById('photosPlayed').textContent = photosPlayed;
   document.getElementById('gamesPlayed').textContent  = gamesPlayed;
+  document.getElementById('favCount').textContent     = favorites.length;
 
   const srcIcon  = document.getElementById('sourceIcon');
   const srcLabel = document.getElementById('currentSource');
 
-  if (lastSource === 'github'){
+  if (lastSource === 'fav'){
+    totalPhotos = favoritesForOrientation().length || '∞';
+    srcIcon.textContent = 'favorite';
+    srcIcon.style.color = '#f43f5e';
+    srcLabel.textContent = 'Preferides';
+  } else if (lastSource === 'github'){
     totalPhotos = gitHubPhotosCount || '∞';
     srcIcon.textContent = 'photo_library';
     srcIcon.style.color = '#22c55e';
@@ -795,6 +909,108 @@ function updateStats(){
 
 function incrementPhotosPlayed(){ photosPlayed++; updateStats(); }
 function incrementGamesPlayed(){ gamesPlayed++; updateStats(); }
+
+/* ═══════════════════════════════════════════════════════
+   PREFERIDES
+   ═══════════════════════════════════════════════════════ */
+function loadFavorites(){
+  try{
+    const raw = localStorage.getItem('favorites');
+    favorites = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(favorites)) favorites = [];
+  } catch { favorites = []; }
+}
+
+function saveFavorites(){
+  localStorage.setItem('favorites', JSON.stringify(favorites));
+}
+
+function isFavorite(id){ return id != null && favorites.includes(id); }
+
+function toggleFavorite(id){
+  if (!id) return false;
+  const i = favorites.indexOf(id);
+  if (i === -1) favorites.push(id);
+  else favorites.splice(i, 1);
+  saveFavorites();
+  updateFavButtons();
+  updateStats();
+  return isFavorite(id);
+}
+
+/* Quines preferides encaixen amb l'orientació actual.
+   Les teves es reconeixen pel prefix del nom; les d'Internet,
+   per les mides que porta l'URL. */
+function favoritesForOrientation(){
+  return favorites.filter(id => {
+    if (id.startsWith('Fotos/')) return id.slice(6).startsWith(photoFilter);
+    return currentOrientation === 'portrait'
+      ? id.includes('/600/800')
+      : id.includes('/800/600');
+  });
+}
+
+function updateFavButtons(){
+  // Cor del menú: gris i inactiu si encara no n'hi ha cap
+  const disponibles = favoritesForOrientation().length;
+  favModeBtn.disabled = disponibles === 0;
+  favModeBtn.classList.toggle('off', disponibles === 0);
+  favModeBtn.classList.toggle('on', favouritesMode && disponibles > 0);
+  favModeBtn.title = disponibles === 0
+    ? 'Encara no has marcat cap preferida'
+    : (favouritesMode ? 'Tornar a totes les fotos' : `Jugar només amb les preferides (${disponibles})`);
+
+  // Cor de la pantalla de victòria: ple si ja està marcada
+  const marcada = isFavorite(currentPhotoId);
+  favToggle.classList.toggle('marked', marcada);
+  favToggle.querySelector('.material-symbols-rounded').style.fontVariationSettings =
+    marcada ? "'FILL' 1,'wght' 700" : "'FILL' 0,'wght' 600";
+  favToggle.querySelector('.lbl').textContent = marcada ? 'Preferida' : 'M\'agrada';
+}
+
+favToggle.addEventListener('click', () => {
+  if (!currentPhotoId) return;
+  const araEs = toggleFavorite(currentPhotoId);
+  log(araEs ? 'Desada a les preferides' : 'Treta de les preferides');
+});
+
+favModeBtn.addEventListener('click', () => {
+  if (favModeBtn.disabled) return;
+  favouritesMode = !favouritesMode;
+  playedFavorites = [];
+  updateFavButtons();
+  updateStats();
+  log(favouritesMode ? 'Només les preferides' : 'Totes les fotos');
+  puzzleContainer.innerHTML = '';
+  carregarUltima();
+});
+
+/* Carrega una preferida que encara no hagi sortit.
+   Quan s'acaben, continua sol amb la resta de fotos. */
+function carregarPreferida(){
+  const llista   = favoritesForOrientation();
+  const pendents = llista.filter(f => !playedFavorites.includes(f));
+
+  if (pendents.length === 0){
+    favouritesMode = false;
+    playedFavorites = [];
+    updateFavButtons();
+    updateStats();
+    log(llista.length === 0
+      ? 'No tens preferides en aquesta orientació. Continuem amb la resta.'
+      : 'Ja has jugat totes les preferides. Continuem amb la resta.');
+    return carregarFotosGitHub();
+  }
+
+  const triada = pendents[Math.floor(Math.random() * pendents.length)];
+  playedFavorites.push(triada);
+  currentPhotoId = triada;
+  lastSource = 'fav';
+  updateStats();
+  log(`Preferida ${playedFavorites.length}/${llista.length}`);
+  incrementPhotosPlayed();
+  cargarImagenDesdeUrl(triada, 'fav');
+}
 
 /* ═══════════════════════════════════════════════════════
    SELECCIÓ DE FOTO SENSE REPETICIONS
@@ -861,6 +1077,7 @@ function carregarImagenAleatoria(){
   // Demanem la imatge amb la proporció que toca segons l'orientació
   const mides = currentOrientation === 'portrait' ? '600/800' : '800/600';
   const imageUrl = `https://picsum.photos/seed/puzzle${seed}/${mides}`;
+  currentPhotoId = imageUrl;
   const img = new Image();
   img.crossOrigin = 'anonymous';
   img.onload = () => {
@@ -901,10 +1118,11 @@ async function carregarFotosGitHub(){
     if (!fotoAleatoria) return recorrerAInternet();  // getNextPhoto ja ha avisat
 
     lastSource = 'github';
+    currentPhotoId = `Fotos/${fotoAleatoria}`;
     updateStats();
     log(`${fotoAleatoria} · ${playedPhotos.length}/${gitHubPhotosCount}`);
     incrementPhotosPlayed();
-    cargarImagenDesdeUrl(`Fotos/${fotoAleatoria}`, 'github');
+    cargarImagenDesdeUrl(currentPhotoId, 'github');
 
   } catch(err){
     log('No s\'han pogut llegir les teves fotos. Agafem una d\'Internet.');
@@ -921,25 +1139,36 @@ function recorrerAInternet(){
 
 /* Sempre provem primer les fotos locals; el recanvi ja el decideix la funció */
 function carregarUltima(){
+  if (favouritesMode) return carregarPreferida();
   carregarFotosGitHub();
 }
 
-githubBtn.addEventListener('click', () => {
-  puzzleContainer.innerHTML = '';
-  carregarUltima();
-});
-
-/* Informació: les estadístiques només es veuen si es demanen */
+/* Informació: finestra emergent, com la de victòria */
 function applyInfoState(){
-  statsBar.classList.toggle('hidden', !isInfoVisible);
+  infoOverlay.classList.toggle('active', isInfoVisible);
   infoToggle.classList.toggle('on', isInfoVisible);
 }
 
-infoToggle.addEventListener('click', () => {
-  isInfoVisible = !isInfoVisible;
-  localStorage.setItem('showInfo', isInfoVisible);
+function obrirInfo(){
+  isInfoVisible = true;
+  updateStats();
   applyInfoState();
-  ajustarTauler();
+}
+
+function tancarInfo(){
+  isInfoVisible = false;
+  applyInfoState();
+}
+
+infoToggle.addEventListener('click', () => {
+  if (isInfoVisible) tancarInfo(); else obrirInfo();
+});
+
+infoCloseBtn.addEventListener('click', tancarInfo);
+
+// Tancar tocant fora de la finestra
+infoOverlay.addEventListener('click', (e) => {
+  if (e.target === infoOverlay) tancarInfo();
 });
 
 refreshBtn.addEventListener('click', () => {
@@ -1157,6 +1386,7 @@ function comprovarVictoria(){
   if (fixat.every(v => v === true)){
     log('Visca!');
     incrementGamesPlayed();          // només compta si s'ha resolt
+    updateFavButtons();              // el cor ha de reflectir la foto actual
     victoryOverlay.classList.add('active');
   } else {
     const correctes = fixat.filter(v => v).length;
@@ -1188,8 +1418,9 @@ window.addEventListener('orientationchange', () => setTimeout(() => {
 initTheme();
 initAnimations();
 applyHelpState();
+loadFavorites();
 
-isInfoVisible = localStorage.getItem('showInfo') === 'true';
+isInfoVisible = false;
 applyInfoState();
 
 detectAppContext();
@@ -1207,6 +1438,7 @@ if (orientationLocked){
 }
 applyLockState();
 applyOrientationStyles();
+updateFavButtons();
 updateStats();
 
 carregarFotosGitHub();
