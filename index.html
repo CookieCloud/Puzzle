@@ -1,7 +1,17 @@
 <!DOCTYPE html>
 <!--
     TRENCACLOSQUES — PWA
-    Version: 3.03  ·  Disseny "Barra de Joc" (Proposta C)
+    Version: 3.04  ·  Disseny "Barra de Joc" (Proposta C)
+
+    CORRECCIONS v3.04
+    - Error crític: el botó githubBtn està comentat a l'HTML i l'addEventListener
+      sobre null aturava tot el script (no carregaven fotos, (i) inactiu,
+      no s'aplicaven les classes ios-app / landscape-mode)
+    - Marges superiors basats en safe-area també per CSS (no depenen del JS)
+    - Navegador web en vertical: marge superior 20px
+    - Títol amagat en horitzontal en pantalles baixes també per CSS
+    - Botó 4×4: text centrat amb etiqueta visible + select natiu transparent
+    - Font de les fotos: "© Gerard M." (abans mostrava "&copy;" literal)
 
     NOVETATS DE DISSENY
     - Material Symbols Rounded en lloc d'emojis
@@ -197,14 +207,24 @@ body.day .pill.on{
 .spacer{flex:1 1 auto;min-width:6px}
 
 .select{
-  flex:0 0 auto;height:44px;border-radius:99px;padding:0 8px 0 16px;cursor:pointer;
+  flex:0 0 auto;position:relative;
+  display:grid;place-items:center;
+  height:44px;min-width:64px;border-radius:99px;padding:0 14px;cursor:pointer;
   font-family:'Fredoka';font-weight:600;font-size:14px;color:var(--ink);
   border:none;background:var(--pill-bg);box-shadow:var(--pill-shadow);
-  appearance:none;-webkit-appearance:none;
   transition:background .35s,box-shadow .35s;
-  text-align:center;
 }
-.select option{color:#3c2a14;background:#fff}
+/* Text visible: sempre centrat, sigui quin sigui el navegador */
+.select-label{font-size:inherit;line-height:1;pointer-events:none;white-space:nowrap}
+/* Select natiu invisible que ocupa tot el botó: en tocar obre el selector del sistema */
+.select select{
+  position:absolute;inset:0;width:100%;height:100%;
+  opacity:0;cursor:pointer;border:0;border-radius:inherit;
+  appearance:none;-webkit-appearance:none;
+  font-size:16px; /* evita el zoom automàtic d'iOS */
+}
+.select select option{color:#3c2a14;background:#fff}
+.select:focus-within{outline:2px solid var(--accent);outline-offset:2px}
 body.day .select{
   background:linear-gradient(160deg,#8b5cf6,#6d28d9);color:#fff;
   box-shadow:inset 0 2px 0 rgba(255,255,255,.45), 0 4px 0 #4c1d95, 0 7px 12px rgba(0,0,0,.22);
@@ -358,15 +378,15 @@ footer.footer p{color:var(--ink-soft);font-size:11px;margin-bottom:6px}
 /* ═══════════════════════════════════════════════════════
    VERTICAL
    ═══════════════════════════════════════════════════════ */
-body.portrait-mode{padding:16px 12px 20px}
-body.portrait-mode.web-browser{padding:12px 12px 20px}
+body.portrait-mode{padding:max(16px,env(safe-area-inset-top)) 12px max(20px,env(safe-area-inset-bottom))}
+body.portrait-mode.web-browser{padding:20px 12px 20px}
 body.portrait-mode.ios-app{padding:max(52px,env(safe-area-inset-top)) 12px 20px}
 body.portrait-mode.android-app{padding:max(34px,env(safe-area-inset-top)) 12px 20px}
 
 /* ═══════════════════════════════════════════════════════
    HORITZONTAL — menú vertical al lateral
    ═══════════════════════════════════════════════════════ */
-body.landscape-mode{padding:10px 12px 12px}
+body.landscape-mode{padding:max(10px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left))}
 body.landscape-mode.web-browser{padding:8px 12px 12px}
 body.landscape-mode.ios-app{padding:max(12px,env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) 12px max(14px,env(safe-area-inset-left))}
 body.landscape-mode.android-app{padding:max(10px,env(safe-area-inset-top)) 14px 12px}
@@ -384,9 +404,8 @@ body.landscape-mode .bar{
   overflow-x:hidden;overflow-y:auto;
 }
 body.landscape-mode .select{
-  height:auto;min-height:44px;width:44px;
+  height:44px;min-height:44px;width:44px;min-width:44px;
   padding:0;font-size:13px;border-radius:99px;
-  writing-mode:horizontal-tb;
 }
 body.landscape-mode .spacer{min-height:4px}
 
@@ -401,7 +420,7 @@ body.landscape-mode .spacer{min-height:4px}
   body.landscape-mode .bar{padding:5px 4px;gap:5px}
   body.landscape-mode .pill{width:36px;height:36px}
   body.landscape-mode .pill .material-symbols-rounded{font-size:20px}
-  body.landscape-mode .select{width:36px;min-height:36px;font-size:12px}
+  body.landscape-mode .select{width:36px;min-width:36px;height:36px;min-height:36px;font-size:12px}
   body.landscape-mode .image-preview{margin-top:6px;padding:5px}
   body.landscape-mode .image-preview img{max-height:14vh}
   body.landscape-mode .log{margin-top:6px;padding:5px 12px;font-size:11px;min-height:0}
@@ -410,6 +429,11 @@ body.landscape-mode .spacer{min-height:4px}
   body.landscape-mode .chip .material-symbols-rounded{font-size:15px}
   body.landscape-mode .chip b{font-size:12px}
   body.landscape-mode footer.footer{display:none}
+}
+
+/* Telèfon en horitzontal: el títol s'amaga encara que el JS no hagi posat la classe */
+@media (orientation:landscape) and (max-height:560px){
+  .brand{display:none}
 }
 
 /* Pantalla petita en vertical: també es comprimeix */
@@ -431,17 +455,20 @@ body.landscape-mode .spacer{min-height:4px}
 <div class="container">
   <div class="stage">
 
-    <h1 class="brand">Trencaclosques<span class="v" id="version">v3.03</span></h1>
+    <h1 class="brand">Trencaclosques<span class="v" id="version">v3.04</span></h1>
 
     <div class="play">
 
     <div class="bar">
-      <select class="select" id="divisionsSelect" title="Nombre de peces">
-        <option value="2">2×2</option>
-        <option value="3">3×3</option>
-        <option value="4" selected>4×4</option>
-        <option value="5">5×5</option>
-      </select>
+      <label class="select" title="Nombre de peces">
+        <span class="select-label" id="divisionsLabel" aria-hidden="true">4×4</span>
+        <select id="divisionsSelect" aria-label="Nombre de peces">
+          <option value="2">2×2</option>
+          <option value="3">3×3</option>
+          <option value="4" selected>4×4</option>
+          <option value="5">5×5</option>
+        </select>
+      </label>
     <!-- 
       <button class="pill" id="githubBtn" title="Les meves fotos"
               style="--glow:#4ade80;--tint:#22c55e;--tint-deep:#15803d">
@@ -773,7 +800,7 @@ function updateStats(){
     totalPhotos = gitHubPhotosCount || '∞';
     srcIcon.textContent = 'photo_library';
     srcIcon.style.color = '#22c55e';
-    srcLabel.textContent = '&copy; Gerard M.';
+    srcLabel.textContent = '\u00A9 Gerard M.';
   } else {
     totalPhotos = '∞';
     srcIcon.textContent = 'travel_explore';
@@ -924,10 +951,13 @@ function carregarUltima(){
   carregarFotosGitHub();
 }
 
-githubBtn.addEventListener('click', () => {
-  puzzleContainer.innerHTML = '';
-  carregarUltima();
-});
+// El botó està comentat a l'HTML: només hi afegim l'event si existeix
+if (githubBtn){
+  githubBtn.addEventListener('click', () => {
+    puzzleContainer.innerHTML = '';
+    carregarUltima();
+  });
+}
 
 /* Informació: les estadístiques només es veuen si es demanen */
 function applyInfoState(){
@@ -1170,7 +1200,13 @@ victoryBtn.addEventListener('click', () => {
   carregarUltima();
 });
 
+function actualitzarEtiquetaDivisions(){
+  const opcio = divisionsSelect.options[divisionsSelect.selectedIndex];
+  document.getElementById('divisionsLabel').textContent = opcio ? opcio.text : '';
+}
+
 divisionsSelect.addEventListener('change', () => {
+  actualitzarEtiquetaDivisions();
   if (imagenActual) iniciarPuzzle();
 });
 
@@ -1188,6 +1224,7 @@ window.addEventListener('orientationchange', () => setTimeout(() => {
 initTheme();
 initAnimations();
 applyHelpState();
+actualitzarEtiquetaDivisions();
 
 isInfoVisible = localStorage.getItem('showInfo') === 'true';
 applyInfoState();
