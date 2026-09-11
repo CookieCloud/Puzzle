@@ -1,15 +1,18 @@
 <!DOCTYPE html>
 <!--
     TRENCACLOSQUES ART PWA
-    Version: 2.41 (bugfix)
+    Version: 2.42
     
-    COMPLETE RESPONSIVE VERSION:
+    COMPLETE RESPONSIVE VERSION (Improved):
+    - Detecció app vs web-browser: padding diferent
     - Detecció automàtica: orientació, app/web, context
     - Bloqueig d'orientació
     - Filtrat de fotos per orientació (thumbnail/hthumbnail)
+    - Avisos quan s'acaben fotos per orientació
     - Fotos GG prioritari + Picsum fallback
     - CSS responsive landscape/portrait
-    - Sense repeticions de fotos (FIXED: allPhotos variable declaration)
+    - Landscape: sense títol, menú compacte, botons petits
+    - Sense repeticions de fotos
     - Títol blanc
     - Partides comptades només si resolts
 -->
@@ -436,67 +439,104 @@
         
         /* PORTRAIT MODE */
         body.portrait-mode {
-            padding: max(120px, env(safe-area-inset-top)) 10px 10px 10px;
+            padding: max(80px, env(safe-area-inset-top)) 10px 10px 10px;
+        }
+        body.portrait-mode.web-browser {
+            padding: max(20px, env(safe-area-inset-top)) 10px 10px 10px;
+        }
+        body.portrait-mode.ios-app {
+            padding: max(100px, env(safe-area-inset-top)) 10px 10px 10px;
+        }
+        body.portrait-mode.android-app {
+            padding: max(80px, env(safe-area-inset-top)) 10px 10px 10px;
         }
         body.portrait-mode .header {
             margin-bottom: 20px;
         }
         body.portrait-mode h1 {
             font-size: clamp(1.2rem, 5vw, 1.8rem);
+            display: block;
         }
         body.portrait-mode .container {
-            margin: 50px auto 0 auto;
+            margin: 30px auto 0 auto;
         }
         
         /* LANDSCAPE MODE */
         body.landscape-mode {
-            padding: max(60px, env(safe-area-inset-top)) 10px 10px 10px;
+            padding: max(50px, env(safe-area-inset-top)) 8px 8px 8px;
+        }
+        body.landscape-mode.web-browser {
+            padding: max(15px, env(safe-area-inset-top)) 8px 8px 8px;
+        }
+        body.landscape-mode.ios-app {
+            padding: max(60px, env(safe-area-inset-top)) 8px 8px 8px;
+        }
+        body.landscape-mode.android-app {
+            padding: max(50px, env(safe-area-inset-top)) 8px 8px 8px;
         }
         body.landscape-mode .header {
-            margin-bottom: 8px;
-            gap: 4px;
+            margin-bottom: 6px;
+            gap: 2px;
         }
         body.landscape-mode h1 {
-            font-size: clamp(0.9rem, 3vw, 1.3rem);
+            font-size: 0;
+            width: 0;
+            display: none;
         }
         body.landscape-mode h1 #version {
-            font-size: 0.5em;
+            display: none;
         }
         body.landscape-mode .container {
-            margin: 20px auto 0 auto;
+            margin: 8px auto 0 auto;
+            padding: 6px;
         }
         body.landscape-mode .controls-bar {
-            gap: 3px;
-            margin-bottom: 8px;
+            gap: 2px;
+            margin-bottom: 6px;
         }
-        body.landscape-mode select,
-        body.landscape-mode .icon-btn {
-            width: clamp(32px, 8vw, 36px);
-            height: clamp(32px, 8vw, 36px);
-            font-size: clamp(13px, 3vw, 16px);
+        body.landscape-mode select {
+            padding: 4px 6px;
+            height: 32px;
+            font-size: 10px;
+        }
+        body.landscape-mode .icon-btn,
+        body.landscape-mode .theme-toggle {
+            width: 32px !important;
+            height: 32px !important;
+            font-size: 14px !important;
+            padding: 0;
         }
         body.landscape-mode .image-preview {
-            margin-bottom: 8px;
-            min-height: 60px;
-            padding: 6px;
+            margin-bottom: 6px;
+            min-height: 50px;
+            padding: 4px;
+            font-size: 11px;
         }
         body.landscape-mode .log {
-            margin-bottom: 6px;
-            padding: 6px;
-            font-size: clamp(10px, 2vw, 11px);
+            margin-bottom: 4px;
+            padding: 4px;
+            font-size: 10px;
         }
         body.landscape-mode .stats-container {
-            margin-top: 8px;
-            gap: 10px;
-            padding: 6px;
-            font-size: clamp(10px, 2vw, 11px);
+            margin-top: 4px;
+            gap: 8px;
+            padding: 4px;
+            font-size: 9px;
         }
         body.landscape-mode .stat-item {
-            gap: 4px;
+            gap: 2px;
+        }
+        body.landscape-mode .stat-value {
+            padding: 2px 8px;
+            font-size: 9px;
         }
         body.landscape-mode footer.footer {
-            margin-top: 20px;
-            padding: 10px;
+            margin-top: 10px;
+            padding: 8px;
+        }
+        body.landscape-mode footer.footer p {
+            margin-bottom: 4px;
+            font-size: 9px;
         }
         /* FOOTER */
         footer.footer {
@@ -545,7 +585,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🧩 Trencaclosques <span id="version">v2.41</span></h1>
+            <h1>🧩 Trencaclosques <span id="version">v2.42</span></h1>
         </div>
         <div class="controls-bar">
             <select id="divisionsSelect" title="Nombre de peces">
@@ -779,6 +819,12 @@
             }
         }
 
+        function applyContextStyles() {
+            const body = document.body;
+            body.classList.remove('web-browser', 'ios-app', 'android-app');
+            body.classList.add(appContext);
+        }
+
         function getDeviceInfo() {
             return {
                 orientation: currentOrientation,
@@ -844,13 +890,16 @@
         function getNextPhoto(fotos) {
             // Filtrar fotos per orientació
             const filteredPhotos = fotos.filter(foto => foto.startsWith(photoFilter));
+            const otherFilter = photoFilter === 'thumbnail' ? 'hthumbnail' : 'thumbnail';
+            const availablePhotos = fotos.filter(foto => foto.startsWith(otherFilter));
             
             if (filteredPhotos.length === 0) {
                 // Si no hi ha fotos de l'orientació actual, avisar
-                const otherFilter = photoFilter === 'thumbnail' ? 'hthumbnail' : 'thumbnail';
-                const availablePhotos = fotos.filter(foto => foto.startsWith(otherFilter));
                 if (availablePhotos.length > 0) {
-                    log(`⚠️ S'han acabat les fotos en mode ${currentOrientation}. Quedan ${availablePhotos.length} fotos en l'altre orientació.`);
+                    const orientacioAlt = currentOrientation === 'portrait' ? 'horitzontal' : 'vertical';
+                    log(`⚠️ S'han acabat les fotos en mode ${currentOrientation}. Hi ha ${availablePhotos.length} fotos en mode ${orientacioAlt}.`);
+                } else {
+                    log(`❌ No hi ha fotos disponibles.`);
                 }
                 return null;
             }
@@ -1238,7 +1287,9 @@
 
         // 📱 INICIALITZACIONS
         detectAppContext();
+        applyContextStyles();
         detectOrientation();
+        applyOrientationStyles();
         
         // Recuperar preferències guardades
         const savedLocked = localStorage.getItem('orientationLocked') === 'true';
