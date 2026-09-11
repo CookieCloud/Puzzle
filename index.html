@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
     TRENCACLOSQUES ART PWA
-    Version: 2.40
+    Version: 2.41 (bugfix)
     
     COMPLETE RESPONSIVE VERSION:
     - Detecció automàtica: orientació, app/web, context
@@ -9,7 +9,7 @@
     - Filtrat de fotos per orientació (thumbnail/hthumbnail)
     - Fotos GG prioritari + Picsum fallback
     - CSS responsive landscape/portrait
-    - Sense repeticions de fotos
+    - Sense repeticions de fotos (FIXED: allPhotos variable declaration)
     - Títol blanc
     - Partides comptades només si resolts
 -->
@@ -545,7 +545,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🧩 Trencaclosques <span id="version">v2.40</span></h1>
+            <h1>🧩 Trencaclosques <span id="version">v2.41</span></h1>
         </div>
         <div class="controls-bar">
             <select id="divisionsSelect" title="Nombre de peces">
@@ -638,6 +638,11 @@
         let preferredOrientation = 'portrait'; // Preferència guardada
         let appContext = 'web-browser';       // 'ios-app', 'android-app', 'web-browser'
         let photoFilter = 'thumbnail';         // 'thumbnail' o 'hthumbnail'
+        
+        // 📷 GESTIÓ DE FOTOS (evitar repeticions)
+        let allPhotos = [];              // Totes les fotos disponibles
+        let playedPhotos = [];           // Fotos ja jugades
+        let currentPhotoIndex = -1;      // Index de la foto actual
         
         const animationTypes = [
             'entrance-spin', 'entrance-fall', 'entrance-explosion', 'entrance-flip',
