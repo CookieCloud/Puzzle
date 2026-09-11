@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
     TRENCACLOSQUES — PWA
-    Version: 3.02  ·  Disseny "Barra de Joc" (Proposta C)
+    Version: 3.03  ·  Disseny "Barra de Joc" (Proposta C)
 
     NOVETATS DE DISSENY
     - Material Symbols Rounded en lloc d'emojis
@@ -431,7 +431,7 @@ body.landscape-mode .spacer{min-height:4px}
 <div class="container">
   <div class="stage">
 
-    <h1 class="brand">Trencaclosques<span class="v" id="version">v3.02</span></h1>
+    <h1 class="brand">Trencaclosques<span class="v" id="version">v3.03</span></h1>
 
     <div class="play">
 
@@ -442,12 +442,12 @@ body.landscape-mode .spacer{min-height:4px}
         <option value="4" selected>4×4</option>
         <option value="5">5×5</option>
       </select>
-
+    <!-- 
       <button class="pill" id="githubBtn" title="Les meves fotos"
               style="--glow:#4ade80;--tint:#22c55e;--tint-deep:#15803d">
         <span class="material-symbols-rounded">photo_library</span>
       </button>
-
+    -->
       <button class="pill" id="infoToggle" title="Mostrar informació"
               style="--glow:#38bdf8;--tint:#0ea5e9;--tint-deep:#0369a1">
         <span class="material-symbols-rounded">info</span>
@@ -773,7 +773,7 @@ function updateStats(){
     totalPhotos = gitHubPhotosCount || '∞';
     srcIcon.textContent = 'photo_library';
     srcIcon.style.color = '#22c55e';
-    srcLabel.textContent = '(c) Gerard M.';
+    srcLabel.textContent = '&copy; Gerard M.';
   } else {
     totalPhotos = '∞';
     srcIcon.textContent = 'travel_explore';
