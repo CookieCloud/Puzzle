@@ -1,0 +1,1362 @@
+<!DOCTYPE html>
+<!--
+    TRENCACLOSQUES — PWA
+    Version: 3.08  ·  Disseny "Barra de Joc" (Proposta C)
+    Base: v3.02 (revisió completa)
+
+    CANVIS v3.08
+    Errors corregits
+    - Manifest i service worker (instal·lable a Android, funciona sense connexió)
+    - La fase "Memoritza" es cancel·la si es demana una altra foto o es canvia el nombre de peces
+    - Les càrregues de foto antigues s'ignoren si n'arriba una de més nova
+    - Barreja sense sortir mai resolt; les peces encertades per atzar ja surten fixades
+    - Arrossegament tàctil: gestió de touchcancel i d'un sol dit alhora
+    - Eliminat el botó "Les meves fotos" (duplicat de "Nova foto")
+    - Xip "Fotos x/y" amb el recompte real del cicle
+    - Si una foto teva no s'obre, es prova amb una altra; Internet només si fallen les teves
+    Rendiment i robustesa
+    - Font d'icones reduïda: eixos fixos + només les icones usades, sense text visible en carregar
+    - ResizeObserver: el tauler es reajusta sol quan canvia l'espai
+    - Tauler sense canvas: una sola imatge amb background-position; en moure només es repinten 2 peces
+    - Mida del tauler calculada sobre l'àrea interior i en múltiples exactes del nombre de peces
+    - Historial de fotos vistes separat per orientació; no es repeteix l'última en reiniciar el cicle
+    Neteja
+    - Ajuda i Informació com a finestres emergents que cal tancar
+    - Informació amb instruccions de joc i nota sobre la IA
+    - Codi mort eliminat, noms en català, preferència de peces desada
+    - theme-color segons el tema; animacions respecten "reduir moviment" si no hi ha preferència desada
+-->
+<html lang="ca">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no, maximum-scale=1">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Trencaclosques">
+<meta name="theme-color" content="#ff9f45">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="32x32" href="puzzle32x32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="puzzle192x192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="puzzle180x180.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- Text: només els pesos que es fan servir -->
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Fredoka:wght@400;500;600&display=swap" rel="stylesheet">
+<!-- Icones: eixos fixos i només les icones usades (ordre alfabètic). Si n'afegeixes una, afegeix-la aquí. -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@40,600,1,0&icon_names=auto_awesome,autorenew,close,dark_mode,emoji_events,help,info,light_mode,lock,lock_open,photo_library,replay,stay_current_landscape,stay_current_portrait,travel_explore&display=block" rel="stylesheet">
+
+<title>Trencaclosques</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none}
+
+.material-symbols-rounded{
+  font-family:'Material Symbols Rounded';
+  font-variation-settings:'FILL' 1,'wght' 600,'GRAD' 0,'opsz' 40;
+  line-height:1;font-size:24px;
+  font-weight:normal;font-style:normal;letter-spacing:normal;
+  text-transform:none;display:inline-block;white-space:nowrap;
+  word-wrap:normal;direction:ltr;
+}
+
+/* ═══════════════════════════════════════════════════════
+   MODE NIT
+   ═══════════════════════════════════════════════════════ */
+body{
+  --stage:linear-gradient(170deg,#241a3d 0%,#120e21 100%);
+  --page:#14101c;
+  --bar-bg:linear-gradient(180deg,rgba(255,255,255,.13),rgba(255,255,255,.04));
+  --bar-border:rgba(255,255,255,.16);
+  --bar-shadow:inset 0 1px 0 rgba(255,255,255,.3), 0 8px 22px rgba(0,0,0,.45);
+  --pill-bg:linear-gradient(160deg,rgba(255,255,255,.2),rgba(255,255,255,.06));
+  --pill-shadow:inset 0 1px 0 rgba(255,255,255,.45), 0 4px 10px rgba(0,0,0,.4);
+  --ink:#fff;
+  --ink-soft:rgba(255,255,255,.6);
+  --accent:#ffd166;
+  --accent-deep:#f0a020;
+  --accent-ink:#3a1f00;
+  --board-border:rgba(255,209,102,.6);
+  --board-halo:rgba(255,209,102,.12);
+  --board-bg:rgba(255,255,255,.06);
+  --chip-bg:linear-gradient(160deg,rgba(255,255,255,.16),rgba(255,255,255,.05));
+  --chip-border:rgba(255,255,255,.18);
+  --chip-shadow:inset 0 1px 0 rgba(255,255,255,.35);
+  --panel-bg:linear-gradient(170deg,#2c2050,#161029);
+  --piece-ring:rgba(255,209,102,.45);
+
+  font-family:'Fredoka',system-ui,-apple-system,sans-serif;
+  background:var(--page);
+  color:var(--ink);
+  height:100vh;height:100dvh;
+  overflow:hidden;
+  -webkit-user-select:none;user-select:none;
+  transition:background .35s;
+}
+
+/* ═══════════════════════════════════════════════════════
+   MODE DIA — colors vius i sòlids
+   ═══════════════════════════════════════════════════════ */
+body.day{
+  --stage:linear-gradient(165deg,#ffd86b 0%,#ff9f45 38%,#ff6b9d 100%);
+  --page:#fff4dc;
+  --bar-bg:#ffffff;
+  --bar-border:#ffffff;
+  --bar-shadow:inset 0 -4px 0 rgba(0,0,0,.07), 0 10px 26px rgba(214,96,30,.3);
+  --pill-bg:#ffffff;
+  --pill-shadow:none;
+  --ink:#3c2a14;
+  --ink-soft:rgba(60,42,20,.65);
+  --accent:#ffc83d;
+  --accent-deep:#ff8a00;
+  --accent-ink:#4a2600;
+  --board-border:#ffffff;
+  --board-halo:rgba(255,255,255,.45);
+  --board-bg:rgba(255,255,255,.35);
+  --chip-bg:#ffffff;
+  --chip-border:transparent;
+  --chip-shadow:0 3px 0 rgba(0,0,0,.1), 0 6px 12px rgba(150,60,10,.18);
+  --panel-bg:linear-gradient(170deg,#fff8ec,#ffe6c2);
+  --piece-ring:rgba(255,255,255,.8);
+}
+
+/* ── contenidor ─────────────────────────────────────── */
+.container{
+  max-width:1100px;margin:0 auto;height:100%;
+  display:flex;flex-direction:column;min-height:0;
+}
+
+.stage{
+  background:var(--stage);
+  border-radius:28px;
+  padding:16px 14px 18px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.14), 0 22px 50px rgba(0,0,0,.4);
+  transition:background .35s;
+  flex:1;min-height:0;
+  display:flex;flex-direction:column;
+}
+
+/* zona de joc: menú + tauler */
+.play{flex:1;min-height:0;display:flex;flex-direction:column;gap:12px}
+.main{flex:1;min-height:0;min-width:0;display:flex;flex-direction:column}
+
+/* ── títol ──────────────────────────────────────────── */
+.brand{
+  font-family:'Baloo 2',sans-serif;font-weight:800;text-align:center;
+  font-size:clamp(26px,7.5vw,46px);letter-spacing:-1px;margin-bottom:14px;
+  color:#fff;line-height:1.05;
+  text-shadow:0 0 10px rgba(167,139,250,.45), 0 2px 6px rgba(0,0,0,.3);
+}
+body.day .brand{
+  background:linear-gradient(180deg,#fff 0%,#fff1b8 45%,#ffb020 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  text-shadow:none;
+  filter:drop-shadow(0 1px 0 rgba(190,80,20,.55)) drop-shadow(0 3px 5px rgba(120,40,0,.25));
+}
+.brand .v{
+  display:block;font-family:'Fredoka';font-weight:500;
+  font-size:11px;letter-spacing:3px;text-transform:uppercase;
+  color:#a5b4fc;opacity:.8;margin-top:2px;-webkit-text-fill-color:#a5b4fc;
+  filter:none;text-shadow:none;
+}
+body.day .brand .v{color:#fff;-webkit-text-fill-color:#fff;opacity:.85;
+  text-shadow:0 1px 2px rgba(150,60,10,.35)}
+
+/* ── barra de control ───────────────────────────────── */
+.bar{
+  display:flex;align-items:center;gap:8px;flex-wrap:nowrap;
+  background:var(--bar-bg);border:1px solid var(--bar-border);
+  border-radius:99px;padding:8px 10px;box-shadow:var(--bar-shadow);
+  overflow-x:auto;scrollbar-width:none;
+  transition:background .35s,box-shadow .35s;
+}
+.bar::-webkit-scrollbar{display:none}
+
+.pill{
+  flex:0 0 auto;width:44px;height:44px;border-radius:50%;border:none;cursor:pointer;
+  display:grid;place-items:center;color:var(--ink);position:relative;
+  background:var(--pill-bg);box-shadow:var(--pill-shadow);
+  transition:transform .13s cubic-bezier(.34,1.56,.64,1),background .35s,box-shadow .35s,opacity .2s;
+}
+.pill:active{transform:scale(.9)}
+.pill .material-symbols-rounded{font-size:24px;filter:drop-shadow(0 0 8px var(--glow))}
+
+/* dia: el botó sencer pren el color, amb base sòlida */
+body.day .pill{
+  background:var(--tint);color:#fff;
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.55), 0 4px 0 var(--tint-deep), 0 7px 12px rgba(0,0,0,.22);
+}
+body.day .pill .material-symbols-rounded{filter:drop-shadow(0 1px 1px rgba(0,0,0,.3))}
+body.day .pill:active{
+  transform:translateY(3px);
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.5), 0 1px 0 var(--tint-deep), 0 2px 5px rgba(0,0,0,.25);
+}
+
+/* estat encès */
+.pill.on{
+  background:linear-gradient(160deg,var(--accent),var(--accent-deep));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.7),0 0 18px rgba(240,160,32,.65),0 4px 10px rgba(0,0,0,.45);
+  color:var(--accent-ink);
+}
+.pill.on .material-symbols-rounded{filter:none}
+body.day .pill.on{
+  background:linear-gradient(160deg,#ffe066,#ff9f1a);
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.8), 0 4px 0 #d97706, 0 7px 12px rgba(0,0,0,.25);
+  color:var(--accent-ink);
+}
+
+/* estat apagat (animacions off) */
+.pill.off{opacity:.4}
+
+.spacer{flex:1 1 auto;min-width:6px}
+
+.select{
+  flex:0 0 auto;height:44px;border-radius:99px;padding:0 8px 0 16px;cursor:pointer;
+  font-family:'Fredoka';font-weight:600;font-size:14px;color:var(--ink);
+  border:none;background:var(--pill-bg);box-shadow:var(--pill-shadow);
+  appearance:none;-webkit-appearance:none;
+  transition:background .35s,box-shadow .35s;
+  text-align:center;
+}
+.select option{color:#3c2a14;background:#fff}
+body.day .select{
+  background:linear-gradient(160deg,#8b5cf6,#6d28d9);color:#fff;
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.45), 0 4px 0 #4c1d95, 0 7px 12px rgba(0,0,0,.22);
+}
+
+[hidden]{display:none!important}
+
+.pill:focus-visible,.select:focus-visible,.btn-big:focus-visible{
+  outline:3px solid var(--accent);outline-offset:3px;
+}
+
+/* ── tauler ─────────────────────────────────────────── */
+.board-wrap{
+  flex:1;min-height:0;min-width:0;
+  display:flex;align-items:center;justify-content:center;
+  padding:4px 0;
+}
+
+.puzzle-grid{
+  --n:1;
+  display:grid;gap:0;
+  margin:0 auto;
+  background:var(--board-bg);
+  padding:5px;border-radius:20px;touch-action:none;
+  border:3px solid var(--board-border);
+  box-shadow:0 0 0 6px var(--board-halo), inset 0 0 40px rgba(0,0,0,.3), 0 16px 36px rgba(0,0,0,.35);
+  transition:border-color .35s,background .35s;
+}
+
+/* Foto sencera abans de trencar-la */
+.sencera{
+  width:100%;height:100%;border-radius:14px;
+  background:var(--foto) center/100% 100% no-repeat;
+}
+
+/* Cada peça mostra la seva part de la mateixa imatge */
+.puzzle-piece{
+  background-image:var(--foto);
+  background-size:calc(var(--n) * 100%) calc(var(--n) * 100%);
+  background-repeat:no-repeat;
+  cursor:grab;user-select:none;-webkit-user-select:none;touch-action:none;position:relative;
+}
+.puzzle-piece.unfixed{
+  margin:3px;border-radius:6px;
+  box-shadow:0 0 0 2px var(--piece-ring), 0 5px 12px rgba(0,0,0,.45);
+  transition:box-shadow .18s,transform .18s;
+}
+.puzzle-piece.unfixed:active{cursor:grabbing;transform:scale(1.06);z-index:100}
+.puzzle-piece.fixed{
+  margin:0;border-radius:0;cursor:default;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.1);
+}
+
+/* Peça que segueix el dit */
+.puzzle-piece.floating{
+  position:fixed;z-index:1001;pointer-events:none;margin:0;border-radius:6px;
+  box-shadow:0 0 0 3px rgba(255,209,102,.9), 0 12px 26px rgba(0,0,0,.5);
+  transform:scale(1.06);transition:none;
+}
+
+/* ── consola de missatges ───────────────────────────── */
+.log{
+  flex:0 0 auto;
+  margin-top:10px;padding:9px 16px;border-radius:99px;
+  background:var(--chip-bg);border:1px solid var(--chip-border);
+  box-shadow:var(--chip-shadow);
+  font-size:13px;font-weight:500;color:var(--ink);
+  min-height:2.6em;display:flex;align-items:center;justify-content:center;
+  text-align:center;word-wrap:break-word;transition:background .35s,color .35s;
+}
+
+/* ── xips ───────────────────────────────────────────── */
+.chip{
+  display:flex;align-items:center;gap:7px;padding:8px 14px;border-radius:99px;
+  background:var(--chip-bg);border:1px solid var(--chip-border);
+  box-shadow:var(--chip-shadow);
+  font-size:13px;font-weight:600;color:var(--ink);
+  transition:background .35s,color .35s;
+}
+.chip .material-symbols-rounded{font-size:19px}
+.chip b{font-family:'Baloo 2';font-size:15px;font-weight:700}
+
+/* ── finestres emergents (ajuda, informació, victòria) ─ */
+.overlay{
+  position:fixed;inset:0;background:rgba(10,6,20,.72);
+  display:none;align-items:center;justify-content:center;z-index:1100;
+  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
+  padding:max(20px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(20px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left));
+}
+.overlay.active{display:flex}
+#victoryOverlay{z-index:1000}
+
+.popup{
+  position:relative;
+  background:var(--panel-bg);color:var(--ink);
+  padding:26px 22px 22px;border-radius:28px;text-align:center;
+  box-shadow:0 24px 60px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.25);
+  animation:popIn .45s cubic-bezier(.34,1.56,.64,1);
+  max-width:96%;max-height:100%;overflow-y:auto;overscroll-behavior:contain;
+  border:2px solid var(--board-border);
+}
+.popup .trophy{
+  font-size:56px;color:var(--accent);
+  filter:drop-shadow(0 4px 0 var(--accent-deep)) drop-shadow(0 8px 14px rgba(0,0,0,.45));
+}
+.popup h2{
+  font-family:'Baloo 2',sans-serif;font-weight:800;
+  font-size:clamp(26px,6.5vw,36px);margin:4px 0 12px;color:var(--ink);
+  letter-spacing:-.5px;line-height:1.1;
+}
+.popup p{font-size:14px;color:var(--ink-soft);margin-bottom:14px}
+.popup .final-puzzle{
+  margin:0 auto 16px;border-radius:16px;display:block;
+  max-width:100%;width:auto;height:auto;max-height:62vh;
+  box-shadow:0 0 0 4px var(--board-border), 0 10px 26px rgba(0,0,0,.5);
+}
+#victoryOverlay .final-puzzle{max-height:42vh;width:clamp(220px,70vw,400px)}
+#helpImg{max-width:none;max-height:none}   /* la mida la calcula ajustarImatgeAjuda() */
+
+.popup-close{
+  position:absolute;top:10px;right:10px;
+  width:36px;height:36px;border-radius:50%;border:none;cursor:pointer;
+  display:grid;place-items:center;color:var(--ink);
+  background:var(--pill-bg);box-shadow:var(--pill-shadow);
+}
+body.day .popup-close{background:rgba(60,42,20,.08)}
+.popup-close .material-symbols-rounded{font-size:22px}
+
+/* Informació */
+.popup.info{width:min(420px,100%);text-align:left}
+.popup.info h2{text-align:center}
+.popup.info h3{
+  font-family:'Baloo 2',sans-serif;font-weight:700;font-size:18px;
+  margin:14px 0 8px;color:var(--ink);
+}
+.steps{margin:0 0 4px 22px;font-size:14px;line-height:1.45;color:var(--ink)}
+.steps li{margin-bottom:5px;padding-left:2px}
+.steps li::marker{font-family:'Baloo 2';font-weight:700;color:var(--accent-deep)}
+
+.legend{list-style:none;display:grid;gap:7px;font-size:14px;color:var(--ink)}
+.legend li{display:flex;align-items:center;gap:10px}
+.legend .ico{
+  flex:0 0 auto;width:30px;height:30px;border-radius:50%;
+  display:grid;place-items:center;color:#fff;background:var(--tint);
+  font-family:'Fredoka';font-weight:600;font-size:10px;letter-spacing:-.3px;
+}
+.legend .ico .material-symbols-rounded{font-size:18px}
+
+.stats{display:flex;flex-wrap:wrap;gap:8px}
+
+.ai-note{
+  margin:16px 0 0!important;padding:10px 14px;border-radius:14px;
+  background:var(--chip-bg);border:1px solid var(--chip-border);box-shadow:var(--chip-shadow);
+  font-size:13px!important;font-weight:600;color:var(--ink)!important;text-align:center;
+}
+.popup-actions{text-align:center;margin-top:18px}
+
+.btn-big{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:14px 30px;border:none;border-radius:99px;cursor:pointer;
+  font-family:'Fredoka';font-weight:600;font-size:16px;color:var(--accent-ink);
+  background:linear-gradient(160deg,var(--accent),var(--accent-deep));
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.7), 0 5px 0 rgba(0,0,0,.3), 0 10px 20px rgba(0,0,0,.4);
+  transition:transform .13s cubic-bezier(.34,1.56,.64,1),box-shadow .13s;
+}
+.btn-big:active{transform:translateY(4px);box-shadow:inset 0 2px 0 rgba(255,255,255,.6),0 1px 0 rgba(0,0,0,.3),0 3px 8px rgba(0,0,0,.4)}
+
+@keyframes popIn{0%{transform:scale(.8);opacity:0}100%{transform:scale(1);opacity:1}}
+
+/* ── animacions d'entrada de les peces ──────────────── */
+@keyframes puzzleEntrance{0%{transform:scale(0) rotate(-180deg);opacity:0}50%{transform:scale(1.1) rotate(0)}100%{transform:scale(1) rotate(0);opacity:1}}
+@keyframes puzzleFall{0%{transform:translateY(-80px) rotate(360deg);opacity:0}100%{transform:translateY(0) rotate(0);opacity:1}}
+@keyframes puzzleExplosion{0%{transform:scale(.3) rotate(-180deg);opacity:0;filter:blur(4px)}60%{transform:scale(1.2)}100%{transform:scale(1) rotate(0);opacity:1;filter:blur(0)}}
+@keyframes puzzleFlip{0%{transform:rotateX(90deg) scale(.5);opacity:0}100%{transform:rotateX(0) scale(1);opacity:1}}
+@keyframes puzzleSlideIn{0%{transform:translateX(-100px) rotate(-90deg);opacity:0}100%{transform:translateX(0) rotate(0);opacity:1}}
+@keyframes puzzleSlideInRight{0%{transform:translateX(100px) rotate(90deg);opacity:0}100%{transform:translateX(0) rotate(0);opacity:1}}
+@keyframes puzzleBounce{0%{transform:scale(0) translateY(-50px);opacity:0}50%{transform:scale(1.15)}70%{transform:scale(.95)}100%{transform:scale(1) translateY(0);opacity:1}}
+@keyframes puzzleWave{0%{transform:translateY(40px) skewY(-5deg);opacity:0}100%{transform:translateY(0) skewY(0);opacity:1}}
+@keyframes puzzleZoomIn{0%{transform:scale(0);opacity:0}70%{transform:scale(1.1)}100%{transform:scale(1);opacity:1}}
+@keyframes puzzleGhost{0%{transform:translateY(-30px) rotate(180deg) scale(.3);opacity:0;filter:blur(8px) brightness(.5)}50%{filter:blur(4px) brightness(.8)}100%{transform:translateY(0) rotate(0) scale(1);opacity:1;filter:blur(0) brightness(1)}}
+
+.puzzle-piece.entrance-spin{animation:puzzleEntrance .6s cubic-bezier(.68,-.55,.265,1.55) both}
+.puzzle-piece.entrance-fall{animation:puzzleFall .7s cubic-bezier(.34,1.56,.64,1) both}
+.puzzle-piece.entrance-explosion{animation:puzzleExplosion .8s cubic-bezier(.36,0,.66,-.56) both}
+.puzzle-piece.entrance-flip{animation:puzzleFlip .6s ease-out both}
+.puzzle-piece.entrance-slide{animation:puzzleSlideIn .5s cubic-bezier(.68,-.55,.265,1.55) both}
+.puzzle-piece.entrance-slide-right{animation:puzzleSlideInRight .5s cubic-bezier(.68,-.55,.265,1.55) both}
+.puzzle-piece.entrance-bounce{animation:puzzleBounce .7s cubic-bezier(.68,-.55,.265,1.55) both}
+.puzzle-piece.entrance-wave{animation:puzzleWave .6s ease-out both}
+.puzzle-piece.entrance-zoom{animation:puzzleZoomIn .6s cubic-bezier(.43,.13,.23,.96) both}
+.puzzle-piece.entrance-ghost{animation:puzzleGhost .8s ease-out both}
+
+/* ── peu ────────────────────────────────────────────── */
+footer.footer{flex:0 0 auto;margin-top:10px;padding:8px;text-align:center}
+footer.footer p{color:var(--ink-soft);font-size:11px;margin-bottom:6px}
+.footer-links{display:flex;justify-content:center;align-items:center;gap:10px;flex-wrap:wrap}
+.footer-links a{
+  color:var(--ink);font-size:11px;text-decoration:none;opacity:.75;
+  border-bottom:1px solid transparent;transition:all .2s;
+}
+.footer-links a:hover{opacity:1;border-bottom-color:currentColor}
+.divider{color:var(--ink-soft)}
+
+/* ═══════════════════════════════════════════════════════
+   VERTICAL
+   ═══════════════════════════════════════════════════════ */
+body.portrait-mode{padding:16px 12px 20px}
+body.portrait-mode.web-browser{padding:12px 12px 20px}
+body.portrait-mode.ios-app{padding:max(52px,env(safe-area-inset-top)) 12px 20px}
+body.portrait-mode.android-app{padding:max(34px,env(safe-area-inset-top)) 12px 20px}
+
+/* ═══════════════════════════════════════════════════════
+   HORITZONTAL — menú vertical al lateral
+   ═══════════════════════════════════════════════════════ */
+body.landscape-mode{padding:10px 12px 12px}
+body.landscape-mode.web-browser{padding:8px 12px 12px}
+body.landscape-mode.ios-app{padding:max(12px,env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) 12px max(14px,env(safe-area-inset-left))}
+body.landscape-mode.android-app{padding:max(10px,env(safe-area-inset-top)) 14px 12px}
+
+body.landscape-mode .stage{padding:12px;border-radius:22px}
+
+/* el menú passa a columna, enganxat a l'esquerra */
+body.landscape-mode .play{flex-direction:row;gap:12px;align-items:stretch}
+
+body.landscape-mode .bar{
+  flex-direction:column;
+  width:auto;flex:0 0 auto;
+  padding:8px 6px;gap:7px;
+  border-radius:99px;
+  overflow-x:hidden;overflow-y:auto;
+}
+body.landscape-mode .select{
+  height:auto;min-height:44px;width:44px;
+  padding:0;font-size:13px;border-radius:99px;
+  writing-mode:horizontal-tb;
+}
+body.landscape-mode .spacer{min-height:4px}
+
+/* ═══════════════════════════════════════════════════════
+   PANTALLA PETITA — tot es comprimeix per deixar lloc a la foto
+   El títol només desapareix aquí; en tauleta o ordinador es manté.
+   ═══════════════════════════════════════════════════════ */
+@media (max-height:560px), (max-width:820px){
+  body.landscape-mode .brand{display:none}
+  body.landscape-mode .stage{padding:8px;border-radius:18px}
+  body.landscape-mode .play{gap:8px}
+  body.landscape-mode .bar{padding:5px 4px;gap:5px}
+  body.landscape-mode .pill{width:36px;height:36px}
+  body.landscape-mode .pill .material-symbols-rounded{font-size:20px}
+  body.landscape-mode .select{width:36px;min-height:36px;font-size:12px}
+  body.landscape-mode .log{margin-top:6px;padding:5px 12px;font-size:11px;min-height:0}
+  body.landscape-mode footer.footer{display:none}
+  body.landscape-mode .popup{padding:18px 16px 16px}
+  body.landscape-mode .popup .final-puzzle{max-height:58vh}
+  body.landscape-mode #helpTitle{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  body.landscape-mode #helpOverlay .popup-actions{margin-top:0}
+  body.landscape-mode #helpOverlay .popup-close{display:none}
+}
+
+/* Pantalla petita en vertical: també es comprimeix */
+@media (max-width:430px){
+  body.portrait-mode .stage{padding:12px 10px 14px}
+  body.portrait-mode .brand{font-size:clamp(22px,6.5vw,30px);margin-bottom:10px}
+  .bar{gap:6px;padding:7px 8px}
+  .pill{width:40px;height:40px}
+  .pill .material-symbols-rounded{font-size:22px}
+  footer.footer{margin-top:6px;padding:5px}
+  footer.footer p{font-size:10px;margin-bottom:3px}
+  .footer-links a{font-size:10px}
+  .popup{padding:22px 16px 18px}
+}
+</style>
+</head>
+<body class="day portrait-mode">
+
+<div class="container">
+  <div class="stage">
+
+    <h1 class="brand">Trencaclosques<span class="v" id="version">v3.08</span></h1>
+
+    <div class="play">
+
+    <div class="bar">
+      <select class="select" id="divisionsSelect" title="Nombre de peces" aria-label="Nombre de peces">
+        <option value="2">2×2</option>
+        <option value="3">3×3</option>
+        <option value="4" selected>4×4</option>
+        <option value="5">5×5</option>
+      </select>
+
+      <button class="pill" id="infoBtn" title="Informació" aria-label="Informació"
+              style="--glow:#38bdf8;--tint:#0ea5e9;--tint-deep:#0369a1">
+        <span class="material-symbols-rounded">info</span>
+      </button>
+
+      <span class="spacer"></span>
+
+      <button class="pill" id="refreshBtn" title="Nova foto" aria-label="Nova foto"
+              style="--glow:#f472b6;--tint:#ec4899;--tint-deep:#9d174d">
+        <span class="material-symbols-rounded">autorenew</span>
+      </button>
+
+      <button class="pill" id="helpBtn" title="Ajuda: veure la foto sencera" aria-label="Ajuda: veure la foto sencera"
+              style="--glow:#fbbf24;--tint:#f59e0b;--tint-deep:#b45309">
+        <span class="material-symbols-rounded">help</span>
+      </button>
+
+      <button class="pill" id="animationsToggle" title="Animacions" aria-label="Animacions"
+              style="--glow:#a78bfa;--tint:#a855f7;--tint-deep:#7e22ce">
+        <span class="material-symbols-rounded">auto_awesome</span>
+      </button>
+
+      <button class="pill" id="orientationLockBtn" title="Bloquejar orientació" aria-label="Bloquejar orientació"
+              style="--glow:#22d3ee;--tint:#06b6d4;--tint-deep:#0e7490">
+        <span class="material-symbols-rounded">lock_open</span>
+      </button>
+
+      <button class="pill" id="themeToggle" title="Mode clar o fosc" aria-label="Mode clar o fosc"
+              style="--glow:#fde047;--tint:#ef4444;--tint-deep:#b91c1c">
+        <span class="material-symbols-rounded">dark_mode</span>
+      </button>
+    </div>
+
+    <div class="main">
+
+    <div class="board-wrap" id="boardWrap">
+      <div id="puzzleContainer" class="puzzle-grid"></div>
+    </div>
+
+    <div class="log" id="log" role="status" aria-live="polite">Carregant…</div>
+
+    </div><!-- /main -->
+    </div><!-- /play -->
+
+  </div>
+
+  <footer class="footer">
+    <p>&copy; 2026 Trencaclosques. Tots els drets reservats.</p>
+    <div class="footer-links">
+      <a href="privacy-policy.html" target="_blank" rel="noopener">Política de Privacitat</a>
+      <span class="divider">·</span>
+      <a href="terms-of-service.html" target="_blank" rel="noopener">Condicions del Servei</a>
+    </div>
+  </footer>
+</div>
+
+<!-- ── Ajuda ─────────────────────────────────────────── -->
+<div id="helpOverlay" class="overlay" data-modal role="dialog" aria-modal="true" aria-labelledby="helpTitle" aria-hidden="true">
+  <div class="popup">
+    <button class="popup-close" data-close title="Tancar" aria-label="Tancar">
+      <span class="material-symbols-rounded">close</span>
+    </button>
+    <h2 id="helpTitle">Ajuda</h2>
+    <img id="helpImg" class="final-puzzle" alt="Foto sencera del trencaclosques">
+    <p id="helpEmpty" hidden>Encara no hi ha cap foto carregada.</p>
+    <div class="popup-actions">
+      <button class="btn-big" data-close>
+        <span class="material-symbols-rounded">close</span> Tancar
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Informació ────────────────────────────────────── -->
+<div id="infoOverlay" class="overlay" data-modal role="dialog" aria-modal="true" aria-labelledby="infoTitle" aria-hidden="true">
+  <div class="popup info">
+    <button class="popup-close" data-close title="Tancar" aria-label="Tancar">
+      <span class="material-symbols-rounded">close</span>
+    </button>
+    <h2 id="infoTitle">Informació</h2>
+
+    <h3>Com es juga</h3>
+    <ol class="steps">
+      <li>Mira bé la foto: es mostra sencera uns segons abans de trencar-se.</li>
+      <li>Arrossega una peça sobre una altra per intercanviar-les.</li>
+      <li>Quan una peça arriba al seu lloc, es fixa i ja no es mou.</li>
+      <li>Col·loca totes les peces per resoldre el trencaclosques.</li>
+    </ol>
+
+    <h3>Botons</h3>
+    <ul class="legend">
+      <li><span class="ico" style="--tint:#7c3aed">4×4</span> Nombre de peces, de 2×2 a 5×5</li>
+      <li><span class="ico" style="--tint:#0ea5e9"><span class="material-symbols-rounded">info</span></span> Aquesta informació</li>
+      <li><span class="ico" style="--tint:#ec4899"><span class="material-symbols-rounded">autorenew</span></span> Nova foto</li>
+      <li><span class="ico" style="--tint:#f59e0b"><span class="material-symbols-rounded">help</span></span> Ajuda: veure la foto sencera</li>
+      <li><span class="ico" style="--tint:#a855f7"><span class="material-symbols-rounded">auto_awesome</span></span> Animacions de les peces</li>
+      <li><span class="ico" style="--tint:#06b6d4"><span class="material-symbols-rounded">lock_open</span></span> Bloquejar l'orientació</li>
+      <li><span class="ico" style="--tint:#ef4444"><span class="material-symbols-rounded">dark_mode</span></span> Mode clar o fosc</li>
+    </ul>
+
+    <h3>Partida</h3>
+    <div class="stats">
+      <span class="chip">
+        <span class="material-symbols-rounded" style="color:#22c55e">photo_library</span>
+        Fotos <b><span id="photosPlayed">0</span>/<span id="totalPhotos">∞</span></b>
+      </span>
+      <span class="chip">
+        <span class="material-symbols-rounded" style="color:#f59e0b">emoji_events</span>
+        Resolts <b id="gamesPlayed">0</b>
+      </span>
+      <span class="chip">
+        <span class="material-symbols-rounded" id="sourceIcon" style="color:#0ea5e9">travel_explore</span>
+        <span id="currentSource">Internet</span>
+      </span>
+      <span class="chip">
+        <span class="material-symbols-rounded" id="orientIcon" style="color:#a855f7">stay_current_portrait</span>
+        <span id="orientLabel">Vertical</span>
+      </span>
+    </div>
+
+    <p class="ai-note">Cap foto s'ha fet amb intel·ligència artificial.</p>
+
+    <div class="popup-actions">
+      <button class="btn-big" data-close>
+        <span class="material-symbols-rounded">close</span> Tancar
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Victòria ──────────────────────────────────────── -->
+<div id="victoryOverlay" class="overlay" role="dialog" aria-modal="true" aria-labelledby="victoryTitle" aria-hidden="true">
+  <div class="popup">
+    <span class="material-symbols-rounded trophy">emoji_events</span>
+    <h2 id="victoryTitle">Visca!</h2>
+    <p>Has completat el trencaclosques</p>
+    <img id="finalImage" class="final-puzzle" alt="Trencaclosques completat">
+    <button class="btn-big" id="victoryBtn">
+      <span class="material-symbols-rounded">replay</span> Jugar de nou
+    </button>
+  </div>
+</div>
+
+<script>
+'use strict';
+/* ═══════════════════════════════════════════════════════
+   REFERÈNCIES
+   ═══════════════════════════════════════════════════════ */
+const $ = id => document.getElementById(id);
+
+const divisionsSelect    = $('divisionsSelect');
+const infoBtn            = $('infoBtn');
+const refreshBtn         = $('refreshBtn');
+const helpBtn            = $('helpBtn');
+const animationsToggle   = $('animationsToggle');
+const orientationLockBtn = $('orientationLockBtn');
+const themeToggle        = $('themeToggle');
+const boardWrap          = $('boardWrap');
+const puzzleContainer    = $('puzzleContainer');
+const logDiv             = $('log');
+const helpOverlay        = $('helpOverlay');
+const helpImg            = $('helpImg');
+const helpEmpty          = $('helpEmpty');
+const infoOverlay        = $('infoOverlay');
+const victoryOverlay     = $('victoryOverlay');
+const victoryBtn         = $('victoryBtn');
+const finalImage         = $('finalImage');
+const metaThemeColor     = document.querySelector('meta[name="theme-color"]');
+
+/* ═══════════════════════════════════════════════════════
+   CONFIGURACIÓ
+   ═══════════════════════════════════════════════════════ */
+const TEMPS_MEMORITZAR   = 2500;   // ms que es mostra la foto sencera
+const MAX_INTENTS_LOCALS = 3;      // fotos teves que es proven abans d'anar a Internet
+const COLOR_TEMA = { dia: '#ff9f45', nit: '#14101c' };
+
+const TIPUS_ANIMACIO = [
+  'entrance-spin','entrance-fall','entrance-explosion','entrance-flip',
+  'entrance-slide','entrance-slide-right','entrance-bounce','entrance-wave',
+  'entrance-zoom','entrance-ghost'
+];
+
+/* ═══════════════════════════════════════════════════════
+   ESTAT
+   ═══════════════════════════════════════════════════════ */
+// Foto en joc
+let imatgeActual = null;          // URL absolut
+let fotoAmplada = 0, fotoAlcada = 0;
+let idCarrega = 0;                // cada càrrega nova invalida les anteriors
+
+// Partida
+let divisions = 4;
+let ordre = [];                   // ordre[posició] = peça que hi ha
+let fixat = [];                   // fixat[posició] = la peça hi és correcta
+let partidaActiva = false;
+let temporitzadorMemoritzar = null;
+
+// Preferències
+let animacionsActives = true;
+
+// Orientació i dispositiu
+let currentOrientation = 'portrait';
+let orientationLocked = false;
+let appContext = 'web-browser';
+let photoFilter = 'thumbnail';
+
+// Fotos teves: historial separat per orientació
+let fotosLocals = [];
+const fotosJugades = { thumbnail: [], hthumbnail: [] };
+const ultimaFoto   = { thumbnail: null, hthumbnail: null };
+
+// Estadístiques de la sessió
+let fontActual = 'github';        // 'github' | 'internet'
+let fotosInternet = 0;
+let partidesResoltes = 0;
+
+/* ═══════════════════════════════════════════════════════
+   UTILITATS
+   ═══════════════════════════════════════════════════════ */
+function setIcon(btn, name){
+  btn.querySelector('.material-symbols-rounded').textContent = name;
+}
+
+function log(msg){
+  console.log(msg);
+  logDiv.textContent = msg;
+}
+
+function fotosDelFiltre(){
+  return fotosLocals.filter(f => f.startsWith(photoFilter));
+}
+
+/* ═══════════════════════════════════════════════════════
+   MIDA DEL TAULER
+   Encaixa la foto a l'espai lliure amb la seva proporció.
+   Es calcula sobre l'àrea interior (sense vora ni farciment)
+   i en múltiples exactes del nombre de peces, perquè totes
+   les cel·les tinguin mida entera.
+   ═══════════════════════════════════════════════════════ */
+function ajustarTauler(){
+  if (!fotoAmplada || !fotoAlcada) return;
+
+  const csWrap = getComputedStyle(boardWrap);
+  let availW = boardWrap.clientWidth  - parseFloat(csWrap.paddingLeft) - parseFloat(csWrap.paddingRight);
+  let availH = boardWrap.clientHeight - parseFloat(csWrap.paddingTop)  - parseFloat(csWrap.paddingBottom);
+
+  // Xarxa de seguretat si encara no hi ha disposició
+  if (availW < 40) availW = window.innerWidth  * 0.9;
+  if (availH < 40) availH = window.innerHeight * 0.5;
+
+  const cs = getComputedStyle(puzzleContainer);
+  const extraX = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight)
+               + parseFloat(cs.borderLeftWidth) + parseFloat(cs.borderRightWidth);
+  const extraY = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom)
+               + parseFloat(cs.borderTopWidth) + parseFloat(cs.borderBottomWidth);
+
+  const ratio = fotoAmplada / fotoAlcada;
+  let w = availW - extraX;
+  let h = w / ratio;
+  if (h > availH - extraY){ h = availH - extraY; w = h * ratio; }
+
+  const cellW = Math.max(1, Math.floor(w / divisions));
+  const cellH = Math.max(1, Math.floor(h / divisions));
+
+  const ampladaFinal = (cellW * divisions + extraX) + 'px';
+  const alcadaFinal  = (cellH * divisions + extraY) + 'px';
+  if (puzzleContainer.style.width  !== ampladaFinal) puzzleContainer.style.width  = ampladaFinal;
+  if (puzzleContainer.style.height !== alcadaFinal)  puzzleContainer.style.height = alcadaFinal;
+}
+
+// Es reajusta sol quan canvia l'espai (girar, fonts, finestres, barra del navegador…)
+let rafTauler = 0;
+function programarAjust(){
+  cancelAnimationFrame(rafTauler);
+  rafTauler = requestAnimationFrame(ajustarTauler);
+}
+if ('ResizeObserver' in window){
+  new ResizeObserver(programarAjust).observe(boardWrap);
+}
+if (document.fonts && document.fonts.ready){
+  document.fonts.ready.then(programarAjust);
+}
+
+/* ═══════════════════════════════════════════════════════
+   FINESTRES EMERGENTS
+   ═══════════════════════════════════════════════════════ */
+let modalObert = null;
+
+function obrirModal(overlay){
+  if (modalObert && modalObert !== overlay) tancarModal(modalObert);
+  cancelarArrossegament();
+  overlay.classList.add('active');
+  overlay.setAttribute('aria-hidden', 'false');
+  modalObert = overlay;
+  const boto = overlay.querySelector('.btn-big');
+  if (boto) boto.focus({ preventScroll: true });
+}
+
+function tancarModal(overlay){
+  overlay.classList.remove('active');
+  overlay.setAttribute('aria-hidden', 'true');
+  if (modalObert === overlay) modalObert = null;
+}
+
+// Es tanquen amb els botons, tocant fora o amb Esc
+document.querySelectorAll('.overlay[data-modal]').forEach(overlay => {
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay || e.target.closest('[data-close]')) tancarModal(overlay);
+  });
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && modalObert) tancarModal(modalObert);
+});
+
+/* La foto de l'ajuda s'encaixa a la pantalla amb la seva proporció */
+function ajustarImatgeAjuda(){
+  if (!fotoAmplada || !fotoAlcada || helpImg.hidden) return;
+  // Espai de la finestra menys el que ocupen títol, botons i marges
+  const csOv  = getComputedStyle(helpOverlay);
+  const popup = helpImg.closest('.popup');
+  helpImg.style.width = helpImg.style.height = '0px';   // mesurem la finestra sense la foto
+  const espaiW = helpOverlay.clientWidth  - parseFloat(csOv.paddingLeft) - parseFloat(csOv.paddingRight);
+  const espaiH = helpOverlay.clientHeight - parseFloat(csOv.paddingTop)  - parseFloat(csOv.paddingBottom);
+  const voraH  = popup.offsetHeight - helpImg.offsetHeight;
+  const maxW = Math.max(120, espaiW * 0.96 - 48);
+  const maxH = Math.max(120, espaiH - voraH);
+  const ratio = fotoAmplada / fotoAlcada;
+  let w = maxW, h = w / ratio;
+  if (h > maxH){ h = maxH; w = h * ratio; }
+  helpImg.style.width  = Math.floor(w) + 'px';
+  helpImg.style.height = Math.floor(h) + 'px';
+}
+
+helpBtn.addEventListener('click', () => {
+  const hiHaFoto = !!imatgeActual;
+  helpImg.hidden   = !hiHaFoto;
+  helpEmpty.hidden = hiHaFoto;
+  if (hiHaFoto && helpImg.src !== imatgeActual) helpImg.src = imatgeActual;
+  obrirModal(helpOverlay);
+  ajustarImatgeAjuda();
+});
+
+infoBtn.addEventListener('click', () => {
+  updateStats();
+  obrirModal(infoOverlay);
+});
+
+/* ═══════════════════════════════════════════════════════
+   TEMA
+   ═══════════════════════════════════════════════════════ */
+function aplicarTema(fosc){
+  document.body.classList.toggle('day', !fosc);
+  setIcon(themeToggle, fosc ? 'light_mode' : 'dark_mode');
+  metaThemeColor.setAttribute('content', fosc ? COLOR_TEMA.nit : COLOR_TEMA.dia);
+}
+
+themeToggle.addEventListener('click', () => {
+  const fosc = document.body.classList.contains('day');
+  aplicarTema(fosc);
+  localStorage.setItem('darkMode', fosc);
+});
+
+/* ═══════════════════════════════════════════════════════
+   ANIMACIONS
+   ═══════════════════════════════════════════════════════ */
+function initAnimations(){
+  const desat = localStorage.getItem('enableAnimations');
+  animacionsActives = desat === null
+    ? !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    : desat !== 'false';
+  animationsToggle.classList.toggle('off', !animacionsActives);
+}
+
+animationsToggle.addEventListener('click', () => {
+  animacionsActives = !animacionsActives;
+  localStorage.setItem('enableAnimations', animacionsActives);
+  animationsToggle.classList.toggle('off', !animacionsActives);
+  log(animacionsActives ? 'Animacions activades' : 'Animacions desactivades');
+});
+
+function animacioAleatoria(){
+  return TIPUS_ANIMACIO[Math.floor(Math.random() * TIPUS_ANIMACIO.length)];
+}
+
+// Quan acaba l'entrada, es treu la classe perquè no interfereixi amb l'arrossegament
+puzzleContainer.addEventListener('animationend', e => {
+  const peca = e.target;
+  if (!peca.classList.contains('puzzle-piece')) return;
+  peca.classList.remove(...TIPUS_ANIMACIO);
+  peca.style.animationDelay = '';
+});
+
+/* ═══════════════════════════════════════════════════════
+   CONTEXT I ORIENTACIÓ
+   ═══════════════════════════════════════════════════════ */
+function detectAppContext(){
+  if (navigator.standalone === true) appContext = 'ios-app';
+  else if (window.matchMedia('(display-mode: standalone)').matches) appContext = 'android-app';
+  else appContext = 'web-browser';
+  document.body.classList.remove('web-browser','ios-app','android-app');
+  document.body.classList.add(appContext);
+  console.log('Context:', appContext);
+}
+
+function aplicarOrientacio(orientacio){
+  currentOrientation = orientacio;
+  photoFilter = orientacio === 'portrait' ? 'thumbnail' : 'hthumbnail';
+  document.body.classList.toggle('portrait-mode',  orientacio === 'portrait');
+  document.body.classList.toggle('landscape-mode', orientacio === 'landscape');
+}
+
+function detectOrientation(){
+  if (orientationLocked) return;
+  const nova = window.innerWidth < window.innerHeight ? 'portrait' : 'landscape';
+  if (nova !== currentOrientation){
+    aplicarOrientacio(nova);
+    console.log('Orientació:', currentOrientation, '→ filtre:', photoFilter);
+    updateStats();
+  }
+}
+
+function applyLockState(){
+  setIcon(orientationLockBtn, orientationLocked ? 'lock' : 'lock_open');
+  orientationLockBtn.classList.toggle('on', orientationLocked);
+}
+
+orientationLockBtn.addEventListener('click', () => {
+  orientationLocked = !orientationLocked;
+  localStorage.setItem('orientationLocked', orientationLocked);
+  localStorage.setItem('preferredOrientation', currentOrientation);
+  applyLockState();
+  if (!orientationLocked) detectOrientation();
+  log(orientationLocked
+    ? `Orientació fixada en ${currentOrientation === 'portrait' ? 'vertical' : 'horitzontal'}`
+    : 'Orientació automàtica');
+});
+
+function enCanviarMida(){
+  detectOrientation();
+  programarAjust();
+  if (modalObert === helpOverlay) ajustarImatgeAjuda();
+}
+window.addEventListener('resize', enCanviarMida);
+window.addEventListener('orientationchange', () => setTimeout(enCanviarMida, 120));
+
+/* ═══════════════════════════════════════════════════════
+   ESTADÍSTIQUES
+   ═══════════════════════════════════════════════════════ */
+function updateStats(){
+  const srcIcon  = $('sourceIcon');
+  const srcLabel = $('currentSource');
+
+  if (fontActual === 'github'){
+    const delFiltre = fotosDelFiltre();
+    const vistes = fotosJugades[photoFilter].filter(f => delFiltre.includes(f)).length;
+    $('photosPlayed').textContent = vistes;
+    $('totalPhotos').textContent  = delFiltre.length || '∞';
+    srcIcon.textContent  = 'photo_library';
+    srcIcon.style.color  = '#22c55e';
+    srcLabel.textContent = '(c) Gerard M.';
+  } else {
+    $('photosPlayed').textContent = fotosInternet;
+    $('totalPhotos').textContent  = '∞';
+    srcIcon.textContent  = 'travel_explore';
+    srcIcon.style.color  = '#0ea5e9';
+    srcLabel.textContent = 'Internet';
+  }
+
+  $('gamesPlayed').textContent = partidesResoltes;
+
+  const vertical = currentOrientation === 'portrait';
+  $('orientIcon').textContent  = vertical ? 'stay_current_portrait' : 'stay_current_landscape';
+  $('orientLabel').textContent = vertical ? 'Vertical' : 'Horitzontal';
+}
+
+/* ═══════════════════════════════════════════════════════
+   SELECCIÓ DE FOTO SENSE REPETICIONS
+   Retorna { foto } o bé { motiu } si no n'hi ha cap d'utilitzable.
+   ═══════════════════════════════════════════════════════ */
+function triarFotoLocal(){
+  const delFiltre = fotosDelFiltre();
+
+  if (delFiltre.length === 0){
+    const actual = currentOrientation === 'portrait' ? 'vertical' : 'horitzontal';
+    const altra  = currentOrientation === 'portrait' ? 'horitzontal' : 'vertical';
+    const hiHaAltres = fotosLocals.length > 0;
+    return { motiu: hiHaAltres
+      ? `No hi ha cap foto teva en ${actual} (només en ${altra}). Agafem una foto d'Internet.`
+      : "No hi ha cap foto teva. Agafem una foto d'Internet." };
+  }
+
+  const jugades = fotosJugades[photoFilter];
+  let candidates = delFiltre.filter(f => !jugades.includes(f));
+
+  // Totes vistes: es torna a començar, sense repetir l'última
+  if (candidates.length === 0){
+    jugades.length = 0;
+    candidates = delFiltre.length > 1
+      ? delFiltre.filter(f => f !== ultimaFoto[photoFilter])
+      : [...delFiltre];
+    log('Ja les has vist totes. Tornem a començar.');
+  }
+
+  const foto = candidates[Math.floor(Math.random() * candidates.length)];
+  jugades.push(foto);
+  ultimaFoto[photoFilter] = foto;
+  return { foto };
+}
+
+/* ═══════════════════════════════════════════════════════
+   CÀRREGA D'IMATGES
+   ═══════════════════════════════════════════════════════ */
+function aturarPartida(){
+  clearTimeout(temporitzadorMemoritzar);
+  temporitzadorMemoritzar = null;
+  partidaActiva = false;
+  cancelarArrossegament();
+}
+
+/* Carrega una imatge; si mentrestant se n'ha demanat una altra, s'ignora */
+function carregarImatge(url, { enCarregar, enError } = {}){
+  const id = ++idCarrega;
+  const img = new Image();
+  img.onload = () => {
+    if (id !== idCarrega) return;
+    imatgeActual = img.src;                 // el navegador ja el dona absolut
+    fotoAmplada  = img.naturalWidth;
+    fotoAlcada   = img.naturalHeight;
+    finalImage.src = imatgeActual;
+    helpImg.src    = imatgeActual;
+    if (enCarregar) enCarregar();
+    iniciarPuzzle();
+  };
+  img.onerror = () => {
+    if (id !== idCarrega) return;
+    if (enError) enError();
+  };
+  img.src = url;
+}
+
+/* Font principal: les teves fotos */
+async function carregarFotosLocals(intent = 1){
+  aturarPartida();
+  if (intent === 1) log('Carregant les teves fotos…');
+
+  try{
+    const resposta = await fetch('Fotos/fotos.json', { cache: 'no-cache' });
+    if (!resposta.ok) throw new Error('HTTP ' + resposta.status);
+    const dades = await resposta.json();
+    fotosLocals = Array.isArray(dades.fotos) ? dades.fotos : [];
+  } catch(err){
+    console.warn('fotos.json:', err);
+    // Si ja teníem el llistat d'abans, es continua amb aquell
+    if (fotosLocals.length === 0){
+      return carregarFotoInternet("No s'han pogut llegir les teves fotos. Agafem una foto d'Internet.");
+    }
+  }
+
+  if (fotosLocals.length === 0){
+    return carregarFotoInternet("No hi ha fotos teves. Agafem una foto d'Internet.");
+  }
+
+  const { foto, motiu } = triarFotoLocal();
+  if (!foto) return carregarFotoInternet(motiu);
+
+  fontActual = 'github';
+  updateStats();
+  log(`${foto} · ${fotosJugades[photoFilter].length}/${fotosDelFiltre().length}`);
+
+  carregarImatge(`Fotos/${encodeURIComponent(foto)}`, {
+    enError: () => {
+      if (intent < MAX_INTENTS_LOCALS){
+        log(`No s'ha pogut obrir ${foto}. Provem-ne una altra.`);
+        carregarFotosLocals(intent + 1);
+      } else {
+        carregarFotoInternet("No s'han pogut obrir les teves fotos. Agafem una foto d'Internet.");
+      }
+    }
+  });
+}
+
+/* Recanvi: només quan les teves fotos no estan disponibles */
+function carregarFotoInternet(motiu){
+  aturarPartida();
+  fontActual = 'internet';
+  updateStats();
+  log(motiu || "Carregant una foto d'Internet…");
+
+  const llavor = Math.floor(Math.random() * 1000000);
+  const mides  = currentOrientation === 'portrait' ? '600/800' : '800/600';
+
+  carregarImatge(`https://picsum.photos/seed/puzzle${llavor}/${mides}`, {
+    enCarregar: () => { fotosInternet++; updateStats(); },
+    enError:    () => log("No s'ha pogut carregar cap foto. Comprova la connexió i prem Nova foto.")
+  });
+}
+
+function novaFoto(){
+  puzzleContainer.innerHTML = '';
+  carregarFotosLocals();
+}
+
+refreshBtn.addEventListener('click', novaFoto);
+
+/* ═══════════════════════════════════════════════════════
+   CONSTRUCCIÓ DEL TRENCACLOSQUES
+   ═══════════════════════════════════════════════════════ */
+/* Fisher-Yates; si surt l'ordre correcte, es torna a barrejar */
+function barrejar(total){
+  const o = Array.from({ length: total }, (_, i) => i);
+  if (total < 2) return o;
+  do {
+    for (let i = total - 1; i > 0; i--){
+      const j = Math.floor(Math.random() * (i + 1));
+      [o[i], o[j]] = [o[j], o[i]];
+    }
+  } while (o.every((peca, pos) => peca === pos));
+  return o;
+}
+
+function iniciarPuzzle(){
+  if (!imatgeActual){ log('Carrega una imatge primer'); return; }
+  aturarPartida();
+
+  divisions = parseInt(divisionsSelect.value, 10);
+  const total = divisions * divisions;
+
+  ordre = barrejar(total);
+  fixat = ordre.map((peca, pos) => peca === pos);   // les encertades per atzar ja surten fixades
+
+  puzzleContainer.style.setProperty('--foto', `url(${JSON.stringify(imatgeActual)})`);
+  puzzleContainer.style.setProperty('--n', divisions);
+
+  // Primer, la foto sencera per memoritzar-la
+  puzzleContainer.innerHTML = '';
+  puzzleContainer.style.gridTemplateColumns = '1fr';
+  puzzleContainer.style.gridTemplateRows    = '1fr';
+  const sencera = document.createElement('div');
+  sencera.className = 'sencera';
+  puzzleContainer.appendChild(sencera);
+  ajustarTauler();
+  log('Memoritza la imatge…');
+
+  temporitzadorMemoritzar = setTimeout(() => {
+    temporitzadorMemoritzar = null;
+    renderitzarPuzzle(true);
+    partidaActiva = true;
+    log('Arrossega les peces!');
+  }, TEMPS_MEMORITZAR);
+}
+
+function renderitzarPuzzle(animar){
+  const total = divisions * divisions;
+  puzzleContainer.innerHTML = '';
+  puzzleContainer.style.gridTemplateColumns = `repeat(${divisions}, 1fr)`;
+  puzzleContainer.style.gridTemplateRows    = `repeat(${divisions}, 1fr)`;
+
+  const fragment = document.createDocumentFragment();
+  for (let pos = 0; pos < total; pos++){
+    const el = document.createElement('div');
+    el.className = 'puzzle-piece';
+    el.dataset.posicio = pos;
+    pintarPeca(el, pos);
+    if (animar && animacionsActives){
+      el.classList.add(animacioAleatoria());
+      el.style.animationDelay = (pos * 0.05) + 's';
+    }
+    fragment.appendChild(el);
+  }
+  puzzleContainer.appendChild(fragment);
+  ajustarTauler();
+}
+
+/* Mostra a la posició 'pos' la part de la foto que li toca */
+function pintarPeca(el, pos){
+  const peca = ordre[pos];
+  const col  = peca % divisions;
+  const fila = Math.floor(peca / divisions);
+  const pas  = divisions > 1 ? 100 / (divisions - 1) : 0;
+  el.style.backgroundPosition = `${col * pas}% ${fila * pas}%`;
+  el.classList.toggle('fixed',   fixat[pos]);
+  el.classList.toggle('unfixed', !fixat[pos]);
+  el.draggable = !fixat[pos];
+}
+
+/* Intercanvia dues posicions i només repinta aquestes dues peces */
+function intercanviar(a, b){
+  if (!partidaActiva || a === b || fixat[a] || fixat[b]) return;
+  [ordre[a], ordre[b]] = [ordre[b], ordre[a]];
+  fixat[a] = ordre[a] === a;
+  fixat[b] = ordre[b] === b;
+  for (const pos of [a, b]){
+    const el = puzzleContainer.children[pos];
+    el.classList.remove(...TIPUS_ANIMACIO);
+    el.style.animationDelay = '';
+    el.style.opacity = '';
+    pintarPeca(el, pos);
+  }
+  comprovarVictoria();
+}
+
+/* ═══════════════════════════════════════════════════════
+   ARROSSEGAR — ratolí (delegat al tauler)
+   ═══════════════════════════════════════════════════════ */
+let origenIndex = null;
+
+puzzleContainer.addEventListener('dragstart', e => {
+  const peca = e.target.closest && e.target.closest('.puzzle-piece');
+  if (!partidaActiva || !peca || fixat[+peca.dataset.posicio]){ e.preventDefault(); return; }
+  origenIndex = +peca.dataset.posicio;
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', String(origenIndex));
+  peca.style.opacity = '0.5';
+});
+
+puzzleContainer.addEventListener('dragover', e => {
+  if (origenIndex === null) return;
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+});
+
+puzzleContainer.addEventListener('drop', e => {
+  e.preventDefault();
+  const desti = e.target.closest && e.target.closest('.puzzle-piece');
+  if (desti && origenIndex !== null) intercanviar(origenIndex, +desti.dataset.posicio);
+});
+
+puzzleContainer.addEventListener('dragend', e => {
+  if (e.target.style) e.target.style.opacity = '';
+  origenIndex = null;
+});
+
+/* ═══════════════════════════════════════════════════════
+   ARROSSEGAR — tàctil (un sol dit)
+   ═══════════════════════════════════════════════════════ */
+let pecaTactil = null;
+let clonFlotant = null;
+
+function cancelarArrossegament(){
+  if (clonFlotant) clonFlotant.remove();
+  if (pecaTactil) pecaTactil.style.opacity = '';
+  clonFlotant = null;
+  pecaTactil = null;
+  origenIndex = null;
+}
+
+puzzleContainer.addEventListener('touchstart', e => {
+  if (clonFlotant || !partidaActiva || e.touches.length > 1) return;
+  const peca = e.target.closest('.puzzle-piece.unfixed');
+  if (!peca) return;
+
+  const r  = peca.getBoundingClientRect();
+  const cs = getComputedStyle(peca);
+  const clon = peca.cloneNode(false);
+  clon.classList.remove(...TIPUS_ANIMACIO);
+  clon.classList.add('floating');
+  // El clon viu fora del tauler: cal copiar-hi la imatge ja resolta
+  Object.assign(clon.style, {
+    left: r.left + 'px', top: r.top + 'px',
+    width: r.width + 'px', height: r.height + 'px',
+    backgroundImage: cs.backgroundImage,
+    backgroundSize: cs.backgroundSize,
+    animationDelay: '', opacity: ''
+  });
+  document.body.appendChild(clon);
+
+  clonFlotant = clon;
+  pecaTactil = peca;
+  peca.style.opacity = '0.3';
+}, { passive: true });
+
+puzzleContainer.addEventListener('touchmove', e => {
+  if (!clonFlotant) return;
+  e.preventDefault();
+  const t = e.touches[0];
+  const w = parseFloat(clonFlotant.style.width);
+  const h = parseFloat(clonFlotant.style.height);
+  clonFlotant.style.left = (t.clientX - w / 2) + 'px';
+  clonFlotant.style.top  = (t.clientY - h / 2) + 'px';
+}, { passive: false });
+
+puzzleContainer.addEventListener('touchend', e => {
+  if (!clonFlotant) return;
+  const t = e.changedTouches[0];
+  const origen = +pecaTactil.dataset.posicio;
+  const sota   = document.elementFromPoint(t.clientX, t.clientY);
+  const desti  = sota ? sota.closest('.puzzle-piece') : null;
+  cancelarArrossegament();
+  if (desti && puzzleContainer.contains(desti)) intercanviar(origen, +desti.dataset.posicio);
+});
+
+puzzleContainer.addEventListener('touchcancel', cancelarArrossegament);
+
+/* ═══════════════════════════════════════════════════════
+   VICTÒRIA
+   ═══════════════════════════════════════════════════════ */
+function comprovarVictoria(){
+  const correctes = fixat.filter(Boolean).length;
+  if (correctes === fixat.length){
+    partidaActiva = false;
+    partidesResoltes++;                     // només compta si s'ha resolt
+    updateStats();
+    log('Visca!');
+    if (modalObert) tancarModal(modalObert);
+    victoryOverlay.classList.add('active');
+    victoryOverlay.setAttribute('aria-hidden', 'false');
+  } else {
+    log(`${correctes}/${fixat.length} peces al seu lloc`);
+  }
+}
+
+victoryBtn.addEventListener('click', () => {
+  victoryOverlay.classList.remove('active');
+  victoryOverlay.setAttribute('aria-hidden', 'true');
+  novaFoto();
+});
+
+divisionsSelect.addEventListener('change', () => {
+  localStorage.setItem('divisions', divisionsSelect.value);
+  if (imatgeActual) iniciarPuzzle();
+});
+
+/* ═══════════════════════════════════════════════════════
+   ARRENCADA
+   ═══════════════════════════════════════════════════════ */
+aplicarTema(localStorage.getItem('darkMode') === 'true');
+initAnimations();
+
+const divisionsDesades = localStorage.getItem('divisions');
+if (['2','3','4','5'].includes(divisionsDesades)) divisionsSelect.value = divisionsDesades;
+
+detectAppContext();
+
+// El bloqueig es recupera abans de detectar, perquè mani la preferència desada
+orientationLocked = localStorage.getItem('orientationLocked') === 'true';
+aplicarOrientacio(orientationLocked
+  ? (localStorage.getItem('preferredOrientation') === 'landscape' ? 'landscape' : 'portrait')
+  : (window.innerWidth < window.innerHeight ? 'portrait' : 'landscape'));
+applyLockState();
+updateStats();
+
+carregarFotosLocals();
+
+// Service worker: permet instal·lar l'app i obrir-la sense connexió
+if ('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(err => console.warn('Service worker:', err));
+  });
+}
+</script>
+</body>
+</html>
