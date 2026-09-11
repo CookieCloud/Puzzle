@@ -1,7 +1,14 @@
 <!DOCTYPE html>
 <!--
     TRENCACLOSQUES ART PWA
-    Version: 2.43
+    Version: 2.44
+
+    CANVIS v2.44:
+    - Estadístiques amagades per defecte; nou botó ℹ️ per mostrar-les a sota (es recorda)
+    - Log (peces correctes) sempre just a sota de la foto, amb la mateixa amplada
+    - Tauler + log com a bloc: la foto ocupa el màxim espai possible sense deformar-se
+    - Horitzontal: menú de botons a la dreta, tauler i log a l'esquerra
+    - Vertical: botons que s'encongeixen per cabre tots en una fila
 
     CANVIS v2.43:
     - Pantalla completa real: el joc ocupa exactament el viewport (100dvh) respectant safe-areas
@@ -113,13 +120,31 @@
         }
         .controls-bar {
             display: flex;
-            gap: 6px;
+            gap: 5px;
             align-items: center;
             flex: 0 0 auto;
             flex-wrap: nowrap;
         }
         .controls-bar .spacer {
-            flex: 1;
+            flex: 1 1 0;
+            min-width: 0;
+        }
+        /* Els botons s'encongeixen per igual si no caben (mantenint-se quadrats) */
+        .controls-bar > .icon-btn,
+        .controls-bar > .theme-toggle {
+            flex: 0 1 40px;
+            min-width: 28px;
+            width: auto;
+            height: auto;
+            aspect-ratio: 1 / 1;
+        }
+        .controls-bar > select {
+            flex: 0 0 auto;
+            padding: 4px 6px;
+        }
+        .icon-btn.active {
+            background: rgba(255, 255, 255, 0.28);
+            border-color: rgba(255, 255, 255, 0.65);
         }
         select {
             padding: clamp(6px, 2vw, 8px) clamp(6px, 2vw, 10px);
@@ -179,13 +204,20 @@
         .theme-toggle:active {
             background: var(--bg-tertiary);
         }
-        /* 🧩 ZONA DEL TAULER: agafa tot l'espai sobrant; el JS hi encaixa el tauler */
-        .puzzle-container-wrapper {
+        /* 🎭 ESCENARI: agafa tot l'espai sobrant; el JS hi encaixa tauler + log */
+        .stage {
             flex: 1 1 0;
             min-height: 0;
             min-width: 0;
             display: flex;
+            flex-direction: column;
             align-items: center;
+            justify-content: flex-start;
+            gap: 6px;
+        }
+        .puzzle-container-wrapper {
+            flex: 0 0 auto;
+            display: flex;
             justify-content: center;
         }
         .puzzle-grid {
@@ -268,14 +300,17 @@
             opacity: 0.8;
             z-index: 100;
         }
-        /* ℹ️ PANELL D'INFORMACIÓ (avís, ajuda, log, estadístiques) */
+        /* ℹ️ PANELL SOTA LA FOTO (log, avís, ajuda, estadístiques) */
         .side-panel {
             flex: 0 0 auto;
             display: flex;
             flex-direction: column;
-            gap: 8px;
-            min-height: 0;
-            min-width: 0;
+            gap: 6px;
+            width: 100%;
+            max-width: 100%;
+        }
+        .stats-container.hidden {
+            display: none !important;
         }
         .notice {
             display: flex;
@@ -504,15 +539,12 @@
         .puzzle-piece.entrance-ghost { animation: puzzleGhost 0.8s ease-out forwards; }
         
         /* 📱 VERTICAL (PORTRAIT) */
-        body.portrait-mode .puzzle-container-wrapper {
-            align-items: flex-start;
-        }
         body.portrait-mode.ios-app .container {
             /* Barra d'estat translúcida: mínim de seguretat si env() retorna 0 */
             --pad-top: max(44px, calc(env(safe-area-inset-top, 0px) + 6px));
         }
 
-        /* 📱 HORITZONTAL (LANDSCAPE): menú | tauler | informació */
+        /* 📱 HORITZONTAL (LANDSCAPE): tauler + log | menú a la dreta */
         body.landscape-mode .container {
             --pad-top: calc(env(safe-area-inset-top, 0px) + 6px);
             --pad-right: calc(env(safe-area-inset-right, 0px) + 6px);
@@ -520,14 +552,21 @@
             --pad-left: calc(env(safe-area-inset-left, 0px) + 6px);
             max-width: none;
             display: grid;
-            grid-template-columns: auto minmax(0, 1fr) clamp(140px, 22vw, 240px);
+            grid-template-columns: minmax(0, 1fr) auto;
             grid-template-rows: minmax(0, 1fr);
             gap: 8px;
         }
         body.landscape-mode .header {
             display: none;
         }
+        body.landscape-mode .stage {
+            grid-column: 1;
+            grid-row: 1;
+            justify-content: center;
+        }
         body.landscape-mode .controls-bar {
+            grid-column: 2;
+            grid-row: 1;
             flex-direction: column;
             align-items: center;
             gap: 4px;
@@ -538,29 +577,34 @@
         body.landscape-mode .controls-bar::-webkit-scrollbar {
             display: none;
         }
-        body.landscape-mode select {
+        body.landscape-mode .controls-bar > select {
             width: 52px;
             padding: 2px 4px;
             height: 32px;
             font-size: 11px;
         }
-        body.landscape-mode .icon-btn,
-        body.landscape-mode .theme-toggle {
+        body.landscape-mode .controls-bar > .icon-btn,
+        body.landscape-mode .controls-bar > .theme-toggle {
+            flex: 0 0 auto;
             width: 32px !important;
             height: 32px !important;
             font-size: 14px !important;
             padding: 0;
         }
-        body.landscape-mode .side-panel {
-            height: 100%;
-            overflow-y: auto;
+        @media (max-height: 400px) {
+            body.landscape-mode .controls-bar { gap: 3px; }
+            body.landscape-mode .controls-bar > select { height: 30px; }
+            body.landscape-mode .controls-bar > .icon-btn,
+            body.landscape-mode .controls-bar > .theme-toggle {
+                width: 30px !important;
+                height: 30px !important;
+            }
         }
         body.landscape-mode .image-preview img {
-            max-height: 38vh;
+            max-height: 22vh;
         }
         body.landscape-mode .log {
-            white-space: normal;
-            padding: 6px;
+            padding: 5px 8px;
             font-size: 11px;
         }
         body.landscape-mode .notice {
@@ -568,13 +612,10 @@
             padding: 6px 8px;
         }
         body.landscape-mode .stats-container {
-            flex-direction: column;
-            align-items: stretch;
-            gap: 6px;
-            padding: 6px;
+            gap: 4px 14px;
+            padding: 5px;
         }
         body.landscape-mode .stat-item {
-            justify-content: space-between;
             gap: 4px;
             font-size: 11px;
         }
@@ -636,7 +677,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🧩 Trencaclosques <span id="version">v2.43</span></h1>
+            <h1>🧩 Trencaclosques <span id="version">v2.44</span></h1>
         </div>
         <div class="controls-bar">
             <select id="divisionsSelect" title="Nombre de peces">
@@ -648,36 +689,39 @@
             <button class="icon-btn" id="picsumBtn" title="Imatge aleatoria">🎨</button>
             <button class="icon-btn" id="githubBtn" title="GitHub">📸</button>
             <div class="spacer"></div>
+            <button class="icon-btn" id="infoBtn" title="Mostrar/amagar informació" aria-pressed="false">ℹ️</button>
             <button class="icon-btn" id="orientationLockBtn" title="Bloquejar/desbloquejar orientació">🔓</button>
             <button class="icon-btn" id="refreshBtn" title="Nova foto">🔄</button>
             <button class="icon-btn" id="animationsToggle" title="Activar/desactivar animacions">✨</button>
             <button class="icon-btn" id="helpToggle" title="Amb ajuda o sense">🚀</button>
             <button class="theme-toggle" id="themeToggle" title="Canviar mode fosc">🌙</button>
         </div>
-        <div class="puzzle-container-wrapper" id="boardWrapper">
-            <div id="puzzleContainer" class="puzzle-grid"></div>
-        </div>
-        <div class="side-panel">
-            <div id="notice" class="notice hidden" role="status" aria-live="polite">
-                <span class="notice-text" id="noticeText"></span>
-                <button class="notice-close" id="noticeClose" title="Tancar avís" aria-label="Tancar avís">×</button>
+        <div class="stage" id="stage">
+            <div class="puzzle-container-wrapper" id="boardWrapper">
+                <div id="puzzleContainer" class="puzzle-grid"></div>
             </div>
-            <div id="imagePreview" class="image-preview">
-                <img id="previewImg" src="" alt="Original" crossOrigin="anonymous">
-            </div>
-            <div class="log" id="log">Carregant...</div>
-            <div class="stats-container">
-                <div class="stat-item">
-                    <span class="stat-label">📊 Fotos:</span>
-                    <span class="stat-value"><span id="photosPlayed">0</span> / <span id="totalPhotos">∞</span></span>
+            <div class="side-panel" id="sidePanel">
+                <div class="log" id="log">Carregant...</div>
+                <div id="notice" class="notice hidden" role="status" aria-live="polite">
+                    <span class="notice-text" id="noticeText"></span>
+                    <button class="notice-close" id="noticeClose" title="Tancar avís" aria-label="Tancar avís">×</button>
                 </div>
-                <div class="stat-item">
-                    <span class="stat-label">🎮 Partides:</span>
-                    <span class="stat-value" id="gamesPlayed">0</span>
+                <div id="imagePreview" class="image-preview">
+                    <img id="previewImg" src="" alt="Original" crossOrigin="anonymous">
                 </div>
-                <div class="stat-item">
-                    <span class="stat-label">✨ Font:</span>
-                    <span class="stat-value" id="currentSource">Picsum</span>
+                <div class="stats-container hidden" id="statsContainer">
+                    <div class="stat-item">
+                        <span class="stat-label">📊 Fotos:</span>
+                        <span class="stat-value"><span id="photosPlayed">0</span> / <span id="totalPhotos">∞</span></span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">🎮 Partides:</span>
+                        <span class="stat-value" id="gamesPlayed">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">✨ Font:</span>
+                        <span class="stat-value" id="currentSource">Picsum</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -708,6 +752,10 @@
         const themeToggle = document.getElementById('themeToggle');
         const imagePreview = document.getElementById('imagePreview');
         const boardWrapper = document.getElementById('boardWrapper');
+        const stage = document.getElementById('stage');
+        const sidePanel = document.getElementById('sidePanel');
+        const statsContainer = document.getElementById('statsContainer');
+        const infoBtn = document.getElementById('infoBtn');
         const noticeDiv = document.getElementById('notice');
         const noticeText = document.getElementById('noticeText');
         const noticeClose = document.getElementById('noticeClose');
@@ -776,6 +824,7 @@
                 helpToggle.textContent = '🚀';
                 imagePreview.classList.remove('hidden');
             }
+            scheduleFit();
         });
 
         function initAnimations() {
@@ -848,18 +897,38 @@
             console.warn(msg);
             noticeText.textContent = msg;
             noticeDiv.classList.remove('hidden');
+            scheduleFit();
         }
 
         function hideNotice() {
             noticeDiv.classList.add('hidden');
             noticeText.textContent = '';
+            scheduleFit();
         }
+
+        // ℹ️ ESTADÍSTIQUES: amagades per defecte, es mostren sota la foto amb el botó
+        function setStatsVisible(visible) {
+            statsContainer.classList.toggle('hidden', !visible);
+            infoBtn.classList.toggle('active', visible);
+            infoBtn.setAttribute('aria-pressed', visible ? 'true' : 'false');
+            localStorage.setItem('showStats', visible);
+            scheduleFit();
+        }
+
+        infoBtn.addEventListener('click', () => {
+            setStatsVisible(statsContainer.classList.contains('hidden'));
+        });
+
+        // La miniatura d'ajuda canvia d'alçada en carregar: reajustar
+        previewImg.addEventListener('load', () => scheduleFit());
 
         noticeClose.addEventListener('click', hideNotice);
 
         // 📐 AJUSTAR EL TAULER A L'ESPAI DISPONIBLE
+        // Tauler + panell inferior (log...) formen un bloc que omple l'escenari.
         // Manté la proporció de la foto i fa que cada cel·la mesuri un nombre enter de píxels,
         // així les peces ben col·locades s'uneixen sense cap línia.
+        const PANELL_AMPLADA_MIN = 300;
         function fitBoard() {
             if (!currentCanvasWidth || !currentCanvasHeight) return;
             const cs = getComputedStyle(puzzleContainer);
@@ -867,21 +936,39 @@
                            parseFloat(cs.borderLeftWidth) + parseFloat(cs.borderRightWidth);
             const frameH = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom) +
                            parseFloat(cs.borderTopWidth) + parseFloat(cs.borderBottomWidth);
-            const availW = boardWrapper.clientWidth - frameW;
-            const availH = boardWrapper.clientHeight - frameH;
-            if (availW <= 0 || availH <= 0) return;
-
+            const gap = parseFloat(getComputedStyle(stage).rowGap) || 0;
             const ratio = currentCanvasWidth / currentCanvasHeight;
-            let w = availW;
-            let h = w / ratio;
-            if (h > availH) {
-                h = availH;
-                w = h * ratio;
+            const stageW = stage.clientWidth;
+            const stageH = stage.clientHeight;
+
+            // L'amplada del panell depèn del tauler i l'alçada del panell (text que salta de línia)
+            // afecta el tauler: iterem fins que s'estabilitza (normalment 1-2 passades).
+            let anterior = -1;
+            for (let pas = 0; pas < 4; pas++) {
+                const panelH = sidePanel.offsetHeight;
+                const availW = stageW - frameW;
+                const availH = stageH - panelH - gap - frameH;
+                if (availW <= 0 || availH <= 0) return;
+
+                let w = availW;
+                let h = w / ratio;
+                if (h > availH) {
+                    h = availH;
+                    w = h * ratio;
+                }
+                const cellW = Math.max(1, Math.floor(w / divisions));
+                const cellH = Math.max(1, Math.floor(h / divisions));
+                const boardW = cellW * divisions;
+                puzzleContainer.style.width = boardW + 'px';
+                puzzleContainer.style.height = (cellH * divisions) + 'px';
+
+                // Panell amb la mateixa amplada que la foto (amb un mínim llegible)
+                const panelW = Math.min(stageW, Math.max(boardW + frameW, PANELL_AMPLADA_MIN));
+                sidePanel.style.width = panelW + 'px';
+
+                if (boardW === anterior) break;
+                anterior = boardW;
             }
-            const cellW = Math.max(1, Math.floor(w / divisions));
-            const cellH = Math.max(1, Math.floor(h / divisions));
-            puzzleContainer.style.width = (cellW * divisions) + 'px';
-            puzzleContainer.style.height = (cellH * divisions) + 'px';
         }
 
         let fitPending = false;
@@ -1203,6 +1290,7 @@
 
                 if (!isDifficultyMode) {
                     imagePreview.classList.remove('hidden');
+                    scheduleFit();
                     log('✨ Veient la foto sencera (ajuda visible)...');
                 } else {
                     log('✨ Veient la foto sencera (sense ajuda)...');
@@ -1406,7 +1494,7 @@
 
         // Qualsevol canvi d'espai (avís, ajuda, rotació, teclat...) reajusta el tauler
         if ('ResizeObserver' in window) {
-            new ResizeObserver(scheduleFit).observe(boardWrapper);
+            new ResizeObserver(scheduleFit).observe(stage);
         }
 
         // 📱 INICIALITZACIONS
@@ -1414,6 +1502,7 @@
         applyContextStyles();
         detectOrientation();
         applyOrientationStyles();
+        setStatsVisible(localStorage.getItem('showStats') === 'true');
         fitBoard();
         
         // Recuperar preferències guardades
