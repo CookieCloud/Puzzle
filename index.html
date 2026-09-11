@@ -1,9 +1,17 @@
 <!DOCTYPE html>
 <!--
     TRENCACLOSQUES — PWA
-    Version: 3.06a  ·  Disseny "Barra de Joc" (Proposta C)
+    Version: 3.09  ·  Disseny "Barra de Joc" (Proposta C)
 
-    CANVIS v3.06a
+    CANVIS v3.09  (sobre la v3.06)
+    - Preferides: botó "M'agrada" a la finestra d'ajuda i a la de victòria
+    - Cor vermell intens quan la foto està marcada
+    - Botó cor a la barra: juga només amb les preferides (inactiu si no n'hi ha cap)
+    - Les preferides es desen al dispositiu (localStorage) i es filtren per orientació
+    - Xip "Preferides" a la finestra d'informació
+    - Botons de la barra recalculats per encabir-ne un més
+
+    CANVIS v3.06
     - Ordre de botons: 4×4 · Següent foto · Ajuda  |  Animacions · Orientació · Tema · Informació
     - Següent foto: icona skip_next.  Ajuda: icona help
     - Ajuda: finestra emergent amb la foto sencera (s'ha de tancar per continuar);
@@ -170,7 +178,7 @@ body.day .brand{
 /* ── barra de control ───────────────────────────────── */
 .bar{
   /* Mida dels botons: s'adapta a l'amplada perquè tots hi càpiguen (màx. 44px) */
-  --pill:clamp(28px, calc((100vw - 100px) / 7.5), 44px);
+  --pill:clamp(26px, calc((100vw - 106px) / 8.6), 44px);
   display:flex;align-items:center;gap:4px;flex-wrap:nowrap;
   background:var(--bar-bg);border:1px solid var(--bar-border);
   border-radius:99px;padding:6px 7px 8px;box-shadow:var(--bar-shadow);
@@ -214,6 +222,22 @@ body.day .pill.on{
 
 /* estat apagat (animacions off) */
 .pill.off{opacity:.4}
+
+/* ── cor: buit quan no hi ha res marcat, vermell intens quan és actiu ── */
+.pill.fav .material-symbols-rounded{font-variation-settings:'FILL' 0,'wght' 600,'GRAD' 0,'opsz' 40}
+.pill.fav:disabled{opacity:.4;cursor:default}
+.pill.fav.on{
+  background:linear-gradient(160deg,#ff3355,#c20f33);color:#fff;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.5), 0 0 18px rgba(225,29,72,.75), 0 4px 10px rgba(0,0,0,.45);
+}
+body.day .pill.fav.on{
+  background:linear-gradient(160deg,#ff3355,#c20f33);color:#fff;
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.5), 0 4px 0 #8a0b24, 0 7px 12px rgba(0,0,0,.25);
+}
+.pill.fav.on .material-symbols-rounded{
+  font-variation-settings:'FILL' 1,'wght' 700,'GRAD' 0,'opsz' 40;
+  filter:drop-shadow(0 1px 1px rgba(0,0,0,.35));
+}
 
 .spacer{flex:1 1 auto;min-width:10px}
 
@@ -342,6 +366,33 @@ body.day .select{
 }
 .btn-big:active{transform:translateY(4px);box-shadow:inset 0 2px 0 rgba(255,255,255,.6),0 1px 0 rgba(0,0,0,.3),0 3px 8px rgba(0,0,0,.4)}
 
+/* ── botó "M'agrada" ────────────────────────────────── */
+.modal-actions{display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap}
+
+.btn-heart{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:12px 22px;border-radius:99px;cursor:pointer;
+  font-family:'Fredoka';font-weight:600;font-size:15px;
+  color:#e11d48;background:transparent;border:2px solid #e11d48;
+  transition:transform .13s cubic-bezier(.34,1.56,.64,1),background .2s,color .2s,box-shadow .2s;
+}
+.btn-heart .material-symbols-rounded{
+  font-size:24px;font-variation-settings:'FILL' 0,'wght' 600,'GRAD' 0,'opsz' 40;
+}
+.btn-heart:active{transform:scale(.94)}
+.btn-heart:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.btn-heart.marked{
+  background:linear-gradient(160deg,#ff3355,#c20f33);
+  color:#fff;border-color:transparent;
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.4), 0 4px 0 #8a0b24, 0 8px 16px rgba(0,0,0,.3);
+}
+.btn-heart.marked .material-symbols-rounded{
+  font-variation-settings:'FILL' 1,'wght' 700,'GRAD' 0,'opsz' 40;
+  animation:heartPop .4s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes heartPop{0%{transform:scale(1)}45%{transform:scale(1.4)}100%{transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){ .btn-heart.marked .material-symbols-rounded{animation:none} }
+
 /* ── finestres emergents (ajuda i informació) ──────── */
 .modal-overlay{
   position:fixed;inset:0;z-index:1100;
@@ -449,7 +500,7 @@ body.landscape-mode .play{flex-direction:row;gap:12px;align-items:stretch}
 
 body.landscape-mode .bar{
   /* En columna, la mida depèn de l'alçada perquè tots hi càpiguen */
-  --pill:clamp(26px, calc((100dvh - 118px) / 7.2), 44px);
+  --pill:clamp(24px, calc((100dvh - 122px) / 8.3), 44px);
   flex-direction:column;
   width:auto;flex:0 0 auto;
   padding:6px 5px 8px;gap:4px;
@@ -482,7 +533,7 @@ body.landscape-mode .spacer{min-width:0;min-height:10px}
   .modal h2{margin-bottom:6px}
   .modal h2{font-size:20px}
   .modal-photo{max-height:calc(100dvh - 150px);margin-bottom:10px;border-radius:12px}
-  .modal .btn-big{padding:9px 22px;font-size:15px}
+  .modal .btn-big,.modal .btn-heart{padding:9px 18px;font-size:14px}
   .modal-icon{display:none}
   .modal .credit{font-size:15px;margin-bottom:6px}
   .modal .how{margin-bottom:8px}
@@ -543,6 +594,11 @@ body.landscape-mode .spacer{min-width:0;min-height:10px}
         <span class="material-symbols-rounded">help</span>
       </button>
 
+      <button class="pill fav" id="favModeBtn" title="Jugar només amb les preferides" aria-label="Jugar només amb les preferides"
+              style="--glow:#fb7185;--tint:#e11d48;--tint-deep:#8a0b24">
+        <span class="material-symbols-rounded">favorite</span>
+      </button>
+
       <span class="spacer"></span>
 
       <button class="pill" id="animationsToggle" title="Animacions" aria-label="Animacions"
@@ -585,7 +641,7 @@ body.landscape-mode .spacer{min-width:0;min-height:10px}
       <span class="divider">·</span>
       <a href="terms-of-service.html" target="_blank">Condicions del Servei</a>
       <span class="divider">·</span>
-      <span class="version" id="version">v3.06a</span>
+      <span class="version" id="version">v3.09</span>
     </div>
   </footer>
 </div>
@@ -599,9 +655,15 @@ body.landscape-mode .spacer{min-width:0;min-height:10px}
     <h2 id="helpTitle">La foto sencera</h2>
     <!-- previewImg també serveix de font per tallar les peces -->
     <img id="previewImg" class="modal-photo" src="" alt="Foto sencera del trencaclosques" crossOrigin="anonymous">
-    <button class="btn-big" data-close>
-      <span class="material-symbols-rounded">play_arrow</span> Continuar
-    </button>
+    <div class="modal-actions">
+      <button class="btn-heart" data-fav aria-pressed="false">
+        <span class="material-symbols-rounded">favorite</span>
+        <span class="lbl">M'agrada</span>
+      </button>
+      <button class="btn-big" data-close>
+        <span class="material-symbols-rounded">play_arrow</span> Continuar
+      </button>
+    </div>
   </div>
 </div>
 
@@ -629,6 +691,10 @@ body.landscape-mode .spacer{min-width:0;min-height:10px}
         Resolts <b id="gamesPlayed">0</b>
       </span>
       <span class="chip">
+        <span class="material-symbols-rounded" style="color:#e11d48">favorite</span>
+        Preferides <b id="favCount">0</b>
+      </span>
+      <span class="chip">
         <span class="material-symbols-rounded" id="sourceIcon" style="color:#0ea5e9">travel_explore</span>
         <span id="currentSource">Internet</span>
       </span>
@@ -652,9 +718,15 @@ body.landscape-mode .spacer{min-width:0;min-height:10px}
     <h2>Visca!</h2>
     <p>Has completat el trencaclosques</p>
     <img id="finalImage" class="final-puzzle" src="" alt="Trencaclosques completat">
-    <button class="btn-big" id="victoryBtn">
-      <span class="material-symbols-rounded">replay</span> Jugar de nou
-    </button>
+    <div class="modal-actions">
+      <button class="btn-heart" data-fav aria-pressed="false">
+        <span class="material-symbols-rounded">favorite</span>
+        <span class="lbl">M'agrada</span>
+      </button>
+      <button class="btn-big" id="victoryBtn">
+        <span class="material-symbols-rounded">replay</span> Jugar de nou
+      </button>
+    </div>
   </div>
 </div>
 
@@ -671,6 +743,8 @@ const orientationLockBtn  = document.getElementById('orientationLockBtn');
 const refreshBtn          = document.getElementById('refreshBtn');
 const animationsToggle    = document.getElementById('animationsToggle');
 const helpBtn             = document.getElementById('helpBtn');
+const favModeBtn          = document.getElementById('favModeBtn');
+const favButtons          = document.querySelectorAll('[data-fav]');
 const themeToggle         = document.getElementById('themeToggle');
 const puzzleContainer     = document.getElementById('puzzleContainer');
 const previewImg          = document.getElementById('previewImg');
@@ -703,6 +777,15 @@ let photoFilter = 'thumbnail';
 let allPhotos = [];
 let playedPhotos = [];
 let currentPhotoIndex = -1;
+
+/* Preferides
+   Cada foto s'identifica per la seva ruta, que és estable entre sessions:
+   'Fotos/thumbnail0007.jpg' per a les teves, o l'URL sencer per a les d'Internet
+   (porta la llavor incrustada, així que sempre torna la mateixa imatge). */
+let favorites = [];
+let favouritesMode = false;
+let playedFavorites = [];
+let currentPhotoId = null;
 
 // Estadístiques
 let photosPlayed = 0;
@@ -842,10 +925,119 @@ helpBtn.addEventListener('click', () => {
 
 infoBtn.addEventListener('click', () => {
   updateStats();
-  document.getElementById('sourceNote').hidden = (lastSource === 'github');
+  document.getElementById('sourceNote').hidden = (lastSource !== 'picsum');
   document.getElementById('infoVersion').textContent = 'Versió ' + document.getElementById('version').textContent;
   obrirModal(infoOverlay);
 });
+
+/* ═══════════════════════════════════════════════════════
+   PREFERIDES
+   ═══════════════════════════════════════════════════════ */
+function loadFavorites(){
+  try{
+    const raw = localStorage.getItem('favorites');
+    const llista = raw ? JSON.parse(raw) : [];
+    favorites = Array.isArray(llista) ? llista.filter(x => typeof x === 'string') : [];
+  } catch(err){
+    console.warn('Preferides:', err);
+    favorites = [];
+  }
+}
+
+function saveFavorites(){
+  try{
+    localStorage.setItem('favorites', JSON.stringify(favorites));
+  } catch(err){
+    console.warn('No s\'han pogut desar les preferides:', err);
+    log('No s\'han pogut desar les preferides', 6000);
+  }
+}
+
+function isFavorite(id){ return !!id && favorites.includes(id); }
+
+/* Quines preferides encaixen amb l'orientació actual.
+   Les teves es reconeixen pel prefix del nom; les d'Internet, per les mides de l'URL. */
+function favoritesForOrientation(){
+  return favorites.filter(id => {
+    if (id.startsWith('Fotos/')) return id.slice(6).startsWith(photoFilter);
+    return currentOrientation === 'portrait'
+      ? id.includes('/600/800')
+      : id.includes('/800/600');
+  });
+}
+
+function updateFavButtons(){
+  const disponibles = favoritesForOrientation().length;
+
+  // Si te'n queda cap en aquesta orientació, el mode no es pot mantenir
+  if (favouritesMode && disponibles === 0) favouritesMode = false;
+
+  favModeBtn.disabled = disponibles === 0;
+  favModeBtn.classList.toggle('on', favouritesMode);
+  favModeBtn.setAttribute('aria-pressed', favouritesMode ? 'true' : 'false');
+  favModeBtn.title = disponibles === 0
+    ? 'Encara no has marcat cap preferida'
+    : (favouritesMode ? 'Tornar a totes les fotos' : `Jugar només amb les preferides (${disponibles})`);
+
+  // Botons "M'agrada" de les finestres
+  const marcada = isFavorite(currentPhotoId);
+  favButtons.forEach(boto => {
+    boto.classList.toggle('marked', marcada);
+    boto.disabled = !currentPhotoId;
+    boto.setAttribute('aria-pressed', marcada ? 'true' : 'false');
+    boto.querySelector('.lbl').textContent = marcada ? 'Preferida' : 'M\'agrada';
+  });
+}
+
+function toggleFavorite(){
+  if (!currentPhotoId) return;
+  const i = favorites.indexOf(currentPhotoId);
+  if (i === -1) favorites.push(currentPhotoId);
+  else favorites.splice(i, 1);
+  saveFavorites();
+  updateFavButtons();
+  updateStats();
+  log(i === -1 ? 'Desada a les preferides' : 'Treta de les preferides');
+}
+
+favButtons.forEach(boto => boto.addEventListener('click', toggleFavorite));
+
+favModeBtn.addEventListener('click', () => {
+  if (favModeBtn.disabled) return;
+  favouritesMode = !favouritesMode;
+  playedFavorites = [];
+  updateFavButtons();
+  updateStats();
+  log(favouritesMode ? 'Només les preferides' : 'Totes les fotos');
+  puzzleContainer.innerHTML = '';
+  carregarUltima();
+});
+
+/* Carrega una preferida que encara no hagi sortit.
+   Quan s'acaben, continua sol amb la resta de fotos. */
+function carregarPreferida(){
+  const llista   = favoritesForOrientation();
+  const pendents = llista.filter(f => !playedFavorites.includes(f));
+
+  if (pendents.length === 0){
+    favouritesMode = false;
+    playedFavorites = [];
+    updateFavButtons();
+    updateStats();
+    log(llista.length === 0
+      ? 'No tens preferides en aquesta orientació. Continuem amb la resta.'
+      : 'Ja has jugat totes les preferides. Continuem amb la resta.', 6000);
+    return carregarFotosGitHub();
+  }
+
+  const triada = pendents[Math.floor(Math.random() * pendents.length)];
+  playedFavorites.push(triada);
+  lastSource = 'fav';
+  updateStats();
+  log(`Preferida ${playedFavorites.length}/${llista.length}`);
+  incrementPhotosPlayed();
+  cargarImagenDesdeUrl(triada, 'fav');
+}
 
 /* ═══════════════════════════════════════════════════════
    ANIMACIONS
@@ -892,8 +1084,10 @@ function detectOrientation(){
     // El llistat de fotos jugades depèn del filtre: cal reiniciar-lo
     allPhotos = [];
     playedPhotos = [];
+    playedFavorites = [];
     console.log('Orientació:', currentOrientation, '→ filtre:', photoFilter);
     applyOrientationStyles();
+    updateFavButtons();
     updateStats();
   }
 }
@@ -938,11 +1132,19 @@ function getDeviceInfo(){
 function updateStats(){
   document.getElementById('photosPlayed').textContent = photosPlayed;
   document.getElementById('gamesPlayed').textContent  = gamesPlayed;
+  document.getElementById('favCount').textContent     = favorites.length;
 
   const srcIcon  = document.getElementById('sourceIcon');
   const srcLabel = document.getElementById('currentSource');
 
-  if (lastSource === 'github'){
+  if (lastSource === 'fav'){
+    // En mode preferides, el recompte és el del cicle actual
+    document.getElementById('photosPlayed').textContent = playedFavorites.length;
+    totalPhotos = favoritesForOrientation().length || '∞';
+    srcIcon.textContent = 'favorite';
+    srcIcon.style.color = '#e11d48';
+    srcLabel.textContent = 'Preferides';
+  } else if (lastSource === 'github'){
     totalPhotos = gitHubPhotosCount || '∞';
     srcIcon.textContent = 'photo_library';
     srcIcon.style.color = '#22c55e';
@@ -1014,6 +1216,8 @@ function getNextPhoto(fotos){
    CÀRREGA D'IMATGES
    ═══════════════════════════════════════════════════════ */
 function cargarImagenDesdeUrl(imageUrl, source){
+  currentPhotoId = imageUrl;
+  updateFavButtons();
   const img = new Image();
   img.crossOrigin = 'anonymous';
   img.onload = () => {
@@ -1034,6 +1238,8 @@ function carregarImagenAleatoria(){
   // Demanem la imatge amb la proporció que toca segons l'orientació
   const mides = currentOrientation === 'portrait' ? '600/800' : '800/600';
   const imageUrl = `https://picsum.photos/seed/puzzle${seed}/${mides}`;
+  currentPhotoId = imageUrl;
+  updateFavButtons();
   const img = new Image();
   img.crossOrigin = 'anonymous';
   img.onload = () => {
@@ -1092,8 +1298,10 @@ function recorrerAInternet(){
   carregarImagenAleatoria();
 }
 
-/* Sempre provem primer les fotos locals; el recanvi ja el decideix la funció */
+/* En mode preferides, primer les marcades; si no, les fotos locals.
+   El recanvi a Internet el decideix carregarFotosGitHub. */
 function carregarUltima(){
+  if (favouritesMode) return carregarPreferida();
   carregarFotosGitHub();
 }
 
@@ -1353,6 +1561,7 @@ window.addEventListener('orientationchange', () => setTimeout(() => {
 /* ═══════════════════════════════════════════════════════
    ARRENCADA
    ═══════════════════════════════════════════════════════ */
+loadFavorites();
 initTheme();
 initAnimations();
 actualitzarEtiquetaDivisions();
@@ -1373,6 +1582,7 @@ if (orientationLocked){
 }
 applyLockState();
 applyOrientationStyles();
+updateFavButtons();
 updateStats();
 
 carregarFotosGitHub();
