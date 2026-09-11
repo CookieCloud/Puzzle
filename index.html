@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
     TRENCACLOSQUES — PWA
-    Version: 3.05  ·  Disseny "Barra de Joc" (Proposta C)
+    Version: 3.06  ·  Disseny "Barra de Joc" (Proposta C)
 
     NOVETATS DE DISSENY
     - Material Symbols Rounded en lloc d'emojis
@@ -466,7 +466,7 @@ body.landscape-mode .spacer{min-height:4px}
 <div class="container">
   <div class="stage">
 
-    <h1 class="brand">Trencaclosques<span class="v" id="version">v3.05</span></h1>
+    <h1 class="brand">Trencaclosques<span class="v" id="version">v3.06</span></h1>
 
     <div class="play">
 
@@ -478,9 +478,14 @@ body.landscape-mode .spacer{min-height:4px}
         <option value="5">5×5</option>
       </select>
 
-      <button class="pill" id="githubBtn" title="Les meves fotos"
-              style="--glow:#4ade80;--tint:#22c55e;--tint-deep:#15803d">
-        <span class="material-symbols-rounded">photo_library</span>
+      <button class="pill" id="refreshBtn" title="Nova foto"
+              style="--glow:#f472b6;--tint:#ec4899;--tint-deep:#9d174d">
+        <span class="material-symbols-rounded">skip_next</span>
+      </button>
+
+      <button class="pill" id="helpToggle" title="Amb ajuda o sense"
+              style="--glow:#fbbf24;--tint:#f59e0b;--tint-deep:#b45309">
+        <span class="material-symbols-rounded">question_mark</span>
       </button>
 
       <button class="pill" id="favModeBtn" title="Jugar només amb les preferides"
@@ -489,16 +494,6 @@ body.landscape-mode .spacer{min-height:4px}
       </button>
 
       <span class="spacer"></span>
-
-      <button class="pill" id="refreshBtn" title="Nova foto"
-              style="--glow:#f472b6;--tint:#ec4899;--tint-deep:#9d174d">
-        <span class="material-symbols-rounded">autorenew</span>
-      </button>
-
-      <button class="pill" id="helpToggle" title="Amb ajuda o sense"
-              style="--glow:#fbbf24;--tint:#f59e0b;--tint-deep:#b45309">
-        <span class="material-symbols-rounded">lightbulb</span>
-      </button>
 
       <button class="pill" id="animationsToggle" title="Animacions"
               style="--glow:#a78bfa;--tint:#a855f7;--tint-deep:#7e22ce">
@@ -510,14 +505,14 @@ body.landscape-mode .spacer{min-height:4px}
         <span class="material-symbols-rounded">lock_open</span>
       </button>
 
-      <button class="pill" id="infoToggle" title="Mostrar informació"
-              style="--glow:#38bdf8;--tint:#0ea5e9;--tint-deep:#0369a1">
-        <span class="material-symbols-rounded">info</span>
-      </button>
-
       <button class="pill" id="themeToggle" title="Mode clar o fosc"
               style="--glow:#fde047;--tint:#ef4444;--tint-deep:#b91c1c">
         <span class="material-symbols-rounded">dark_mode</span>
+      </button>
+
+      <button class="pill" id="infoToggle" title="Mostrar informació"
+              style="--glow:#38bdf8;--tint:#0ea5e9;--tint-deep:#0369a1">
+        <span class="material-symbols-rounded">info</span>
       </button>
     </div>
 
@@ -594,7 +589,6 @@ body.landscape-mode .spacer{min-height:4px}
    REFERÈNCIES
    ═══════════════════════════════════════════════════════ */
 const divisionsSelect     = document.getElementById('divisionsSelect');
-const githubBtn           = document.getElementById('githubBtn');
 const infoToggle          = document.getElementById('infoToggle');
 const favModeBtn          = document.getElementById('favModeBtn');
 const favToggle           = document.getElementById('favToggle');
@@ -1096,11 +1090,6 @@ function carregarUltima(){
   if (favouritesMode) return carregarPreferida();
   carregarFotosGitHub();
 }
-
-githubBtn.addEventListener('click', () => {
-  puzzleContainer.innerHTML = '';
-  carregarUltima();
-});
 
 /* Informació: les estadístiques només es veuen si es demanen */
 function applyInfoState(){
