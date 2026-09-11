@@ -1,19 +1,22 @@
 <!DOCTYPE html>
 <!--
     TRENCACLOSQUES ART PWA
-    Version: 2.42
-    
-    COMPLETE RESPONSIVE VERSION (Improved):
-    - Detecció app vs web-browser: padding diferent
-    - Detecció automàtica: orientació, app/web, context
-    - Bloqueig d'orientació
+    Version: 2.43
+
+    CANVIS v2.43:
+    - Pantalla completa real: el joc ocupa exactament el viewport (100dvh) respectant safe-areas
+    - Vertical: eliminat l'espai buit superior (només safe-area + 8px)
+    - Horitzontal: menú en columna a l'esquerra, tauler al centre, informació a la dreta
+    - Tauler ajustat per JS (ResizeObserver) a l'espai disponible: la foto sempre es veu sencera
+    - Peces ben col·locades: marge zero i sense cap línia (sprite únic + cel·les de píxels enters)
+    - Peces per col·locar: vora clara amb una llum que la recorre (respecta ✨ i reduced-motion)
+    - Avís persistent quan s'esgoten les fotos d'una orientació (control separat per orientació)
+    - Correcció: touchend fora de la pantalla ja no provoca error
+
+    VERSIONS ANTERIORS (2.42):
+    - Detecció app vs web-browser, orientació i bloqueig d'orientació
     - Filtrat de fotos per orientació (thumbnail/hthumbnail)
-    - Avisos quan s'acaben fotos per orientació
-    - Fotos GG prioritari + Picsum fallback
-    - CSS responsive landscape/portrait
-    - Landscape: sense títol, menú compacte, botons petits
-    - Sense repeticions de fotos
-    - Títol blanc
+    - Fotos GG prioritari + Picsum fallback, sense repeticions
     - Partides comptades només si resolts
 -->
 <html lang="ca">
@@ -60,40 +63,48 @@
             -webkit-tap-highlight-color: transparent;
             -webkit-touch-callout: none;
         }
+        @property --llum-angle {
+            syntax: '<angle>';
+            initial-value: 0deg;
+            inherits: false;
+        }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: linear-gradient(135deg, var(--gradient-1) 0%, var(--gradient-2) 100%);
             min-height: 100vh;
             min-height: 100dvh;
-            padding: max(120px, env(safe-area-inset-top)) 10px 10px 10px;
+            padding: 0;
             color: var(--text-primary);
             transition: background 0.3s;
             -webkit-user-select: none;
             user-select: none;
         }
+        /* 📐 CONTENIDOR DEL JOC: ocupa exactament la pantalla visible */
         .container {
-            max-width: 100%;
-            margin: 50px auto 0 auto;
+            --pad-top: calc(env(safe-area-inset-top, 0px) + 8px);
+            --pad-right: calc(env(safe-area-inset-right, 0px) + 10px);
+            --pad-bottom: calc(env(safe-area-inset-bottom, 0px) + 8px);
+            --pad-left: calc(env(safe-area-inset-left, 0px) + 10px);
+            width: 100%;
+            max-width: 840px;
+            height: 100vh;
+            height: 100dvh;
+            margin: 0 auto;
+            padding: var(--pad-top) var(--pad-right) var(--pad-bottom) var(--pad-left);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
             background: transparent;
-            border-radius: 12px;
-            padding: 12px;
-            box-shadow: none;
-            transition: background 0.3s;
         }
         .header {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            gap: 8px;
-            max-width: 800px;
-            margin-left: auto;
-            margin-right: auto;
+            align-items: baseline;
+            flex: 0 0 auto;
         }
         h1 {
             color: #ffffff;
             font-size: clamp(1.2rem, 5vw, 1.8rem);
-            flex: 1;
+            line-height: 1.15;
         }
         h1 #version {
             font-size: 0.6em;
@@ -103,12 +114,12 @@
         .controls-bar {
             display: flex;
             gap: 6px;
-            margin-bottom: 12px;
             align-items: center;
+            flex: 0 0 auto;
             flex-wrap: nowrap;
-            max-width: 800px;
-            margin-left: auto;
-            margin-right: auto;
+        }
+        .controls-bar .spacer {
+            flex: 1;
         }
         select {
             padding: clamp(6px, 2vw, 8px) clamp(6px, 2vw, 10px);
@@ -168,73 +179,142 @@
         .theme-toggle:active {
             background: var(--bg-tertiary);
         }
+        /* 🧩 ZONA DEL TAULER: agafa tot l'espai sobrant; el JS hi encaixa el tauler */
         .puzzle-container-wrapper {
-            max-width: 800px;
-            margin: 0 auto 12px auto;
+            flex: 1 1 0;
+            min-height: 0;
+            min-width: 0;
             display: flex;
+            align-items: center;
             justify-content: center;
         }
         .puzzle-grid {
             display: grid;
+            box-sizing: content-box;   /* width/height = àrea exacta de les peces */
             gap: 0;
+            padding: 4px;
+            border: 2px solid rgba(102, 126, 234, 0.4);
+            border-radius: 12px;
             background: rgba(255, 255, 255, 0.08);
             backdrop-filter: blur(15px);
-            padding: 4px;
-            border-radius: 12px;
-            touch-action: none;
-            aspect-ratio: auto;
-            width: 100%;
-            max-width: 100%;
-            border: 2px solid rgba(102, 126, 234, 0.4);
+            -webkit-backdrop-filter: blur(15px);
             box-shadow: 0 8px 32px rgba(102, 126, 234, 0.15);
+            touch-action: none;
+            width: 0;
+            height: 0;
         }
         .puzzle-piece {
-            background-size: cover;
-            background-position: center;
+            background-image: var(--sprite);
+            background-repeat: no-repeat;
             cursor: grab;
             user-select: none;
             -webkit-user-select: none;
             touch-action: none;
             position: relative;
         }
+        /* Peça per col·locar: vora clara + llum que la recorre */
         .puzzle-piece.unfixed {
             margin: 3px;
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3), inset 0 0 8px rgba(255, 255, 255, 0.1);
-            border-radius: 4px;
-            border: 1px solid rgba(102, 126, 234, 0.2);
-            transition: all 0.2s;
+            border-radius: 5px;
+            box-shadow: 0 3px 10px rgba(20, 20, 60, 0.35);
+            transition: transform 0.2s, box-shadow 0.2s;
         }
-        .puzzle-piece.unfixed:hover {
-            box-shadow: 0 6px 16px rgba(102, 126, 234, 0.5), inset 0 0 12px rgba(255, 255, 255, 0.15);
-            transform: translateY(-2px);
+        .puzzle-piece.unfixed::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            padding: 2px;                 /* gruix de la vora */
+            border-radius: inherit;
+            background:
+                conic-gradient(from var(--llum-angle),
+                    transparent 0deg 280deg,
+                    rgba(255, 255, 255, 0.9) 325deg,
+                    #ffffff 345deg,
+                    transparent 360deg),
+                linear-gradient(rgba(236, 239, 255, 0.72), rgba(236, 239, 255, 0.72));
+            -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+            -webkit-mask-composite: xor;
+            mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+            mask-composite: exclude;
+            pointer-events: none;
+            animation: llumVora 2.8s linear infinite;
+            animation-delay: var(--llum-delay, 0s);
         }
+        @keyframes llumVora {
+            to { --llum-angle: 360deg; }
+        }
+        body.no-anim .puzzle-piece.unfixed::after {
+            animation: none;
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .puzzle-piece.unfixed::after { animation: none; }
+        }
+        @media (hover: hover) {
+            .puzzle-piece.unfixed:hover {
+                box-shadow: 0 6px 16px rgba(20, 20, 60, 0.45);
+                transform: translateY(-2px);
+            }
+        }
+        /* Peça ben col·locada: marge zero, sense vora ni ombra */
         .puzzle-piece.fixed {
             margin: 0;
-            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
-            cursor: default;
+            border: 0;
             border-radius: 0;
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: none;
+            cursor: default;
         }
         .puzzle-piece:active:not(.fixed) {
             cursor: grabbing;
             opacity: 0.8;
             z-index: 100;
         }
+        /* ℹ️ PANELL D'INFORMACIÓ (avís, ajuda, log, estadístiques) */
+        .side-panel {
+            flex: 0 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            min-height: 0;
+            min-width: 0;
+        }
+        .notice {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            padding: 8px 10px;
+            border-radius: 6px;
+            background: rgba(255, 196, 0, 0.16);
+            border: 1px solid rgba(255, 214, 102, 0.6);
+            color: #ffffff;
+            font-size: clamp(11px, 2.8vw, 13px);
+            line-height: 1.35;
+        }
+        .notice.hidden {
+            display: none;
+        }
+        .notice-text {
+            flex: 1;
+        }
+        .notice-close {
+            background: none;
+            border: 0;
+            color: inherit;
+            font-size: 18px;
+            line-height: 1;
+            padding: 0 2px;
+            cursor: pointer;
+            opacity: 0.8;
+            touch-action: manipulation;
+        }
         .image-preview {
             background: rgba(255, 255, 255, 0.08);
             backdrop-filter: blur(10px);
-            padding: clamp(10px, 2vw, 15px);
+            padding: 6px;
             border-radius: 8px;
             text-align: center;
-            margin-bottom: 12px;
-            min-height: clamp(100px, 30vw, 150px);
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.3s;
-            max-width: 800px;
-            margin-left: auto;
-            margin-right: auto;
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
         .image-preview.hidden {
@@ -242,7 +322,8 @@
         }
         .image-preview img {
             max-width: 100%;
-            max-height: 100%;
+            max-height: 16vh;
+            object-fit: contain;
             border-radius: 6px;
         }
         .log {
@@ -253,21 +334,17 @@
             font-size: clamp(11px, 2.5vw, 12px);
             color: rgba(255, 255, 255, 0.8);
             min-height: 1.5em;
-            word-wrap: break-word;
-            max-width: 800px;
-            margin-left: auto;
-            margin-right: auto;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
         .stats-container {
             display: flex;
-            gap: 20px;
+            flex-wrap: wrap;
+            gap: 6px 14px;
             justify-content: center;
             align-items: center;
-            margin-top: 12px;
-            max-width: 800px;
-            margin-left: auto;
-            margin-right: auto;
             padding: clamp(8px, 2vw, 10px);
             background: rgba(255, 255, 255, 0.05);
             backdrop-filter: blur(10px);
@@ -426,78 +503,46 @@
         .puzzle-piece.entrance-zoom { animation: puzzleZoomIn 0.6s cubic-bezier(0.43, 0.13, 0.23, 0.96) forwards; }
         .puzzle-piece.entrance-ghost { animation: puzzleGhost 0.8s ease-out forwards; }
         
-        @media (max-width: 600px) {
-            body { padding: 8px; }
-            .container { padding: 10px; border-radius: 10px; }
-            .controls-bar { gap: 4px; }
-            .puzzle-grid { padding: 2px; }
-            .puzzle-piece.unfixed { margin: 1px; }
+        /* 📱 VERTICAL (PORTRAIT) */
+        body.portrait-mode .puzzle-container-wrapper {
+            align-items: flex-start;
         }
-        @media (max-height: 700px) {
-            .image-preview { min-height: 80px; }
+        body.portrait-mode.ios-app .container {
+            /* Barra d'estat translúcida: mínim de seguretat si env() retorna 0 */
+            --pad-top: max(44px, calc(env(safe-area-inset-top, 0px) + 6px));
         }
-        
-        /* PORTRAIT MODE */
-        body.portrait-mode {
-            padding: max(80px, env(safe-area-inset-top)) 10px 10px 10px;
-        }
-        body.portrait-mode.web-browser {
-            padding: max(20px, env(safe-area-inset-top)) 10px 10px 10px;
-        }
-        body.portrait-mode.ios-app {
-            padding: max(100px, env(safe-area-inset-top)) 10px 10px 10px;
-        }
-        body.portrait-mode.android-app {
-            padding: max(80px, env(safe-area-inset-top)) 10px 10px 10px;
-        }
-        body.portrait-mode .header {
-            margin-bottom: 20px;
-        }
-        body.portrait-mode h1 {
-            font-size: clamp(1.2rem, 5vw, 1.8rem);
-            display: block;
-        }
-        body.portrait-mode .container {
-            margin: 30px auto 0 auto;
-        }
-        
-        /* LANDSCAPE MODE */
-        body.landscape-mode {
-            padding: max(50px, env(safe-area-inset-top)) 8px 8px 8px;
-        }
-        body.landscape-mode.web-browser {
-            padding: max(15px, env(safe-area-inset-top)) 8px 8px 8px;
-        }
-        body.landscape-mode.ios-app {
-            padding: max(60px, env(safe-area-inset-top)) 8px 8px 8px;
-        }
-        body.landscape-mode.android-app {
-            padding: max(50px, env(safe-area-inset-top)) 8px 8px 8px;
+
+        /* 📱 HORITZONTAL (LANDSCAPE): menú | tauler | informació */
+        body.landscape-mode .container {
+            --pad-top: calc(env(safe-area-inset-top, 0px) + 6px);
+            --pad-right: calc(env(safe-area-inset-right, 0px) + 6px);
+            --pad-bottom: calc(env(safe-area-inset-bottom, 0px) + 6px);
+            --pad-left: calc(env(safe-area-inset-left, 0px) + 6px);
+            max-width: none;
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr) clamp(140px, 22vw, 240px);
+            grid-template-rows: minmax(0, 1fr);
+            gap: 8px;
         }
         body.landscape-mode .header {
-            margin-bottom: 6px;
-            gap: 2px;
-        }
-        body.landscape-mode h1 {
-            font-size: 0;
-            width: 0;
             display: none;
-        }
-        body.landscape-mode h1 #version {
-            display: none;
-        }
-        body.landscape-mode .container {
-            margin: 8px auto 0 auto;
-            padding: 6px;
         }
         body.landscape-mode .controls-bar {
-            gap: 2px;
-            margin-bottom: 6px;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            height: 100%;
+            overflow-y: auto;
+            scrollbar-width: none;
+        }
+        body.landscape-mode .controls-bar::-webkit-scrollbar {
+            display: none;
         }
         body.landscape-mode select {
-            padding: 4px 6px;
+            width: 52px;
+            padding: 2px 4px;
             height: 32px;
-            font-size: 10px;
+            font-size: 11px;
         }
         body.landscape-mode .icon-btn,
         body.landscape-mode .theme-toggle {
@@ -506,32 +551,38 @@
             font-size: 14px !important;
             padding: 0;
         }
-        body.landscape-mode .image-preview {
-            margin-bottom: 6px;
-            min-height: 50px;
-            padding: 4px;
-            font-size: 11px;
+        body.landscape-mode .side-panel {
+            height: 100%;
+            overflow-y: auto;
+        }
+        body.landscape-mode .image-preview img {
+            max-height: 38vh;
         }
         body.landscape-mode .log {
-            margin-bottom: 4px;
-            padding: 4px;
-            font-size: 10px;
+            white-space: normal;
+            padding: 6px;
+            font-size: 11px;
+        }
+        body.landscape-mode .notice {
+            font-size: 11px;
+            padding: 6px 8px;
         }
         body.landscape-mode .stats-container {
-            margin-top: 4px;
-            gap: 8px;
-            padding: 4px;
-            font-size: 9px;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 6px;
+            padding: 6px;
         }
         body.landscape-mode .stat-item {
-            gap: 2px;
+            justify-content: space-between;
+            gap: 4px;
+            font-size: 11px;
         }
         body.landscape-mode .stat-value {
             padding: 2px 8px;
-            font-size: 9px;
+            font-size: 11px;
         }
         body.landscape-mode footer.footer {
-            margin-top: 10px;
             padding: 8px;
         }
         body.landscape-mode footer.footer p {
@@ -540,7 +591,7 @@
         }
         /* FOOTER */
         footer.footer {
-            margin-top: 50px;
+            margin-top: 0;
             padding: 20px;
             text-align: center;
             border-top: 1px solid rgba(255, 255, 255, 0.1);
@@ -585,7 +636,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🧩 Trencaclosques <span id="version">v2.42</span></h1>
+            <h1>🧩 Trencaclosques <span id="version">v2.43</span></h1>
         </div>
         <div class="controls-bar">
             <select id="divisionsSelect" title="Nombre de peces">
@@ -596,32 +647,38 @@
             </select>
             <button class="icon-btn" id="picsumBtn" title="Imatge aleatoria">🎨</button>
             <button class="icon-btn" id="githubBtn" title="GitHub">📸</button>
-            <div style="flex: 1;"></div>
+            <div class="spacer"></div>
             <button class="icon-btn" id="orientationLockBtn" title="Bloquejar/desbloquejar orientació">🔓</button>
             <button class="icon-btn" id="refreshBtn" title="Nova foto">🔄</button>
             <button class="icon-btn" id="animationsToggle" title="Activar/desactivar animacions">✨</button>
             <button class="icon-btn" id="helpToggle" title="Amb ajuda o sense">🚀</button>
             <button class="theme-toggle" id="themeToggle" title="Canviar mode fosc">🌙</button>
         </div>
-        <div class="puzzle-container-wrapper">
+        <div class="puzzle-container-wrapper" id="boardWrapper">
             <div id="puzzleContainer" class="puzzle-grid"></div>
         </div>
-        <div id="imagePreview" class="image-preview">
-            <img id="previewImg" src="" alt="Original" crossOrigin="anonymous">
-        </div>
-        <div class="log" id="log">Carregant...</div>
-        <div class="stats-container">
-            <div class="stat-item">
-                <span class="stat-label">📊 Fotos:</span>
-                <span class="stat-value"><span id="photosPlayed">0</span> / <span id="totalPhotos">∞</span></span>
+        <div class="side-panel">
+            <div id="notice" class="notice hidden" role="status" aria-live="polite">
+                <span class="notice-text" id="noticeText"></span>
+                <button class="notice-close" id="noticeClose" title="Tancar avís" aria-label="Tancar avís">×</button>
             </div>
-            <div class="stat-item">
-                <span class="stat-label">🎮 Partides:</span>
-                <span class="stat-value" id="gamesPlayed">0</span>
+            <div id="imagePreview" class="image-preview">
+                <img id="previewImg" src="" alt="Original" crossOrigin="anonymous">
             </div>
-            <div class="stat-item">
-                <span class="stat-label">✨ Font:</span>
-                <span class="stat-value" id="currentSource">Picsum</span>
+            <div class="log" id="log">Carregant...</div>
+            <div class="stats-container">
+                <div class="stat-item">
+                    <span class="stat-label">📊 Fotos:</span>
+                    <span class="stat-value"><span id="photosPlayed">0</span> / <span id="totalPhotos">∞</span></span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">🎮 Partides:</span>
+                    <span class="stat-value" id="gamesPlayed">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">✨ Font:</span>
+                    <span class="stat-value" id="currentSource">Picsum</span>
+                </div>
             </div>
         </div>
     </div>
@@ -650,12 +707,17 @@
         const finalImage = document.getElementById('finalImage');
         const themeToggle = document.getElementById('themeToggle');
         const imagePreview = document.getElementById('imagePreview');
+        const boardWrapper = document.getElementById('boardWrapper');
+        const noticeDiv = document.getElementById('notice');
+        const noticeText = document.getElementById('noticeText');
+        const noticeClose = document.getElementById('noticeClose');
+        const DURADA_LLUM_MS = 2800;   // Ha de coincidir amb l'animació llumVora del CSS
+        let spriteURL = '';
 
         let imagenActual = null;
         let divisions = 4;
         let ordre = [];
         let fixat = [];
-        let pecesDataURL = [];
         let lastSource = 'picsum';
         let isDifficultyMode = true;
         let isAnimationsEnabled = true;
@@ -679,10 +741,10 @@
         let appContext = 'web-browser';       // 'ios-app', 'android-app', 'web-browser'
         let photoFilter = 'thumbnail';         // 'thumbnail' o 'hthumbnail'
         
-        // 📷 GESTIÓ DE FOTOS (evitar repeticions)
-        let allPhotos = [];              // Totes les fotos disponibles
-        let playedPhotos = [];           // Fotos ja jugades
-        let currentPhotoIndex = -1;      // Index de la foto actual
+        // 📷 GESTIÓ DE FOTOS (evitar repeticions, control separat per orientació)
+        const playedByFilter = { thumbnail: [], hthumbnail: [] };   // Fotos ja jugades
+        const repetint = { thumbnail: false, hthumbnail: false };   // Cicle esgotat i reiniciat
+        let lastPhoto = null;
         
         const animationTypes = [
             'entrance-spin', 'entrance-fall', 'entrance-explosion', 'entrance-flip',
@@ -725,6 +787,7 @@
         function updateAnimationsButton() {
             animationsToggle.textContent = '✨';
             animationsToggle.style.opacity = isAnimationsEnabled ? '1' : '0.4';
+            document.body.classList.toggle('no-anim', !isAnimationsEnabled);
         }
 
         animationsToggle.addEventListener('click', () => {
@@ -760,6 +823,7 @@
 
         picsumBtn.addEventListener('click', () => {
             puzzleContainer.innerHTML = '';
+            hideNotice();
             lastSource = 'picsum';
             carregarImagenAleatoria();
         });
@@ -777,6 +841,57 @@
         function log(msg) {
             console.log(msg);
             logDiv.textContent = msg;
+        }
+
+        // ⚠️ AVÍS PERSISTENT (no el sobreescriuen els missatges del log)
+        function showNotice(msg) {
+            console.warn(msg);
+            noticeText.textContent = msg;
+            noticeDiv.classList.remove('hidden');
+        }
+
+        function hideNotice() {
+            noticeDiv.classList.add('hidden');
+            noticeText.textContent = '';
+        }
+
+        noticeClose.addEventListener('click', hideNotice);
+
+        // 📐 AJUSTAR EL TAULER A L'ESPAI DISPONIBLE
+        // Manté la proporció de la foto i fa que cada cel·la mesuri un nombre enter de píxels,
+        // així les peces ben col·locades s'uneixen sense cap línia.
+        function fitBoard() {
+            if (!currentCanvasWidth || !currentCanvasHeight) return;
+            const cs = getComputedStyle(puzzleContainer);
+            const frameW = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight) +
+                           parseFloat(cs.borderLeftWidth) + parseFloat(cs.borderRightWidth);
+            const frameH = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom) +
+                           parseFloat(cs.borderTopWidth) + parseFloat(cs.borderBottomWidth);
+            const availW = boardWrapper.clientWidth - frameW;
+            const availH = boardWrapper.clientHeight - frameH;
+            if (availW <= 0 || availH <= 0) return;
+
+            const ratio = currentCanvasWidth / currentCanvasHeight;
+            let w = availW;
+            let h = w / ratio;
+            if (h > availH) {
+                h = availH;
+                w = h * ratio;
+            }
+            const cellW = Math.max(1, Math.floor(w / divisions));
+            const cellH = Math.max(1, Math.floor(h / divisions));
+            puzzleContainer.style.width = (cellW * divisions) + 'px';
+            puzzleContainer.style.height = (cellH * divisions) + 'px';
+        }
+
+        let fitPending = false;
+        function scheduleFit() {
+            if (fitPending) return;
+            fitPending = true;
+            requestAnimationFrame(() => {
+                fitPending = false;
+                fitBoard();
+            });
         }
 
         // 📱 FUNCIONS DE DETECCIÓ
@@ -805,6 +920,8 @@
                 photoFilter = isPortrait ? 'thumbnail' : 'hthumbnail';
                 console.log('📐 Orientació:', currentOrientation, '→ Filter:', photoFilter);
                 applyOrientationStyles();
+                hideNotice();
+                scheduleFit();
             }
         }
 
@@ -886,54 +1003,55 @@
             updateStats();
         }
 
-        // 📷 FUNCIÓ PER SELECCIONAR FOTO SENSE REPETIR
+        // 📷 FUNCIÓ PER SELECCIONAR FOTO SENSE REPETIR (per orientació)
+        function nomOrientacio(filter, plural = true) {
+            if (filter === 'thumbnail') return plural ? 'verticals' : 'vertical';
+            return plural ? 'horitzontals' : 'horitzontal';
+        }
+
         function getNextPhoto(fotos) {
-            // Filtrar fotos per orientació
-            const filteredPhotos = fotos.filter(foto => foto.startsWith(photoFilter));
             const otherFilter = photoFilter === 'thumbnail' ? 'hthumbnail' : 'thumbnail';
-            const availablePhotos = fotos.filter(foto => foto.startsWith(otherFilter));
-            
-            if (filteredPhotos.length === 0) {
-                // Si no hi ha fotos de l'orientació actual, avisar
-                if (availablePhotos.length > 0) {
-                    const orientacioAlt = currentOrientation === 'portrait' ? 'horitzontal' : 'vertical';
-                    log(`⚠️ S'han acabat les fotos en mode ${currentOrientation}. Hi ha ${availablePhotos.length} fotos en mode ${orientacioAlt}.`);
-                } else {
-                    log(`❌ No hi ha fotos disponibles.`);
-                }
+            const pool = fotos.filter(foto => foto.startsWith(photoFilter));
+            const otherPool = fotos.filter(foto => foto.startsWith(otherFilter));
+            const nom = nomOrientacio(photoFilter);
+            const nomAltre = nomOrientacio(otherFilter);
+
+            // Neteja: només comptem fotos que encara existeixen a fotos.json
+            playedByFilter[photoFilter] = playedByFilter[photoFilter].filter(f => pool.includes(f));
+            playedByFilter[otherFilter] = playedByFilter[otherFilter].filter(f => otherPool.includes(f));
+            const altresPendents = otherPool.length - playedByFilter[otherFilter].length;
+            const suggeriment = altresPendents > 0
+                ? ` Gira el dispositiu per jugar les ${altresPendents} fotos ${nomAltre} pendents.`
+                : '';
+
+            if (pool.length === 0) {
+                showNotice(`⚠️ No hi ha cap foto ${nom}.${suggeriment} També pots tocar 🎨 per a una imatge aleatòria.`);
                 return null;
             }
-            
-            if (!allPhotos || allPhotos.length === 0) {
-                allPhotos = [...filteredPhotos];
-                playedPhotos = [];
+
+            let pendents = pool.filter(f => !playedByFilter[photoFilter].includes(f));
+
+            if (pendents.length === 0) {
+                // Cicle esgotat: es reinicia, evitant repetir just la darrera foto
+                repetint[photoFilter] = true;
+                playedByFilter[photoFilter] = [];
+                pendents = pool.length > 1 ? pool.filter(f => f !== lastPhoto) : [...pool];
             }
-            
-            // Si s'han jugat totes, reiniciar la llista
-            if (playedPhotos.length >= filteredPhotos.length) {
-                log('🔄 Reiniciant llistat de fotos...');
-                allPhotos = [...filteredPhotos];
-                playedPhotos = [];
+
+            const foto = pendents[Math.floor(Math.random() * pendents.length)];
+            playedByFilter[photoFilter].push(foto);
+            lastPhoto = foto;
+            const queden = pool.length - playedByFilter[photoFilter].length;
+
+            if (repetint[photoFilter]) {
+                showNotice(`⚠️ Ja no queden fotos ${nom} noves: les has jugat totes (${pool.length}) i es tornen a repetir.${suggeriment}`);
+            } else if (queden === 0) {
+                showNotice(`⚠️ Aquesta és l'última foto ${nomOrientacio(photoFilter, false)} nova (${pool.length} en total).${suggeriment}`);
+            } else {
+                hideNotice();
             }
-            
-            // Seleccionar una foto aleatòria que NO s'ha jugat
-            let randomPhoto = null;
-            let attempts = 0;
-            const maxAttempts = filteredPhotos.length * 2; // Evitar bucles infinits
-            
-            do {
-                const randomIndex = Math.floor(Math.random() * filteredPhotos.length);
-                randomPhoto = filteredPhotos[randomIndex];
-                attempts++;
-            } while (playedPhotos.includes(randomPhoto) && attempts < maxAttempts);
-            
-            // Afegir la foto a jugades
-            if (randomPhoto && !playedPhotos.includes(randomPhoto)) {
-                playedPhotos.push(randomPhoto);
-                currentPhotoIndex = filteredPhotos.indexOf(randomPhoto);
-            }
-            
-            return randomPhoto;
+
+            return { foto, jugades: pool.length - queden, total: pool.length };
         }
 
         function carregarImagenAleatoria() {
@@ -982,16 +1100,14 @@
                 gitHubPhotosCount = fotos.length;
                 
                 // Seleccionar una aleatòria SENSE REPETIR
-                const fotoAleatoria = getNextPhoto(fotos);
-                if (!fotoAleatoria) {
-                    log('❌ Error al seleccionar foto');
+                const seleccio = getNextPhoto(fotos);
+                if (!seleccio) {
+                    log('❌ No s\'ha pogut seleccionar cap foto');
                     return;
                 }
                 
-                const imageUrl = `Fotos/${fotoAleatoria}`;
-                const fotesRestants = gitHubPhotosCount - playedPhotos.length;
-                
-                log(`✅ Carregant: ${fotoAleatoria} (${playedPhotos.length}/${gitHubPhotosCount})`);
+                const imageUrl = `Fotos/${seleccio.foto}`;
+                log(`✅ Carregant: ${seleccio.foto} (${seleccio.jugades}/${seleccio.total} ${nomOrientacio(photoFilter)})`);
                 incrementPhotosPlayed();
                 cargarImagenDesdeUrl(imageUrl, 'github');
                 
@@ -1037,6 +1153,10 @@
                 canvasHeight = canvasHeight * scale;
             }
 
+            // Mides enteres i múltiples de 'divisions': talls exactes, sense vores antialiasing
+            canvasWidth = Math.max(divisions, Math.round(canvasWidth / divisions) * divisions);
+            canvasHeight = Math.max(divisions, Math.round(canvasHeight / divisions) * divisions);
+
             const canvas = document.createElement('canvas');
             canvas.width = canvasWidth;
             canvas.height = canvasHeight;
@@ -1045,29 +1165,14 @@
             const processImage = () => {
                 try {
                     ctx.drawImage(previewImg, 0, 0, canvasWidth, canvasHeight);
+                    spriteURL = canvas.toDataURL('image/jpeg', 0.92);
                 } catch (e) {
-                    log('❌ Error al dibuixar la imatge');
-                    return;
+                    // Si el canvas queda "tacat" per CORS, s'usa la imatge original directament
+                    console.warn('Canvas no disponible, s\'usa la URL original:', e);
+                    spriteURL = imagenActual;
                 }
-
-                pecesDataURL = [];
-                const pieceWidth = canvasWidth / divisions;
-                const pieceHeight = canvasHeight / divisions;
-
-                for (let row = 0; row < divisions; row++) {
-                    for (let col = 0; col < divisions; col++) {
-                        const pieceCanvas = document.createElement('canvas');
-                        pieceCanvas.width = pieceWidth;
-                        pieceCanvas.height = pieceHeight;
-                        const pctx = pieceCanvas.getContext('2d');
-                        pctx.drawImage(
-                            canvas,
-                            col * pieceWidth, row * pieceHeight, pieceWidth, pieceHeight,
-                            0, 0, pieceWidth, pieceHeight
-                        );
-                        pecesDataURL.push(pieceCanvas.toDataURL());
-                    }
-                }
+                // Al body perquè també l'hereti la peça flotant del drag tàctil
+                document.body.style.setProperty('--sprite', `url("${spriteURL}")`);
 
                 ordre = Array.from({ length: total }, (_, i) => i);
                 for (let i = total - 1; i > 0; i--) {
@@ -1076,17 +1181,23 @@
                 }
                 fixat = new Array(total).fill(false);
 
+                // Guardar els valors i encaixar el tauler a la pantalla
+                currentCanvasWidth = canvasWidth;
+                currentCanvasHeight = canvasHeight;
+                currentPieceWidth = canvasWidth / divisions;
+                currentPieceHeight = canvasHeight / divisions;
+                fitBoard();
+
                 puzzleContainer.innerHTML = '';
                 puzzleContainer.style.gridTemplateColumns = '1fr';
-                puzzleContainer.style.aspectRatio = `${canvasWidth} / ${canvasHeight}`;
+                puzzleContainer.style.gridTemplateRows = '1fr';
 
                 const imatgeSenceraDiv = document.createElement('div');
                 imatgeSenceraDiv.style.width = '100%';
                 imatgeSenceraDiv.style.height = '100%';
-                imatgeSenceraDiv.style.backgroundImage = `url('${imagenActual}')`;
+                imatgeSenceraDiv.style.backgroundImage = 'var(--sprite)';
                 imatgeSenceraDiv.style.backgroundSize = '100% 100%';
-                imatgeSenceraDiv.style.backgroundPosition = 'center';
-                imatgeSenceraDiv.style.borderRadius = '6px';
+                imatgeSenceraDiv.style.backgroundRepeat = 'no-repeat';
 
                 puzzleContainer.appendChild(imatgeSenceraDiv);
 
@@ -1097,14 +1208,8 @@
                     log('✨ Veient la foto sencera (sense ajuda)...');
                 }
 
-                // Guardar els valors per a renders futurs
-                currentCanvasWidth = canvasWidth;
-                currentCanvasHeight = canvasHeight;
-                currentPieceWidth = pieceWidth;
-                currentPieceHeight = pieceHeight;
-
                 setTimeout(() => {
-                    renderitzarPuzzle(true, canvasWidth, canvasHeight, pieceWidth, pieceHeight);
+                    renderitzarPuzzle(true);
                     log('🧩 Arrossega les peces!');
                 }, 2500);
             };
@@ -1122,17 +1227,29 @@
             const total = divisions * divisions;
             puzzleContainer.innerHTML = '';
             puzzleContainer.style.gridTemplateColumns = `repeat(${divisions}, 1fr)`;
-            puzzleContainer.style.aspectRatio = `${canvasWidth} / ${canvasHeight}`;
+            puzzleContainer.style.gridTemplateRows = `repeat(${divisions}, 1fr)`;
+
+            // Sprite únic: cada peça mostra la seva zona de la mateixa imatge
+            const midaSprite = `${divisions * 100}% ${divisions * 100}%`;
+            // Fase de la llum contínua entre renders (no es reinicia a cada moviment)
+            const faseLlum = -((performance.now() % DURADA_LLUM_MS) / 1000);
 
             for (let i = 0; i < total; i++) {
                 const pecaIndex = ordre[i];
+                const col = pecaIndex % divisions;
+                const row = Math.floor(pecaIndex / divisions);
+                const posX = divisions > 1 ? (col / (divisions - 1)) * 100 : 0;
+                const posY = divisions > 1 ? (row / (divisions - 1)) * 100 : 0;
+
                 const piece = document.createElement('div');
                 piece.className = 'puzzle-piece';
                 piece.classList.add(fixat[i] ? 'fixed' : 'unfixed');
-                piece.style.backgroundImage = `url('${pecesDataURL[pecaIndex]}')`;
-                piece.style.backgroundSize = '100% 100%';
-                piece.style.backgroundPosition = 'center';
+                piece.style.backgroundSize = midaSprite;
+                piece.style.backgroundPosition = `${posX}% ${posY}%`;
                 piece.dataset.posicio = i;
+                if (!fixat[i]) {
+                    piece.style.setProperty('--llum-delay', `${(faseLlum - i * 0.12).toFixed(3)}s`);
+                }
 
                 if (animate && isAnimationsEnabled) {
                     const randomAnimation = getRandomAnimation();
@@ -1222,7 +1339,7 @@
             if (!touchPiece || !floatingClone) return;
             const touch = e.changedTouches[0];
             const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
-            const destiPiece = targetElement.closest('.puzzle-piece');
+            const destiPiece = targetElement ? targetElement.closest('.puzzle-piece') : null;
             if (destiPiece && destiPiece !== touchPiece && !fixat[destiPiece.dataset.posicio]) {
                 const origenIndex = parseInt(touchPiece.dataset.posicio);
                 const destiIndex = parseInt(destiPiece.dataset.posicio);
@@ -1277,19 +1394,27 @@
         // 📱 EVENT LISTENERS PER ORIENTACIÓ
         window.addEventListener('resize', () => {
             detectOrientation();
+            scheduleFit();
         });
 
         window.addEventListener('orientationchange', () => {
             setTimeout(() => {
                 detectOrientation();
+                scheduleFit();
             }, 100); // Esperar a que es renderi la nova mida
         });
+
+        // Qualsevol canvi d'espai (avís, ajuda, rotació, teclat...) reajusta el tauler
+        if ('ResizeObserver' in window) {
+            new ResizeObserver(scheduleFit).observe(boardWrapper);
+        }
 
         // 📱 INICIALITZACIONS
         detectAppContext();
         applyContextStyles();
         detectOrientation();
         applyOrientationStyles();
+        fitBoard();
         
         // Recuperar preferències guardades
         const savedLocked = localStorage.getItem('orientationLocked') === 'true';
