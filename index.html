@@ -1,7 +1,25 @@
 <!DOCTYPE html>
 <!--
     TRENCACLOSQUES — PWA
-    Version: 3.09  ·  Disseny "Barra de Joc" (Proposta C)
+    Version: 3.10  ·  Disseny "Barra de Joc" (Proposta C)
+
+    CANVIS v3.10
+    Errors corregits
+    - La fase "Memoritza" es cancel·la si es demana una altra foto o es canvia el nombre de peces
+    - Les càrregues de foto antigues s'ignoren si n'arriba una de més nova
+    - Barreja que no surt mai resolta; les peces encertades per atzar ja surten fixades
+    - Arrossegament tàctil: touchcancel i un sol dit alhora
+    - Si una foto teva no s'obre, es proven altres fotos abans d'anar a Internet
+    - Xip "Fotos x/y" amb el recompte real del cicle
+    - Manifest i service worker: instal·lable i funciona sense connexió
+    Rendiment
+    - Tauler sense canvas: una sola imatge amb background-position;
+      en moure una peça només se'n repinten dues
+    - Font d'icones reduïda: eixos fixos i només les icones usades
+    - Historial de fotos vistes separat per orientació; no es repeteix l'última en reiniciar
+    Disseny
+    - Nombre de peces: finestra pròpia amb vista prèvia de la graella,
+      en lloc del desplegable del sistema
 
     CANVIS v3.09  (sobre la v3.06)
     - Preferides: botó "M'agrada" a la finestra d'ajuda i a la de victòria
@@ -59,14 +77,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no, maximum-scale=1">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Trencaclosques">
 <meta name="theme-color" content="#ff9f45">
+<link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/png" sizes="32x32" href="puzzle32x32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="puzzle192x192.png">
 <link rel="apple-touch-icon" sizes="180x180" href="puzzle180x180.png">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&family=Fredoka:wght@400;500;600;700&family=Baloo+2:wght@600;700;800&display=swap" rel="stylesheet">
+<!-- Text: només els pesos que es fan servir -->
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&family=Baloo+2:wght@700;800&display=swap" rel="stylesheet">
+<!-- Icones: eixos fixos i només les icones usades (ordre alfabètic).
+     Si n'afegeixes cap de nova, cal afegir-la també a icon_names. -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@40,600,1,0&icon_names=auto_awesome,close,dark_mode,emoji_events,favorite,grid_view,help,info,light_mode,lock,lock_open,photo_camera,photo_library,play_arrow,replay,skip_next,stay_current_landscape,stay_current_portrait,travel_explore&display=block" rel="stylesheet">
 
 <title>Trencaclosques</title>
 <style>
@@ -241,30 +265,56 @@ body.day .pill.fav.on{
 
 .spacer{flex:1 1 auto;min-width:10px}
 
+/* Botó del nombre de peces: obre una finestra pròpia, no el desplegable del sistema */
 .select{
-  flex:0 0 auto;position:relative;
+  flex:0 0 auto;
   display:grid;place-items:center;
   height:var(--pill);width:calc(var(--pill) * 1.35);border-radius:99px;padding:0;cursor:pointer;
-  overflow:hidden; /* el select natiu invisible no pot fer créixer la barra */
   font-family:'Fredoka';font-weight:600;font-size:calc(var(--pill) * .34);color:var(--ink);
+  line-height:1;white-space:nowrap;
   border:none;background:var(--pill-bg);box-shadow:var(--pill-shadow);
-  transition:background .35s,box-shadow .35s;
+  transition:transform .13s cubic-bezier(.34,1.56,.64,1),background .35s,box-shadow .35s;
 }
-/* Text visible: sempre centrat, sigui quin sigui el navegador */
-.select-label{font-size:inherit;line-height:1;pointer-events:none;white-space:nowrap}
-/* Select natiu invisible que ocupa tot el botó: en tocar obre el selector del sistema */
-.select select{
-  position:absolute;inset:0;width:100%;height:100%;min-width:0;max-width:100%;
-  opacity:0;cursor:pointer;border:0;border-radius:inherit;
-  appearance:none;-webkit-appearance:none;
-  font-size:16px; /* evita el zoom automàtic d'iOS */
-}
-.select select option{color:#3c2a14;background:#fff}
-.select:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+.select:active{transform:scale(.92)}
+.select:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
 body.day .select{
   background:linear-gradient(160deg,#8b5cf6,#6d28d9);color:#fff;
   box-shadow:inset 0 2px 0 rgba(255,255,255,.45), 0 4px 0 #4c1d95, 0 7px 12px rgba(0,0,0,.22);
 }
+body.day .select:active{
+  transform:translateY(3px);
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.4), 0 1px 0 #4c1d95, 0 2px 5px rgba(0,0,0,.25);
+}
+
+/* ── tria del nombre de peces ───────────────────────── */
+.size-grid{
+  display:grid;grid-template-columns:repeat(2,1fr);gap:12px;
+  margin-bottom:16px;width:100%;
+}
+.size-option{
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+  padding:14px 10px 12px;border-radius:20px;cursor:pointer;
+  background:var(--chip-bg);border:2px solid var(--chip-border);
+  box-shadow:var(--chip-shadow);
+  font-family:'Baloo 2';font-weight:700;font-size:17px;color:var(--ink);
+  transition:transform .13s cubic-bezier(.34,1.56,.64,1),border-color .2s,background .2s;
+}
+.size-option:active{transform:scale(.95)}
+.size-option:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.size-option .mini{
+  display:grid;gap:2px;width:56px;height:56px;
+  padding:3px;border-radius:8px;
+  background:rgba(0,0,0,.12);
+}
+.size-option .mini i{background:var(--ink);opacity:.32;border-radius:2px}
+.size-option[aria-checked="true"]{
+  border-color:var(--accent-deep);
+  background:linear-gradient(160deg,var(--accent),var(--accent-deep));
+  color:var(--accent-ink);
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.6), 0 5px 0 rgba(0,0,0,.22), 0 8px 16px rgba(0,0,0,.25);
+}
+.size-option[aria-checked="true"] .mini{background:rgba(255,255,255,.45)}
+.size-option[aria-checked="true"] .mini i{background:var(--accent-ink);opacity:.6}
 
 /* ── tauler ─────────────────────────────────────────── */
 .board-wrap{
@@ -274,6 +324,7 @@ body.day .select{
 }
 
 .puzzle-grid{
+  --n:1;
   display:grid;gap:0;
   margin:0 auto;
   background:var(--board-bg);
@@ -283,8 +334,17 @@ body.day .select{
   transition:border-color .35s,background .35s;
 }
 
+/* Foto sencera, abans de trencar-la */
+.sencera{
+  width:100%;height:100%;border-radius:14px;
+  background:var(--foto) center/100% 100% no-repeat;
+}
+
+/* Cada peça ensenya la seva part de la mateixa imatge: sense canvas ni còpies */
 .puzzle-piece{
-  background-size:100% 100%;background-position:center;
+  background-image:var(--foto);
+  background-size:calc(var(--n) * 100%) calc(var(--n) * 100%);
+  background-repeat:no-repeat;
   cursor:grab;user-select:none;-webkit-user-select:none;touch-action:none;position:relative;
 }
 .puzzle-piece.unfixed{
@@ -296,6 +356,13 @@ body.day .select{
 .puzzle-piece.fixed{
   margin:0;border-radius:0;cursor:default;
   box-shadow:inset 0 0 0 1px rgba(255,255,255,.1);
+}
+
+/* Peça que segueix el dit */
+.puzzle-piece.floating{
+  position:fixed;z-index:1001;pointer-events:none;margin:0;border-radius:6px;
+  box-shadow:0 0 0 3px rgba(255,209,102,.9), 0 12px 26px rgba(0,0,0,.5);
+  transform:scale(1.06);transition:none;animation:none;
 }
 
 /* ── missatges: flotants sobre la part baixa del tauler, sense calaix ── */
@@ -511,6 +578,9 @@ body.landscape-mode .select{
   height:var(--pill);width:var(--pill);
   padding:0;font-size:calc(var(--pill) * .3);border-radius:99px;
 }
+body.landscape-mode .size-grid{grid-template-columns:repeat(4,1fr);gap:8px}
+body.landscape-mode .size-option{padding:10px 6px 8px;font-size:15px;border-radius:16px}
+body.landscape-mode .size-option .mini{width:42px;height:42px}
 body.landscape-mode .spacer{min-width:0;min-height:10px}
 
 /* ═══════════════════════════════════════════════════════
@@ -569,15 +639,10 @@ body.landscape-mode .spacer{min-width:0;min-height:10px}
     <div class="play">
 
     <div class="bar">
-      <label class="select" title="Nombre de peces">
-        <span class="select-label" id="divisionsLabel" aria-hidden="true">4×4</span>
-        <select id="divisionsSelect" aria-label="Nombre de peces">
-          <option value="2">2×2</option>
-          <option value="3">3×3</option>
-          <option value="4" selected>4×4</option>
-          <option value="5">5×5</option>
-        </select>
-      </label>
+      <button class="select" id="divisionsBtn" title="Nombre de peces"
+              aria-haspopup="dialog" aria-label="Nombre de peces: 4×4">
+        <span id="divisionsLabel">4×4</span>
+      </button>
     <!-- 
       <button class="pill" id="githubBtn" title="Les meves fotos"
               style="--glow:#4ade80;--tint:#22c55e;--tint-deep:#15803d">
@@ -641,9 +706,24 @@ body.landscape-mode .spacer{min-width:0;min-height:10px}
       <span class="divider">·</span>
       <a href="terms-of-service.html" target="_blank">Condicions del Servei</a>
       <span class="divider">·</span>
-      <span class="version" id="version">v3.09</span>
+      <span class="version" id="version">v3.10</span>
     </div>
   </footer>
+</div>
+
+<!-- Nombre de peces -->
+<div id="sizeOverlay" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="sizeTitle" aria-hidden="true">
+  <div class="modal modal-info">
+    <button class="modal-close" data-close title="Tancar" aria-label="Tancar">
+      <span class="material-symbols-rounded">close</span>
+    </button>
+    <span class="material-symbols-rounded modal-icon">grid_view</span>
+    <h2 id="sizeTitle">Nombre de peces</h2>
+    <div class="size-grid" id="sizeGrid" role="radiogroup" aria-labelledby="sizeTitle"></div>
+    <button class="btn-big" data-close>
+      <span class="material-symbols-rounded">play_arrow</span> Continuar
+    </button>
+  </div>
 </div>
 
 <!-- Ajuda: foto sencera -->
@@ -734,7 +814,11 @@ body.landscape-mode .spacer{min-width:0;min-height:10px}
 /* ═══════════════════════════════════════════════════════
    REFERÈNCIES
    ═══════════════════════════════════════════════════════ */
-const divisionsSelect     = document.getElementById('divisionsSelect');
+const divisionsBtn        = document.getElementById('divisionsBtn');
+const divisionsLabel      = document.getElementById('divisionsLabel');
+const sizeOverlay         = document.getElementById('sizeOverlay');
+const sizeGrid            = document.getElementById('sizeGrid');
+const metaThemeColor      = document.querySelector('meta[name="theme-color"]');
 const githubBtn           = document.getElementById('githubBtn');
 const infoBtn             = document.getElementById('infoBtn');
 const infoOverlay         = document.getElementById('infoOverlay');
@@ -760,12 +844,20 @@ let imagenActual = null;
 let divisions = 4;
 let ordre = [];
 let fixat = [];
-let pecesDataURL = [];
 let lastSource = 'picsum';
 let isAnimationsEnabled = true;
 let photoWidth = 400, photoHeight = 400;
 let currentCanvasWidth = 400, currentCanvasHeight = 400;
-let currentPieceWidth = 100, currentPieceHeight = 100;
+
+// Partida en curs
+let partidaActiva = false;
+let temporitzadorMemoritzar = null;
+let idCarrega = 0;                 // cada càrrega nova invalida les anteriors
+
+const MIDES_POSSIBLES   = [2, 3, 4, 5];
+const TEMPS_MEMORITZAR  = 2500;    // ms que es veu la foto sencera
+const MAX_INTENTS_FOTOS = 3;       // fotos teves que es proven abans d'anar a Internet
+const COLOR_TEMA = { dia: '#ff9f45', nit: '#14101c' };
 
 // Orientació i dispositiu
 let currentOrientation = 'portrait';
@@ -773,10 +865,9 @@ let orientationLocked = false;
 let appContext = 'web-browser';
 let photoFilter = 'thumbnail';
 
-// Gestió de fotos sense repeticions
-let allPhotos = [];
-let playedPhotos = [];
-let currentPhotoIndex = -1;
+// Fotos vistes, separades per orientació (girar el mòbil ja no esborra l'historial)
+const fotosJugades = { thumbnail: [], hthumbnail: [] };
+const ultimaFoto   = { thumbnail: null, hthumbnail: null };
 
 /* Preferides
    Cada foto s'identifica per la seva ruta, que és estable entre sessions:
@@ -788,7 +879,7 @@ let playedFavorites = [];
 let currentPhotoId = null;
 
 // Estadístiques
-let photosPlayed = 0;
+let fotosInternet = 0;
 let gamesPlayed = 0;
 let totalPhotos = 0;
 let gitHubPhotosCount = 0;
@@ -871,16 +962,20 @@ function log(msg, durada = 3000){
 /* ═══════════════════════════════════════════════════════
    TEMA
    ═══════════════════════════════════════════════════════ */
-function initTheme(){
-  const isDark = localStorage.getItem('darkMode') === 'true';
+function aplicarTema(isDark){
   document.body.classList.toggle('day', !isDark);
   setIcon(themeToggle, isDark ? 'light_mode' : 'dark_mode');
+  metaThemeColor.setAttribute('content', isDark ? COLOR_TEMA.nit : COLOR_TEMA.dia);
+}
+
+function initTheme(){
+  aplicarTema(localStorage.getItem('darkMode') === 'true');
 }
 
 themeToggle.addEventListener('click', () => {
-  const isDark = document.body.classList.toggle('day') === false;
+  const isDark = document.body.classList.contains('day');
+  aplicarTema(isDark);
   localStorage.setItem('darkMode', isDark);
-  setIcon(themeToggle, isDark ? 'light_mode' : 'dark_mode');
 });
 
 /* ═══════════════════════════════════════════════════════
@@ -892,6 +987,7 @@ let focusAnterior = null;
 
 function obrirModal(overlay){
   if (modalObert) tancarModal(modalObert);
+  cancelarArrossegament();
   focusAnterior = document.activeElement;
   overlay.classList.add('active');
   overlay.setAttribute('aria-hidden', 'false');
@@ -1035,7 +1131,6 @@ function carregarPreferida(){
   lastSource = 'fav';
   updateStats();
   log(`Preferida ${playedFavorites.length}/${llista.length}`);
-  incrementPhotosPlayed();
   cargarImagenDesdeUrl(triada, 'fav');
 }
 
@@ -1081,9 +1176,6 @@ function detectOrientation(){
   if (newOrientation !== currentOrientation){
     currentOrientation = newOrientation;
     photoFilter = isPortrait ? 'thumbnail' : 'hthumbnail';
-    // El llistat de fotos jugades depèn del filtre: cal reiniciar-lo
-    allPhotos = [];
-    playedPhotos = [];
     playedFavorites = [];
     console.log('Orientació:', currentOrientation, '→ filtre:', photoFilter);
     applyOrientationStyles();
@@ -1114,48 +1206,39 @@ function applyLockState(){
 
 orientationLockBtn.addEventListener('click', toggleOrientationLock);
 
-function getDeviceInfo(){
-  return {
-    orientation: currentOrientation,
-    width: window.innerWidth,
-    height: window.innerHeight,
-    isMobile: /iPhone|iPad|Android/.test(navigator.userAgent),
-    isTablet: window.innerWidth > 768,
-    pixelRatio: window.devicePixelRatio,
-    appContext
-  };
-}
-
 /* ═══════════════════════════════════════════════════════
    ESTADÍSTIQUES
    ═══════════════════════════════════════════════════════ */
 function updateStats(){
-  document.getElementById('photosPlayed').textContent = photosPlayed;
-  document.getElementById('gamesPlayed').textContent  = gamesPlayed;
-  document.getElementById('favCount').textContent     = favorites.length;
+  document.getElementById('gamesPlayed').textContent = gamesPlayed;
+  document.getElementById('favCount').textContent    = favorites.length;
 
   const srcIcon  = document.getElementById('sourceIcon');
   const srcLabel = document.getElementById('currentSource');
+  let vistes;
 
+  // Cada font porta el seu recompte, perquè el xip no digui mai "9/4"
   if (lastSource === 'fav'){
-    // En mode preferides, el recompte és el del cicle actual
-    document.getElementById('photosPlayed').textContent = playedFavorites.length;
+    vistes = playedFavorites.length;
     totalPhotos = favoritesForOrientation().length || '∞';
     srcIcon.textContent = 'favorite';
     srcIcon.style.color = '#e11d48';
     srcLabel.textContent = 'Preferides';
   } else if (lastSource === 'github'){
+    vistes = fotosJugades[photoFilter].length;
     totalPhotos = gitHubPhotosCount || '∞';
     srcIcon.textContent = 'photo_library';
     srcIcon.style.color = '#22c55e';
     srcLabel.textContent = '\u00A9 Gerard M.';
   } else {
+    vistes = fotosInternet;
     totalPhotos = '∞';
     srcIcon.textContent = 'travel_explore';
     srcIcon.style.color = '#0ea5e9';
     srcLabel.textContent = 'Internet';
   }
-  document.getElementById('totalPhotos').textContent = totalPhotos;
+  document.getElementById('photosPlayed').textContent = vistes;
+  document.getElementById('totalPhotos').textContent  = totalPhotos;
 
   const orIcon  = document.getElementById('orientIcon');
   const orLabel = document.getElementById('orientLabel');
@@ -1168,127 +1251,140 @@ function updateStats(){
   }
 }
 
-function incrementPhotosPlayed(){ photosPlayed++; updateStats(); }
 function incrementGamesPlayed(){ gamesPlayed++; updateStats(); }
 
 /* ═══════════════════════════════════════════════════════
    SELECCIÓ DE FOTO SENSE REPETICIONS
    ═══════════════════════════════════════════════════════ */
 function getNextPhoto(fotos){
-  const filteredPhotos = fotos.filter(f => f.startsWith(photoFilter));
-  const otherFilter    = photoFilter === 'thumbnail' ? 'hthumbnail' : 'thumbnail';
-  const otherPhotos    = fotos.filter(f => f.startsWith(otherFilter));
+  const delFiltre = fotos.filter(f => f.startsWith(photoFilter));
 
-  if (filteredPhotos.length === 0){
+  if (delFiltre.length === 0){
     const actual = currentOrientation === 'portrait' ? 'vertical' : 'horitzontal';
     const altra  = currentOrientation === 'portrait' ? 'horitzontal' : 'vertical';
-    if (otherPhotos.length > 0){
-      log(`No hi ha cap foto teva en ${actual} (només en ${altra}). Agafem una foto d'Internet.`, 6000);
-    } else {
-      log('No hi ha cap foto teva. Agafem una foto d\'Internet.', 6000);
-    }
+    const hiHaAltres = fotos.length > 0;
+    log(hiHaAltres
+      ? `No hi ha cap foto teva en ${actual} (només en ${altra}). Agafem una foto d'Internet.`
+      : 'No hi ha cap foto teva. Agafem una foto d\'Internet.', 6000);
     return null;
   }
 
-  if (!allPhotos || allPhotos.length === 0){
-    allPhotos = [...filteredPhotos];
-    playedPhotos = [];
-  }
+  const jugades = fotosJugades[photoFilter];
+  let candidates = delFiltre.filter(f => !jugades.includes(f));
 
-  // Totes jugades → tornem a començar
-  if (playedPhotos.length >= filteredPhotos.length){
+  // Totes vistes: tornem a començar, però sense repetir l'última
+  if (candidates.length === 0){
+    jugades.length = 0;
+    candidates = delFiltre.length > 1
+      ? delFiltre.filter(f => f !== ultimaFoto[photoFilter])
+      : [...delFiltre];
     log('Ja les has vist totes. Tornem a començar.');
-    allPhotos = [...filteredPhotos];
-    playedPhotos = [];
   }
 
-  // Candidates = les que encara no han sortit. Tria directa, sense sortejos repetits.
-  const candidates = filteredPhotos.filter(f => !playedPhotos.includes(f));
-  if (candidates.length === 0) return null;
-
-  const randomPhoto = candidates[Math.floor(Math.random() * candidates.length)];
-  playedPhotos.push(randomPhoto);
-  currentPhotoIndex = filteredPhotos.indexOf(randomPhoto);
-  return randomPhoto;
+  const triada = candidates[Math.floor(Math.random() * candidates.length)];
+  jugades.push(triada);
+  ultimaFoto[photoFilter] = triada;
+  return triada;
 }
 
 /* ═══════════════════════════════════════════════════════
    CÀRREGA D'IMATGES
    ═══════════════════════════════════════════════════════ */
-function cargarImagenDesdeUrl(imageUrl, source){
+/* Atura el que hi hagi en marxa: temporitzador de memorització i arrossegament */
+function aturarPartida(){
+  clearTimeout(temporitzadorMemoritzar);
+  temporitzadorMemoritzar = null;
+  partidaActiva = false;
+  cancelarArrossegament();
+}
+
+/* Carrega una imatge. Si mentrestant se n'ha demanat una altra, aquesta s'ignora:
+   així una foto lenta no pot trepitjar la que l'usuari acaba de demanar. */
+function carregarImatge(imageUrl, { enCarregar, enError } = {}){
+  const id = ++idCarrega;
   currentPhotoId = imageUrl;
   updateFavButtons();
+
   const img = new Image();
   img.crossOrigin = 'anonymous';
   img.onload = () => {
+    if (id !== idCarrega) return;
     imagenActual = imageUrl;
-    photoWidth  = img.naturalWidth;
-    photoHeight = img.naturalHeight;
-    previewImg.onload = () => { log('Foto carregada'); iniciarPuzzle(); };
-    previewImg.src = imageUrl;
-    finalImage.src = imageUrl;
+    photoWidth   = img.naturalWidth;
+    photoHeight  = img.naturalHeight;
+    previewImg.src = imageUrl;      // finestra d'ajuda
+    finalImage.src = imageUrl;      // finestra de victòria
+    if (enCarregar) enCarregar();
+    iniciarPuzzle();
   };
-  img.onerror = () => log('No s\'ha pogut carregar la foto', 6000);
+  img.onerror = () => {
+    if (id !== idCarrega) return;
+    if (enError) enError();
+    else log('No s\'ha pogut carregar la foto', 6000);
+  };
   img.src = imageUrl;
 }
 
+function cargarImagenDesdeUrl(imageUrl, source){
+  aturarPartida();
+  carregarImatge(imageUrl);
+}
+
 function carregarImagenAleatoria(){
+  aturarPartida();
   log('Carregant imatge…', 0);
   const seed = Math.floor(Math.random() * 1000000);
   // Demanem la imatge amb la proporció que toca segons l'orientació
   const mides = currentOrientation === 'portrait' ? '600/800' : '800/600';
-  const imageUrl = `https://picsum.photos/seed/puzzle${seed}/${mides}`;
-  currentPhotoId = imageUrl;
-  updateFavButtons();
-  const img = new Image();
-  img.crossOrigin = 'anonymous';
-  img.onload = () => {
-    imagenActual = imageUrl;
-    photoWidth  = img.naturalWidth;
-    photoHeight = img.naturalHeight;
-    previewImg.onload = () => {
-      log('Imatge carregada');
-      incrementPhotosPlayed();
-      iniciarPuzzle();
-    };
-    previewImg.src = imageUrl;
-    finalImage.src = imageUrl;
-  };
-  img.onerror = () => log('No s\'ha pogut carregar. Torna-ho a provar.', 6000);
-  img.src = imageUrl;
+
+  carregarImatge(`https://picsum.photos/seed/puzzle${seed}/${mides}`, {
+    enCarregar: () => { fotosInternet++; updateStats(); },
+    enError:    () => log('No s\'ha pogut carregar. Torna-ho a provar.', 6000)
+  });
 }
 
-async function carregarFotosGitHub(){
-  log('Carregant les teves fotos…', 0);
+async function carregarFotosGitHub(intent = 1){
+  aturarPartida();
+  if (intent === 1) log('Carregant les teves fotos…', 0);
+
+  let fotos;
   try{
-    const response = await fetch('Fotos/fotos.json');
-    if (!response.ok){
-      log('No hi ha fotos teves. Agafem una foto d\'Internet.', 6000);
-      return recorrerAInternet();
-    }
-
-    const data  = await response.json();
-    const fotos = data.fotos;
-    if (!fotos || fotos.length === 0){
-      log('No hi ha fotos teves. Agafem una foto d\'Internet.', 6000);
-      return recorrerAInternet();
-    }
-
-    gitHubPhotosCount = fotos.filter(f => f.startsWith(photoFilter)).length;
-
-    const fotoAleatoria = getNextPhoto(fotos);
-    if (!fotoAleatoria) return recorrerAInternet();  // getNextPhoto ja ha avisat
-
-    lastSource = 'github';
-    updateStats();
-    log(`${fotoAleatoria} · ${playedPhotos.length}/${gitHubPhotosCount}`);
-    incrementPhotosPlayed();
-    cargarImagenDesdeUrl(`Fotos/${fotoAleatoria}`, 'github');
-
+    const response = await fetch('Fotos/fotos.json', { cache: 'no-cache' });
+    if (!response.ok) throw new Error('HTTP ' + response.status);
+    const data = await response.json();
+    fotos = Array.isArray(data.fotos) ? data.fotos : [];
   } catch(err){
+    console.warn('fotos.json:', err);
     log('No s\'han pogut llegir les teves fotos. Agafem una d\'Internet.', 6000);
-    recorrerAInternet();
+    return recorrerAInternet();
   }
+
+  if (fotos.length === 0){
+    log('No hi ha fotos teves. Agafem una foto d\'Internet.', 6000);
+    return recorrerAInternet();
+  }
+
+  gitHubPhotosCount = fotos.filter(f => f.startsWith(photoFilter)).length;
+
+  const fotoAleatoria = getNextPhoto(fotos);
+  if (!fotoAleatoria) return recorrerAInternet();  // getNextPhoto ja ha avisat
+
+  lastSource = 'github';
+  updateStats();
+  log(`${fotoAleatoria} · ${fotosJugades[photoFilter].length}/${gitHubPhotosCount}`);
+
+  carregarImatge(`Fotos/${encodeURIComponent(fotoAleatoria)}`, {
+    enError: () => {
+      // Una foto que no s'obre no ha d'aturar el joc: en provem una altra
+      if (intent < MAX_INTENTS_FOTOS){
+        log(`No s'ha pogut obrir ${fotoAleatoria}. Provem-ne una altra.`);
+        carregarFotosGitHub(intent + 1);
+      } else {
+        log('No s\'han pogut obrir les teves fotos. Agafem una d\'Internet.', 6000);
+        recorrerAInternet();
+      }
+    }
+  });
 }
 
 /* Recanvi: només s'hi arriba quan no hi ha cap foto local utilitzable */
@@ -1321,216 +1417,217 @@ refreshBtn.addEventListener('click', () => {
 /* ═══════════════════════════════════════════════════════
    CONSTRUCCIÓ DEL TRENCACLOSQUES
    ═══════════════════════════════════════════════════════ */
+/* Fisher-Yates; si per atzar surt l'ordre correcte, es torna a barrejar */
+function barrejar(total){
+  const o = Array.from({ length: total }, (_, i) => i);
+  if (total < 2) return o;
+  do {
+    for (let i = total - 1; i > 0; i--){
+      const j = Math.floor(Math.random() * (i + 1));
+      [o[i], o[j]] = [o[j], o[i]];
+    }
+  } while (o.every((peca, pos) => peca === pos));
+  return o;
+}
+
 function iniciarPuzzle(){
   if (!imagenActual){ log('Carrega una imatge primer'); return; }
+  aturarPartida();
 
-  divisions = parseInt(divisionsSelect.value);
   const total = divisions * divisions;
-  log(`Creant trencaclosques ${divisions}×${divisions}…`, 0);
+  ordre = barrejar(total);
+  fixat = ordre.map((peca, pos) => peca === pos);  // les encertades per atzar ja surten fixades
 
-  const maxCanvasWidth = 800, maxCanvasHeight = 800;
-  let canvasWidth = photoWidth, canvasHeight = photoHeight;
+  currentCanvasWidth  = photoWidth;
+  currentCanvasHeight = photoHeight;
 
-  if (canvasWidth > maxCanvasWidth || canvasHeight > maxCanvasHeight){
-    const scale = Math.min(maxCanvasWidth / canvasWidth, maxCanvasHeight / canvasHeight);
-    canvasWidth  *= scale;
-    canvasHeight *= scale;
-  }
+  puzzleContainer.style.setProperty('--foto', `url(${JSON.stringify(imagenActual)})`);
+  puzzleContainer.style.setProperty('--n', divisions);
 
-  const canvas = document.createElement('canvas');
-  canvas.width = canvasWidth;
-  canvas.height = canvasHeight;
-  const ctx = canvas.getContext('2d');
-
-  try{
-    ctx.drawImage(previewImg, 0, 0, canvasWidth, canvasHeight);
-  } catch(e){
-    log('No s\'ha pogut dibuixar la imatge', 6000);
-    return;
-  }
-
-  pecesDataURL = [];
-  const pieceWidth  = canvasWidth / divisions;
-  const pieceHeight = canvasHeight / divisions;
-
-  for (let row = 0; row < divisions; row++){
-    for (let col = 0; col < divisions; col++){
-      const pieceCanvas = document.createElement('canvas');
-      pieceCanvas.width  = pieceWidth;
-      pieceCanvas.height = pieceHeight;
-      pieceCanvas.getContext('2d').drawImage(
-        canvas,
-        col * pieceWidth, row * pieceHeight, pieceWidth, pieceHeight,
-        0, 0, pieceWidth, pieceHeight
-      );
-      pecesDataURL.push(pieceCanvas.toDataURL());
-    }
-  }
-
-  ordre = Array.from({length: total}, (_, i) => i);
-  for (let i = total - 1; i > 0; i--){
-    const j = Math.floor(Math.random() * (i + 1));
-    [ordre[i], ordre[j]] = [ordre[j], ordre[i]];
-  }
-  fixat = new Array(total).fill(false);
-
-  currentCanvasWidth  = canvasWidth;
-  currentCanvasHeight = canvasHeight;
-  currentPieceWidth   = pieceWidth;
-  currentPieceHeight  = pieceHeight;
-
-  // Mostrem la foto sencera abans de trencar-la
+  // Primer la foto sencera, per memoritzar-la
   puzzleContainer.innerHTML = '';
   puzzleContainer.style.gridTemplateColumns = '1fr';
-  puzzleContainer.style.aspectRatio = `${canvasWidth} / ${canvasHeight}`;
+  puzzleContainer.style.gridTemplateRows    = '1fr';
+  const sencera = document.createElement('div');
+  sencera.className = 'sencera';
+  puzzleContainer.appendChild(sencera);
   ajustarTauler();
-
-  const senceraDiv = document.createElement('div');
-  senceraDiv.style.width = '100%';
-  senceraDiv.style.height = '100%';
-  senceraDiv.style.backgroundImage = `url('${imagenActual}')`;
-  senceraDiv.style.backgroundSize = '100% 100%';
-  senceraDiv.style.borderRadius = '14px';
-  puzzleContainer.appendChild(senceraDiv);
 
   log('Memoritza la imatge…', 0);
 
-  setTimeout(() => {
-    renderitzarPuzzle(true, canvasWidth, canvasHeight, pieceWidth, pieceHeight);
+  temporitzadorMemoritzar = setTimeout(() => {
+    temporitzadorMemoritzar = null;
+    renderitzarPuzzle(true);
+    partidaActiva = true;
     log('Arrossega les peces!');
-  }, 2500);
+  }, TEMPS_MEMORITZAR);
 }
 
-function renderitzarPuzzle(animate = false, canvasWidth = null, canvasHeight = null, pieceWidth = null, pieceHeight = null){
-  if (canvasWidth  === null) canvasWidth  = currentCanvasWidth;
-  if (canvasHeight === null) canvasHeight = currentCanvasHeight;
-  if (pieceWidth   === null) pieceWidth   = currentPieceWidth;
-  if (pieceHeight  === null) pieceHeight  = currentPieceHeight;
-
+function renderitzarPuzzle(animate = false){
   const total = divisions * divisions;
   puzzleContainer.innerHTML = '';
   puzzleContainer.style.gridTemplateColumns = `repeat(${divisions}, 1fr)`;
-  puzzleContainer.style.aspectRatio = `${canvasWidth} / ${canvasHeight}`;
-  ajustarTauler();
+  puzzleContainer.style.gridTemplateRows    = `repeat(${divisions}, 1fr)`;
 
-  for (let i = 0; i < total; i++){
-    const pecaIndex = ordre[i];
+  const fragment = document.createDocumentFragment();
+  for (let pos = 0; pos < total; pos++){
     const piece = document.createElement('div');
     piece.className = 'puzzle-piece';
-    piece.classList.add(fixat[i] ? 'fixed' : 'unfixed');
-    piece.style.backgroundImage = `url('${pecesDataURL[pecaIndex]}')`;
-    piece.style.backgroundSize = '100% 100%';
-    piece.dataset.posicio = i;
-
+    piece.dataset.posicio = pos;
+    pintarPeca(piece, pos);
     if (animate && isAnimationsEnabled){
       piece.classList.add(getRandomAnimation());
-      piece.style.animationDelay = (i * 0.05) + 's';
+      piece.style.animationDelay = (pos * 0.05) + 's';
     }
-
-    if (!fixat[i]){
-      piece.draggable = true;
-      piece.addEventListener('dragstart', handleDragStart);
-      piece.addEventListener('dragover',  handleDragOver);
-      piece.addEventListener('drop',      handleDrop);
-      piece.addEventListener('dragend',   handleDragEnd);
-      piece.addEventListener('touchstart',handleTouchStart);
-      piece.addEventListener('touchmove', handleTouchMove);
-      piece.addEventListener('touchend',  handleTouchEnd);
-    }
-    puzzleContainer.appendChild(piece);
+    fragment.appendChild(piece);
   }
+  puzzleContainer.appendChild(fragment);
+  ajustarTauler();
 }
 
+/* Ensenya a la posició 'pos' el tros de foto que li toca */
+function pintarPeca(el, pos){
+  const peca = ordre[pos];
+  const col  = peca % divisions;
+  const fila = Math.floor(peca / divisions);
+  const pas  = divisions > 1 ? 100 / (divisions - 1) : 0;
+  el.style.backgroundPosition = `${col * pas}% ${fila * pas}%`;
+  el.classList.toggle('fixed',   fixat[pos]);
+  el.classList.toggle('unfixed', !fixat[pos]);
+  el.draggable = !fixat[pos];
+}
+
+/* Intercanvia dues posicions: només se'n repinten dues peces, no tot el tauler */
+function intercanviar(a, b){
+  if (!partidaActiva || a === b || fixat[a] || fixat[b]) return;
+  [ordre[a], ordre[b]] = [ordre[b], ordre[a]];
+  fixat[a] = ordre[a] === a;
+  fixat[b] = ordre[b] === b;
+  for (const pos of [a, b]){
+    const el = puzzleContainer.children[pos];
+    el.classList.remove(...animationTypes);
+    el.style.animationDelay = '';
+    el.style.opacity = '';
+    pintarPeca(el, pos);
+  }
+  comprovarVictoria();
+}
+
+// Quan acaba l'animació d'entrada es treu la classe, perquè no molesti l'arrossegament
+puzzleContainer.addEventListener('animationend', e => {
+  const peca = e.target;
+  if (!peca.classList || !peca.classList.contains('puzzle-piece')) return;
+  peca.classList.remove(...animationTypes);
+  peca.style.animationDelay = '';
+});
+
 /* ═══════════════════════════════════════════════════════
-   ARROSSEGAR — ratolí
+   ARROSSEGAR — ratolí (un sol gestor per a tot el tauler)
    ═══════════════════════════════════════════════════════ */
 let origenIndex = null;
 
-function handleDragStart(e){
-  origenIndex = parseInt(e.target.dataset.posicio);
+puzzleContainer.addEventListener('dragstart', e => {
+  const peca = e.target.closest && e.target.closest('.puzzle-piece');
+  if (!partidaActiva || !peca || fixat[+peca.dataset.posicio]){ e.preventDefault(); return; }
+  origenIndex = +peca.dataset.posicio;
   e.dataTransfer.effectAllowed = 'move';
-  e.target.style.opacity = '0.5';
-}
-function handleDragOver(e){ e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }
-function handleDrop(e){
+  e.dataTransfer.setData('text/plain', String(origenIndex));
+  peca.style.opacity = '0.5';
+});
+
+puzzleContainer.addEventListener('dragover', e => {
+  if (origenIndex === null) return;
   e.preventDefault();
-  const destiPiece = e.target.closest('.puzzle-piece');
-  if (!destiPiece || fixat[destiPiece.dataset.posicio]) return;
-  const destiIndex = parseInt(destiPiece.dataset.posicio);
-  if (origenIndex === null || origenIndex === destiIndex) return;
-  [ordre[origenIndex], ordre[destiIndex]] = [ordre[destiIndex], ordre[origenIndex]];
-  for (let i = 0; i < ordre.length; i++) fixat[i] = (ordre[i] === i);
-  renderitzarPuzzle(false);
-  comprovarVictoria();
+  e.dataTransfer.dropEffect = 'move';
+});
+
+puzzleContainer.addEventListener('drop', e => {
+  e.preventDefault();
+  const desti = e.target.closest && e.target.closest('.puzzle-piece');
+  if (desti && origenIndex !== null) intercanviar(origenIndex, +desti.dataset.posicio);
+});
+
+puzzleContainer.addEventListener('dragend', e => {
+  if (e.target.style) e.target.style.opacity = '';
   origenIndex = null;
-}
-function handleDragEnd(e){ e.target.style.opacity = '1'; }
+});
 
 /* ═══════════════════════════════════════════════════════
-   ARROSSEGAR — tàctil
+   ARROSSEGAR — tàctil (un sol dit alhora)
    ═══════════════════════════════════════════════════════ */
 let touchPiece = null;
 let floatingClone = null;
 
-function handleTouchStart(e){
-  touchPiece = e.target.closest('.puzzle-piece');
-  if (!touchPiece || fixat[touchPiece.dataset.posicio]) return;
-  floatingClone = touchPiece.cloneNode(true);
-  floatingClone.style.position = 'fixed';
-  floatingClone.style.zIndex = '1001';
-  floatingClone.style.pointerEvents = 'none';
-  floatingClone.style.boxShadow = '0 0 0 3px rgba(255,209,102,.9), 0 12px 26px rgba(0,0,0,.5)';
-  floatingClone.classList.add('unfixed');
-  const rect = touchPiece.getBoundingClientRect();
-  floatingClone.style.left = rect.left + 'px';
-  floatingClone.style.top = rect.top + 'px';
-  floatingClone.style.width = rect.width + 'px';
-  floatingClone.style.height = rect.height + 'px';
-  document.body.appendChild(floatingClone);
-  touchPiece.style.opacity = '0.3';
-}
-
-function handleTouchMove(e){
-  if (!floatingClone) return;
-  e.preventDefault();
-  const touch = e.touches[0];
-  const rect = floatingClone.getBoundingClientRect();
-  floatingClone.style.left = (touch.clientX - rect.width / 2) + 'px';
-  floatingClone.style.top  = (touch.clientY - rect.height / 2) + 'px';
-}
-
-function handleTouchEnd(e){
-  if (!touchPiece || !floatingClone) return;
-  const touch = e.changedTouches[0];
-  const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
-  const destiPiece = targetElement ? targetElement.closest('.puzzle-piece') : null;
-
-  if (destiPiece && destiPiece !== touchPiece && !fixat[destiPiece.dataset.posicio]){
-    const origen = parseInt(touchPiece.dataset.posicio);
-    const desti  = parseInt(destiPiece.dataset.posicio);
-    [ordre[origen], ordre[desti]] = [ordre[desti], ordre[origen]];
-    for (let i = 0; i < ordre.length; i++) fixat[i] = (ordre[i] === i);
-    renderitzarPuzzle(false);
-    comprovarVictoria();
-  } else {
-    touchPiece.style.opacity = '1';
-  }
-  document.body.removeChild(floatingClone);
+/* Deixa-ho tot net: s'usa en acabar, en cancel·lar i en obrir una finestra */
+function cancelarArrossegament(){
+  if (floatingClone) floatingClone.remove();
+  if (touchPiece) touchPiece.style.opacity = '';
   floatingClone = null;
   touchPiece = null;
+  origenIndex = null;
 }
+
+puzzleContainer.addEventListener('touchstart', e => {
+  if (floatingClone || !partidaActiva || e.touches.length > 1) return;
+  const peca = e.target.closest('.puzzle-piece.unfixed');
+  if (!peca) return;
+
+  const r  = peca.getBoundingClientRect();
+  const cs = getComputedStyle(peca);
+  const clon = peca.cloneNode(false);
+  clon.classList.remove(...animationTypes);
+  clon.classList.add('floating');
+  // El clon viu fora del tauler, on no arriba la variable --foto: la hi copiem resolta
+  Object.assign(clon.style, {
+    left: r.left + 'px', top: r.top + 'px',
+    width: r.width + 'px', height: r.height + 'px',
+    backgroundImage: cs.backgroundImage,
+    backgroundSize:  cs.backgroundSize,
+    animationDelay: '', opacity: ''
+  });
+  document.body.appendChild(clon);
+
+  floatingClone = clon;
+  touchPiece = peca;
+  peca.style.opacity = '0.3';
+}, { passive: true });
+
+puzzleContainer.addEventListener('touchmove', e => {
+  if (!floatingClone) return;
+  e.preventDefault();
+  const t = e.touches[0];
+  const w = parseFloat(floatingClone.style.width);
+  const h = parseFloat(floatingClone.style.height);
+  floatingClone.style.left = (t.clientX - w / 2) + 'px';
+  floatingClone.style.top  = (t.clientY - h / 2) + 'px';
+}, { passive: false });
+
+puzzleContainer.addEventListener('touchend', e => {
+  if (!floatingClone || !touchPiece) return;
+  const t = e.changedTouches[0];
+  const origen = +touchPiece.dataset.posicio;
+  const sota   = document.elementFromPoint(t.clientX, t.clientY);
+  const desti  = sota ? sota.closest('.puzzle-piece') : null;
+  cancelarArrossegament();
+  if (desti && puzzleContainer.contains(desti)) intercanviar(origen, +desti.dataset.posicio);
+});
+
+// Si el sistema interromp el gest (una trucada, un gest d'iOS), no queda cap peça enganxada
+puzzleContainer.addEventListener('touchcancel', cancelarArrossegament);
 
 /* ═══════════════════════════════════════════════════════
    VICTÒRIA
    ═══════════════════════════════════════════════════════ */
 function comprovarVictoria(){
-  if (fixat.every(v => v === true)){
+  const correctes = fixat.filter(Boolean).length;
+  if (correctes === fixat.length){
+    partidaActiva = false;
     log('Visca!');
     incrementGamesPlayed();          // només compta si s'ha resolt
+    if (modalObert) tancarModal(modalObert);
     victoryOverlay.classList.add('active');
   } else {
-    const correctes = fixat.filter(v => v).length;
-    log(`${correctes}/${ordre.length} peces al seu lloc`);
+    log(`${correctes}/${fixat.length} peces al seu lloc`);
   }
 }
 
@@ -1540,22 +1637,62 @@ victoryBtn.addEventListener('click', () => {
   carregarUltima();
 });
 
-function actualitzarEtiquetaDivisions(){
-  const opcio = divisionsSelect.options[divisionsSelect.selectedIndex];
-  document.getElementById('divisionsLabel').textContent = opcio ? opcio.text : '';
+/* ═══════════════════════════════════════════════════════
+   NOMBRE DE PECES
+   Finestra pròpia amb vista prèvia de la graella, en lloc
+   del desplegable del sistema (que no segueix el disseny).
+   ═══════════════════════════════════════════════════════ */
+function construirTriaMides(){
+  MIDES_POSSIBLES.forEach(n => {
+    const boto = document.createElement('button');
+    boto.type = 'button';
+    boto.className = 'size-option';
+    boto.dataset.n = n;
+    boto.setAttribute('role', 'radio');
+
+    const mini = document.createElement('div');
+    mini.className = 'mini';
+    mini.style.gridTemplateColumns = `repeat(${n}, 1fr)`;
+    mini.setAttribute('aria-hidden', 'true');
+    for (let i = 0; i < n * n; i++) mini.appendChild(document.createElement('i'));
+
+    const text = document.createElement('span');
+    text.textContent = `${n}×${n}`;
+
+    boto.append(mini, text);
+    boto.addEventListener('click', () => triarMida(n));
+    sizeGrid.appendChild(boto);
+  });
 }
 
-divisionsSelect.addEventListener('change', () => {
+function actualitzarEtiquetaDivisions(){
+  divisionsLabel.textContent = `${divisions}×${divisions}`;
+  divisionsBtn.setAttribute('aria-label', `Nombre de peces: ${divisions}×${divisions}`);
+  sizeGrid.querySelectorAll('.size-option').forEach(boto => {
+    boto.setAttribute('aria-checked', Number(boto.dataset.n) === divisions ? 'true' : 'false');
+  });
+}
+
+function triarMida(n){
+  const canvia = n !== divisions;
+  divisions = n;
+  localStorage.setItem('divisions', n);
   actualitzarEtiquetaDivisions();
-  if (imagenActual) iniciarPuzzle();
+  tancarModal(sizeOverlay);
+  if (canvia && imagenActual) iniciarPuzzle();
+}
+
+divisionsBtn.addEventListener('click', () => {
+  actualitzarEtiquetaDivisions();
+  obrirModal(sizeOverlay);
 });
 
 /* ═══════════════════════════════════════════════════════
    ORIENTACIÓ EN VIU
    ═══════════════════════════════════════════════════════ */
-window.addEventListener('resize', () => { detectOrientation(); ajustarTauler(); });
+window.addEventListener('resize', () => { detectOrientation(); programarAjust(); });
 window.addEventListener('orientationchange', () => setTimeout(() => {
-  detectOrientation(); ajustarTauler();
+  detectOrientation(); programarAjust();
 }, 120));
 
 /* ═══════════════════════════════════════════════════════
@@ -1564,7 +1701,12 @@ window.addEventListener('orientationchange', () => setTimeout(() => {
 loadFavorites();
 initTheme();
 initAnimations();
+
+const midaDesada = parseInt(localStorage.getItem('divisions'), 10);
+if (MIDES_POSSIBLES.includes(midaDesada)) divisions = midaDesada;
+construirTriaMides();
 actualitzarEtiquetaDivisions();
+
 localStorage.removeItem('showInfo');   // preferència antiga, ja no s'usa
 
 detectAppContext();
@@ -1586,6 +1728,13 @@ updateFavButtons();
 updateStats();
 
 carregarFotosGitHub();
+
+// Service worker: permet instal·lar l'app i obrir-la sense connexió
+if ('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(err => console.warn('Service worker:', err));
+  });
+}
 </script>
 </body>
 </html>
