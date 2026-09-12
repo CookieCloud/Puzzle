@@ -1,7 +1,13 @@
 <!DOCTYPE html>
 <!--
     TRENCACLOSQUES — PWA
-    Version: 3.11  ·  Disseny "Barra de Joc" (Proposta C)
+    Version: 3.12  ·  Disseny "Barra de Joc" (Proposta C)
+
+    CANVIS v3.12
+    - Botó d'orientació: la icona es queda blanca sobre el seu color amb qualsevol
+      opció triada (abans, amb les opcions fixades, quedava fosca sobre groc)
+    - Informació: el xip "© Gerard M." hi surt sempre; quan la foto ve d'Internet
+      s'hi afegeix un xip a part que ho indica
 
     CANVIS v3.11
     - Icona pròpia (peça de trencaclosques amb la "g") al costat del títol
@@ -438,6 +444,7 @@ body.day .select:active{
 @media (prefers-reduced-motion:reduce){ .log{transition:opacity .2s} }
 
 /* ── xips d'estadístiques ───────────────────────────── */
+.chip[hidden]{display:none}
 .stats{display:flex;gap:6px;margin:4px 0 12px;flex-wrap:wrap;justify-content:center}
 .chip{
   display:flex;align-items:center;gap:7px;padding:8px 14px;border-radius:99px;
@@ -767,7 +774,7 @@ body.landscape-mode .spacer{min-width:0;min-height:10px}
       <span class="divider">·</span>
       <a href="terms-of-service.html" target="_blank">Condicions del Servei</a>
       <span class="divider">·</span>
-      <span class="version" id="version">v3.10</span>
+      <span class="version" id="version">v3.12</span>
     </div>
   </footer>
 </div>
@@ -848,9 +855,13 @@ body.landscape-mode .spacer{min-width:0;min-height:10px}
         <span class="material-symbols-rounded" id="orientIcon" style="color:#a855f7">stay_current_portrait</span>
         <span id="orientLabel">Vertical</span>
       </span>
+      <span class="chip" id="internetChip" hidden>
+        <span class="material-symbols-rounded" style="color:#0ea5e9">travel_explore</span>
+        Fotos d'Internet
+      </span>
       <span class="chip">
-        <span class="material-symbols-rounded" id="sourceIcon" style="color:#0ea5e9">travel_explore</span>
-        <span id="currentSource">Internet</span>
+        <span class="material-symbols-rounded" style="color:#22c55e">photo_library</span>
+        &copy; Gerard M.
       </span>
     </div>
 
@@ -1304,8 +1315,9 @@ function construirOpcionsOrientacio(){
 
 function applyOrientationState(){
   const op = OPCIONS_ORIENTACIO.find(o => o.id === orientationMode) || OPCIONS_ORIENTACIO[0];
-  setIcon(orientationBtn, op.icona);                       // la icona ensenya què hi ha triat
-  orientationBtn.classList.toggle('on', orientationMode !== 'auto');
+  // La icona ja diu quina opció hi ha triada, així que el botó no canvia de color:
+  // es queda amb el seu blau i la icona blanca amb les quatre opcions.
+  setIcon(orientationBtn, op.icona);
   orientationBtn.title = `Orientació: ${op.titol.toLowerCase()}`;
   orientationBtn.setAttribute('aria-label', orientationBtn.title);
   orientList.querySelectorAll('.opt').forEach(boto => {
@@ -1345,30 +1357,22 @@ function updateStats(){
   document.getElementById('gamesPlayed').textContent = gamesPlayed;
   document.getElementById('favCount').textContent    = favorites.length;
 
-  const srcIcon  = document.getElementById('sourceIcon');
-  const srcLabel = document.getElementById('currentSource');
   let vistes;
 
   // Cada font porta el seu recompte, perquè el xip no digui mai "9/4"
   if (lastSource === 'fav'){
     vistes = playedFavorites.length;
     totalPhotos = favoritesForOrientation().length || '∞';
-    srcIcon.textContent = 'favorite';
-    srcIcon.style.color = '#e11d48';
-    srcLabel.textContent = 'Preferides';
   } else if (lastSource === 'github'){
     vistes = fotosJugades[photoFilter].length;
     totalPhotos = gitHubPhotosCount || '∞';
-    srcIcon.textContent = 'photo_library';
-    srcIcon.style.color = '#22c55e';
-    srcLabel.textContent = '\u00A9 Gerard M.';
   } else {
     vistes = fotosInternet;
     totalPhotos = '∞';
-    srcIcon.textContent = 'travel_explore';
-    srcIcon.style.color = '#0ea5e9';
-    srcLabel.textContent = 'Internet';
   }
+
+  // El xip d'Internet només surt quan la foto no és teva
+  document.getElementById('internetChip').hidden = (lastSource !== 'picsum');
   document.getElementById('photosPlayed').textContent = vistes;
   document.getElementById('totalPhotos').textContent  = totalPhotos;
 

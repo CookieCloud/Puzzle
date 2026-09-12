@@ -1,6 +1,6 @@
 /*
     TRENCACLOSQUES — Service worker
-    Version: 3.11
+    Version: 3.10
 
     Estratègia
     - Pàgina, manifest i fotos.json: primer la xarxa (sempre la darrera versió),
@@ -10,7 +10,7 @@
       Es guarden com a màxim MAX_FOTOS per no omplir el dispositiu.
     - Fotos d'Internet (Picsum): no es desen; són aleatòries.
 */
-const VERSIO     = 'v3.11';
+const VERSIO     = 'v3.10';
 const CAU_APP    = `trencaclosques-app-${VERSIO}`;
 const CAU_FOTOS  = 'trencaclosques-fotos';
 const CAU_FONTS  = 'trencaclosques-fonts';
